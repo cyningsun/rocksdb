@@ -870,6 +870,7 @@ set(SOURCES
         trace_replay/trace_record_result.cc
         trace_replay/trace_record.cc
         trace_replay/trace_replay.cc
+        util/dbug.cc
         util/async_file_reader.cc
         util/cleanable.cc
         util/coding.cc
@@ -1448,6 +1449,7 @@ if(WITH_TESTS)
         tools/reduce_levels_test.cc
         tools/sst_dump_test.cc
         tools/trace_analyzer_test.cc
+        util/dbug.cc
         util/autovector_test.cc
         util/bloom_test.cc
         util/coding_test.cc
