@@ -131,7 +131,7 @@ def process_files(directory, debug_header, debug_code):
 
     file_patterns = ['**/*.hpp', '**/*.h', '**/*.cc', '**/*.cpp']
     #file_patterns = ['**/*.cc', '**/*.cpp']
-    skip_patterns = ['.*/dbug.h', '.*/dbug.cc']
+    skip_patterns = ['.*/dbug.h', '.*/dbug.cc', '.*/.*test.cc', '.*/.*test\w.cc']
     file_count = 0
     for pattern in file_patterns:
         for file_path in glob.iglob(os.path.join(directory, pattern), recursive=True):
