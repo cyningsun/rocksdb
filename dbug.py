@@ -191,7 +191,7 @@ def split_command(command):
         if skip_next:
             skip_next = False
             continue
-        if arg in ['-c', '-o', '-march=native', '-Werror', '-fno-builtin-memcmp']:
+        if arg in ['-c', '-o', '-march=native', '-Werror', '-fno-builtin-memcmp', '-save-temps']:
             if arg in ['-c', '-o']:
                 skip_next = True  # Skip the next argument (the output file)
             continue
