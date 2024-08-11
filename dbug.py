@@ -8,7 +8,8 @@ import argparse
 from clang import cindex
 import glob
 
-cindex.Config.set_library_file("/usr/local/opt/llvm/lib/libclang.dylib")
+#cindex.Config.set_library_file("/usr/local/opt/llvm/lib/libclang.dylib")
+cindex.Config.set_library_file("/usr/lib/llvm-14/lib/libclang.so.1")
 
 def get_function_body_lines(node):
     start_line = None
