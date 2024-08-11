@@ -204,7 +204,7 @@ def is_file_in_directory(file_path, directory):
     # 获取文件的绝对路径
     file_path = os.path.abspath(file_path)
     # 获取目录的绝对路径
-    directory = os.path.abspath(directory)
+    directory = os.path.abspath(directory) + os.path.sep
 
     # 判断文件路径是否以目录路径开头
     return file_path.startswith(directory)
