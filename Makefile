@@ -2629,3 +2629,7 @@ ROCKS_DEP_RULES=$(filter-out clean format check-format check-buck-targets check-
 ifneq ("$(ROCKS_DEP_RULES)", "")
 -include $(DEPFILES)
 endif
+
+
+DBUG:
+	python3 dbug.py ./build/compile_commands.json ./ "#include \"rocksdb/util/dbug.h\"" "DBUG_TRACE;"

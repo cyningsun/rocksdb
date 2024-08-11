@@ -81,6 +81,10 @@ if(NOT CMAKE_BUILD_TYPE)
     "Default BUILD_TYPE is ${default_build_type}" FORCE)
 endif()
 
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -save-temps")
+endif()
+
 find_program(CCACHE_FOUND ccache)
 if(CCACHE_FOUND)
   set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
