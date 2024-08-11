@@ -96,7 +96,7 @@
 
 
 
-#include "dbug.h"
+#include "rocksdb/util/dbug.h"
 
 #ifdef HAVE_FNMATCH_H
 #include <fnmatch.h>
