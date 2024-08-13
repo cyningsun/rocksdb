@@ -4,6 +4,7 @@
 //  (found in the LICENSE.Apache file in the root directory).
 //
 
+#include "rocksdb/util/dbug.h"
 #include "table/block_based/uncompression_dict_reader.h"
 
 #include "logging/logging.h"
@@ -18,6 +19,7 @@ Status UncompressionDictReader::Create(
     FilePrefetchBuffer* prefetch_buffer, bool use_cache, bool prefetch,
     bool pin, BlockCacheLookupContext* lookup_context,
     std::unique_ptr<UncompressionDictReader>* uncompression_dict_reader) {
+  DBUG_TRACE;
   assert(table);
   assert(table->get_rep());
   assert(!pin || prefetch);
@@ -48,6 +50,7 @@ Status UncompressionDictReader::ReadUncompressionDictionary(
     const ReadOptions& read_options, bool use_cache, GetContext* get_context,
     BlockCacheLookupContext* lookup_context,
     CachableEntry<UncompressionDict>* uncompression_dict) {
+  DBUG_TRACE;
   // TODO: add perf counter for compression dictionary read time
 
   assert(table);
@@ -80,6 +83,7 @@ Status UncompressionDictReader::GetOrReadUncompressionDictionary(
     FilePrefetchBuffer* prefetch_buffer, const ReadOptions& ro,
     GetContext* get_context, BlockCacheLookupContext* lookup_context,
     CachableEntry<UncompressionDict>* uncompression_dict) const {
+  DBUG_TRACE;
   assert(uncompression_dict);
 
   if (!uncompression_dict_.IsEmpty()) {
@@ -93,6 +97,7 @@ Status UncompressionDictReader::GetOrReadUncompressionDictionary(
 }
 
 size_t UncompressionDictReader::ApproximateMemoryUsage() const {
+  DBUG_TRACE;
   assert(!uncompression_dict_.GetOwnValue() ||
          uncompression_dict_.GetValue() != nullptr);
   size_t usage = uncompression_dict_.GetOwnValue()
@@ -109,6 +114,7 @@ size_t UncompressionDictReader::ApproximateMemoryUsage() const {
 }
 
 bool UncompressionDictReader::cache_dictionary_blocks() const {
+  DBUG_TRACE;
   assert(table_);
   assert(table_->get_rep());
 

@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "monitoring/histogram.h"
 
 #include <algorithm>
@@ -42,6 +43,7 @@ HistogramBucketMapper::HistogramBucketMapper() {
 }
 
 size_t HistogramBucketMapper::IndexForValue(const uint64_t value) const {
+  DBUG_TRACE;
   auto beg = bucketValues_.begin();
   auto end = bucketValues_.end();
   if (value >= maxBucketValue_) {
@@ -61,6 +63,7 @@ HistogramStat::HistogramStat() : num_buckets_(bucketMapper.BucketCount()) {
 }
 
 void HistogramStat::Clear() {
+  DBUG_TRACE;
   min_.store(bucketMapper.LastValue(), std::memory_order_relaxed);
   max_.store(0, std::memory_order_relaxed);
   num_.store(0, std::memory_order_relaxed);
@@ -71,9 +74,10 @@ void HistogramStat::Clear() {
   }
 }
 
-bool HistogramStat::Empty() const { return num() == 0; }
+bool HistogramStat::Empty() const { DBUG_TRACE; return num() == 0; }
 
 void HistogramStat::Add(uint64_t value) {
+  DBUG_TRACE;
   // This function is designed to be lock free, as it's in the critical path
   // of any operation. Each individual value is atomic and the order of updates
   // by concurrent threads is tolerable.
@@ -102,6 +106,7 @@ void HistogramStat::Add(uint64_t value) {
 }
 
 void HistogramStat::Merge(const HistogramStat& other) {
+  DBUG_TRACE;
   // This function needs to be performned with the outer lock acquired
   // However, atomic operation on every member is still need, since Add()
   // requires no lock and value update can still happen concurrently
@@ -125,9 +130,10 @@ void HistogramStat::Merge(const HistogramStat& other) {
   }
 }
 
-double HistogramStat::Median() const { return Percentile(50.0); }
+double HistogramStat::Median() const { DBUG_TRACE; return Percentile(50.0); }
 
 double HistogramStat::Percentile(double p) const {
+  DBUG_TRACE;
   double threshold = num() * (p / 100.0);
   uint64_t cumulative_sum = 0;
   for (unsigned int b = 0; b < num_buckets_; b++) {
@@ -160,6 +166,7 @@ double HistogramStat::Percentile(double p) const {
 }
 
 double HistogramStat::Average() const {
+  DBUG_TRACE;
   uint64_t cur_num = num();
   uint64_t cur_sum = sum();
   if (cur_num == 0) {
@@ -169,6 +176,7 @@ double HistogramStat::Average() const {
 }
 
 double HistogramStat::StandardDeviation() const {
+  DBUG_TRACE;
   double cur_num =
       static_cast<double>(num());  // Use double to avoid integer overflow
   double cur_sum = static_cast<double>(sum());
@@ -182,6 +190,7 @@ double HistogramStat::StandardDeviation() const {
 }
 
 std::string HistogramStat::ToString() const {
+  DBUG_TRACE;
   uint64_t cur_num = num();
   std::string r;
   char buf[1650];
@@ -229,6 +238,7 @@ std::string HistogramStat::ToString() const {
 }
 
 void HistogramStat::Data(HistogramData* const data) const {
+  DBUG_TRACE;
   assert(data);
   data->median = Median();
   data->percentile95 = Percentile(95);
@@ -242,39 +252,44 @@ void HistogramStat::Data(HistogramData* const data) const {
 }
 
 void HistogramImpl::Clear() {
+  DBUG_TRACE;
   std::lock_guard<std::mutex> lock(mutex_);
   stats_.Clear();
 }
 
-bool HistogramImpl::Empty() const { return stats_.Empty(); }
+bool HistogramImpl::Empty() const { DBUG_TRACE; return stats_.Empty(); }
 
-void HistogramImpl::Add(uint64_t value) { stats_.Add(value); }
+void HistogramImpl::Add(uint64_t value) { DBUG_TRACE; stats_.Add(value); }
 
 void HistogramImpl::Merge(const Histogram& other) {
+  DBUG_TRACE;
   if (strcmp(Name(), other.Name()) == 0) {
     Merge(*static_cast_with_check<const HistogramImpl>(&other));
   }
 }
 
 void HistogramImpl::Merge(const HistogramImpl& other) {
+  DBUG_TRACE;
   std::lock_guard<std::mutex> lock(mutex_);
   stats_.Merge(other.stats_);
 }
 
-double HistogramImpl::Median() const { return stats_.Median(); }
+double HistogramImpl::Median() const { DBUG_TRACE; return stats_.Median(); }
 
 double HistogramImpl::Percentile(double p) const {
+  DBUG_TRACE;
   return stats_.Percentile(p);
 }
 
-double HistogramImpl::Average() const { return stats_.Average(); }
+double HistogramImpl::Average() const { DBUG_TRACE; return stats_.Average(); }
 
 double HistogramImpl::StandardDeviation() const {
+  DBUG_TRACE;
   return stats_.StandardDeviation();
 }
 
-std::string HistogramImpl::ToString() const { return stats_.ToString(); }
+std::string HistogramImpl::ToString() const { DBUG_TRACE; return stats_.ToString(); }
 
-void HistogramImpl::Data(HistogramData* const data) const { stats_.Data(data); }
+void HistogramImpl::Data(HistogramData* const data) const { DBUG_TRACE; stats_.Data(data); }
 
 }  // namespace ROCKSDB_NAMESPACE

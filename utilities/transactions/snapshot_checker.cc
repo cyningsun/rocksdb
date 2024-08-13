@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "db/snapshot_checker.h"
 
 
@@ -18,6 +19,7 @@ WritePreparedSnapshotChecker::WritePreparedSnapshotChecker(
 
 SnapshotCheckerResult WritePreparedSnapshotChecker::CheckInSnapshot(
     SequenceNumber sequence, SequenceNumber snapshot_sequence) const {
+  DBUG_TRACE;
   bool snapshot_released = false;
   // TODO(myabandeh): set min_uncommitted
   bool in_snapshot = txn_db_->IsInSnapshot(
@@ -31,6 +33,7 @@ SnapshotCheckerResult WritePreparedSnapshotChecker::CheckInSnapshot(
 
 
 DisableGCSnapshotChecker* DisableGCSnapshotChecker::Instance() {
+  DBUG_TRACE;
   STATIC_AVOID_DESTRUCTION(DisableGCSnapshotChecker, instance);
   return &instance;
 }

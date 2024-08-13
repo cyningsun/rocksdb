@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "db/trim_history_scheduler.h"
 
 #include <cassert>
@@ -12,6 +13,7 @@
 namespace ROCKSDB_NAMESPACE {
 
 void TrimHistoryScheduler::ScheduleWork(ColumnFamilyData* cfd) {
+  DBUG_TRACE;
   std::lock_guard<std::mutex> lock(checking_mutex_);
   cfd->Ref();
   cfds_.push_back(cfd);
@@ -19,6 +21,7 @@ void TrimHistoryScheduler::ScheduleWork(ColumnFamilyData* cfd) {
 }
 
 ColumnFamilyData* TrimHistoryScheduler::TakeNextColumnFamily() {
+  DBUG_TRACE;
   std::lock_guard<std::mutex> lock(checking_mutex_);
   while (true) {
     if (cfds_.empty()) {
@@ -39,11 +42,13 @@ ColumnFamilyData* TrimHistoryScheduler::TakeNextColumnFamily() {
 }
 
 bool TrimHistoryScheduler::Empty() {
+  DBUG_TRACE;
   bool is_empty = is_empty_.load(std::memory_order_relaxed);
   return is_empty;
 }
 
 void TrimHistoryScheduler::Clear() {
+  DBUG_TRACE;
   ColumnFamilyData* cfd;
   while ((cfd = TakeNextColumnFamily()) != nullptr) {
     cfd->UnrefAndTryDelete();

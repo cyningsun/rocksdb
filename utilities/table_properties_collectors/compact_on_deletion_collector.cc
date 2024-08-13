@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "utilities/table_properties_collectors/compact_on_deletion_collector.h"
 
 #include <memory>
@@ -40,6 +41,7 @@ Status CompactOnDeletionCollector::AddUserKey(const Slice& /*key*/,
                                               EntryType type,
                                               SequenceNumber /*seq*/,
                                               uint64_t /*file_size*/) {
+  DBUG_TRACE;
   assert(!finished_);
   if (!bucket_size_ && !deletion_ratio_enabled_) {
     // This collector is effectively disabled
@@ -90,6 +92,7 @@ Status CompactOnDeletionCollector::AddUserKey(const Slice& /*key*/,
 
 Status CompactOnDeletionCollector::Finish(
     UserCollectedProperties* /*properties*/) {
+  DBUG_TRACE;
   if (!need_compaction_ && deletion_ratio_enabled_ && total_entries_ > 0) {
     double ratio = static_cast<double>(deletion_entries_) / total_entries_;
     need_compaction_ = ratio >= deletion_ratio_;
@@ -167,12 +170,14 @@ CompactOnDeletionCollectorFactory::CompactOnDeletionCollectorFactory(
 TablePropertiesCollector*
 CompactOnDeletionCollectorFactory::CreateTablePropertiesCollector(
     TablePropertiesCollectorFactory::Context /*context*/) {
+  DBUG_TRACE;
   return new CompactOnDeletionCollector(sliding_window_size_.load(),
                                         deletion_trigger_.load(),
                                         deletion_ratio_.load());
 }
 
 std::string CompactOnDeletionCollectorFactory::ToString() const {
+  DBUG_TRACE;
   std::ostringstream cfg;
   cfg << Name() << " (Sliding window size = " << sliding_window_size_.load()
       << " Deletion trigger = " << deletion_trigger_.load()
@@ -184,6 +189,7 @@ std::shared_ptr<CompactOnDeletionCollectorFactory>
 NewCompactOnDeletionCollectorFactory(size_t sliding_window_size,
                                      size_t deletion_trigger,
                                      double deletion_ratio) {
+  DBUG_TRACE;
   return std::shared_ptr<CompactOnDeletionCollectorFactory>(
       new CompactOnDeletionCollectorFactory(sliding_window_size,
                                             deletion_trigger, deletion_ratio));
@@ -192,6 +198,7 @@ NewCompactOnDeletionCollectorFactory(size_t sliding_window_size,
 namespace {
 static int RegisterTablePropertiesCollectorFactories(
     ObjectLibrary& library, const std::string& /*arg*/) {
+  DBUG_TRACE;
   library.AddFactory<TablePropertiesCollectorFactory>(
       CompactOnDeletionCollectorFactory::kClassName(),
       [](const std::string& /*uri*/,
@@ -221,6 +228,7 @@ static int RegisterTablePropertiesCollectorFactories(
 Status TablePropertiesCollectorFactory::CreateFromString(
     const ConfigOptions& options, const std::string& value,
     std::shared_ptr<TablePropertiesCollectorFactory>* result) {
+  DBUG_TRACE;
   static std::once_flag once;
   std::call_once(once, [&]() {
     RegisterTablePropertiesCollectorFactories(*(ObjectLibrary::Default().get()),

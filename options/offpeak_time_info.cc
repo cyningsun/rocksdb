@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "options/offpeak_time_info.h"
 
 #include "rocksdb/system_clock.h"
@@ -16,6 +17,7 @@ OffpeakTimeOption::OffpeakTimeOption(const std::string& offpeak_time_string) {
 
 void OffpeakTimeOption::SetFromOffpeakTimeString(
     const std::string& offpeak_time_string) {
+  DBUG_TRACE;
   const int old_start_time = daily_offpeak_start_time_utc;
   const int old_end_time = daily_offpeak_end_time_utc;
   if (TryParseTimeRangeString(offpeak_time_string, daily_offpeak_start_time_utc,
@@ -29,6 +31,7 @@ void OffpeakTimeOption::SetFromOffpeakTimeString(
 
 OffpeakTimeInfo OffpeakTimeOption::GetOffpeakTimeInfo(
     const int64_t& current_time) const {
+  DBUG_TRACE;
   OffpeakTimeInfo offpeak_time_info;
   if (daily_offpeak_start_time_utc == daily_offpeak_end_time_utc) {
     return offpeak_time_info;

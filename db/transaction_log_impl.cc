@@ -4,6 +4,7 @@
 //  (found in the LICENSE.Apache file in the root directory).
 
 
+#include "rocksdb/util/dbug.h"
 #include "db/transaction_log_impl.h"
 
 #include <cinttypes>
@@ -46,6 +47,7 @@ TransactionLogIteratorImpl::TransactionLogIteratorImpl(
 Status TransactionLogIteratorImpl::OpenLogFile(
     const WalFile* log_file,
     std::unique_ptr<SequentialFileReader>* file_reader) {
+  DBUG_TRACE;
   FileSystemPtr fs(options_->fs, io_tracer_);
   std::unique_ptr<FSSequentialFile> file;
   std::string fname;
@@ -73,6 +75,7 @@ Status TransactionLogIteratorImpl::OpenLogFile(
 }
 
 BatchResult TransactionLogIteratorImpl::GetBatch() {
+  DBUG_TRACE;
   assert(is_valid_);  //  cannot call in a non valid state.
   BatchResult result;
   result.sequence = current_batch_seq_;
@@ -80,11 +83,12 @@ BatchResult TransactionLogIteratorImpl::GetBatch() {
   return result;
 }
 
-Status TransactionLogIteratorImpl::status() { return current_status_; }
+Status TransactionLogIteratorImpl::status() { DBUG_TRACE; return current_status_; }
 
-bool TransactionLogIteratorImpl::Valid() { return started_ && is_valid_; }
+bool TransactionLogIteratorImpl::Valid() { DBUG_TRACE; return started_ && is_valid_; }
 
 bool TransactionLogIteratorImpl::RestrictedRead(Slice* record) {
+  DBUG_TRACE;
   // Don't read if no more complete entries to read from logs
   if (current_last_seq_ >= versions_->LastSequence()) {
     return false;
@@ -94,6 +98,7 @@ bool TransactionLogIteratorImpl::RestrictedRead(Slice* record) {
 
 void TransactionLogIteratorImpl::SeekToStartSequence(uint64_t start_file_index,
                                                      bool strict) {
+  DBUG_TRACE;
   Slice record;
   started_ = false;
   is_valid_ = false;
@@ -168,6 +173,7 @@ void TransactionLogIteratorImpl::SeekToStartSequence(uint64_t start_file_index,
 }
 
 void TransactionLogIteratorImpl::Next() {
+  DBUG_TRACE;
   if (!current_status_.ok()) {
     return;
   }
@@ -175,6 +181,7 @@ void TransactionLogIteratorImpl::Next() {
 }
 
 void TransactionLogIteratorImpl::NextImpl(bool internal) {
+  DBUG_TRACE;
   Slice record;
   is_valid_ = false;
   if (!internal && !started_) {
@@ -228,6 +235,7 @@ void TransactionLogIteratorImpl::NextImpl(bool internal) {
 
 bool TransactionLogIteratorImpl::IsBatchExpected(
     const WriteBatch* batch, const SequenceNumber expected_seq) {
+  DBUG_TRACE;
   assert(batch);
   SequenceNumber batchSeq = WriteBatchInternal::Sequence(batch);
   if (batchSeq != expected_seq) {
@@ -244,6 +252,7 @@ bool TransactionLogIteratorImpl::IsBatchExpected(
 }
 
 void TransactionLogIteratorImpl::UpdateCurrentWriteBatch(const Slice& record) {
+  DBUG_TRACE;
   std::unique_ptr<WriteBatch> batch(new WriteBatch());
   Status s = WriteBatchInternal::SetContents(batch.get(), record);
   s.PermitUncheckedError();  // TODO: What should we do with this error?
@@ -282,6 +291,7 @@ void TransactionLogIteratorImpl::UpdateCurrentWriteBatch(const Slice& record) {
 }
 
 Status TransactionLogIteratorImpl::OpenLogReader(const WalFile* log_file) {
+  DBUG_TRACE;
   std::unique_ptr<SequentialFileReader> file;
   Status s = OpenLogFile(log_file, &file);
   if (!s.ok()) {

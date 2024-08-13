@@ -4,6 +4,7 @@
 //  (found in the LICENSE.Apache file in the root directory).
 
 
+#include "rocksdb/util/dbug.h"
 #include "file/delete_scheduler.h"
 
 #include <cinttypes>
@@ -61,6 +62,7 @@ DeleteScheduler::~DeleteScheduler() {
 Status DeleteScheduler::DeleteFile(const std::string& file_path,
                                    const std::string& dir_to_sync,
                                    const bool force_bg) {
+  DBUG_TRACE;
   uint64_t total_size = sst_file_manager_->GetTotalSize();
   if (rate_bytes_per_sec_.load() <= 0 ||
       (!force_bg &&
@@ -87,6 +89,7 @@ Status DeleteScheduler::DeleteUnaccountedFile(const std::string& file_path,
                                               const std::string& dir_to_sync,
                                               const bool force_bg,
                                               std::optional<int32_t> bucket) {
+  DBUG_TRACE;
   uint64_t num_hard_links = 1;
   fs_->NumFileLinks(file_path, IOOptions(), &num_hard_links, nullptr)
       .PermitUncheckedError();
@@ -108,6 +111,7 @@ Status DeleteScheduler::DeleteUnaccountedFile(const std::string& file_path,
 
 Status DeleteScheduler::DeleteFileImmediately(const std::string& file_path,
                                               bool accounted) {
+  DBUG_TRACE;
   TEST_SYNC_POINT("DeleteScheduler::DeleteFile");
   TEST_SYNC_POINT_CALLBACK("DeleteScheduler::DeleteFile::cb",
                            const_cast<std::string*>(&file_path));
@@ -124,6 +128,7 @@ Status DeleteScheduler::AddFileToDeletionQueue(const std::string& file_path,
                                                const std::string& dir_to_sync,
                                                std::optional<int32_t> bucket,
                                                bool accounted) {
+  DBUG_TRACE;
   // Move file to trash
   std::string trash_file;
   Status s = MarkAsTrash(file_path, accounted, &trash_file);
@@ -177,12 +182,14 @@ Status DeleteScheduler::AddFileToDeletionQueue(const std::string& file_path,
 }
 
 std::map<std::string, Status> DeleteScheduler::GetBackgroundErrors() {
+  DBUG_TRACE;
   InstrumentedMutexLock l(&mu_);
   return bg_errors_;
 }
 
 const std::string DeleteScheduler::kTrashExtension = ".trash";
 bool DeleteScheduler::IsTrashFile(const std::string& file_path) {
+  DBUG_TRACE;
   return (file_path.size() >= kTrashExtension.size() &&
           file_path.rfind(kTrashExtension) ==
               file_path.size() - kTrashExtension.size());
@@ -190,6 +197,7 @@ bool DeleteScheduler::IsTrashFile(const std::string& file_path) {
 
 Status DeleteScheduler::CleanupDirectory(Env* env, SstFileManagerImpl* sfm,
                                          const std::string& path) {
+  DBUG_TRACE;
   Status s;
   // Check if there are any files marked as trash in this path
   std::vector<std::string> files_in_path;
@@ -228,6 +236,7 @@ Status DeleteScheduler::CleanupDirectory(Env* env, SstFileManagerImpl* sfm,
 
 Status DeleteScheduler::MarkAsTrash(const std::string& file_path,
                                     bool accounted, std::string* trash_file) {
+  DBUG_TRACE;
   // Sanity check of the path
   size_t idx = file_path.rfind('/');
   if (idx == std::string::npos || idx == file_path.size() - 1) {
@@ -268,6 +277,7 @@ Status DeleteScheduler::MarkAsTrash(const std::string& file_path,
 }
 
 void DeleteScheduler::BackgroundEmptyTrash() {
+  DBUG_TRACE;
   TEST_SYNC_POINT("DeleteScheduler::BackgroundEmptyTrash");
 
   while (true) {
@@ -367,6 +377,7 @@ Status DeleteScheduler::DeleteTrashFile(const std::string& path_in_trash,
                                         const std::string& dir_to_sync,
                                         bool accounted, uint64_t* deleted_bytes,
                                         bool* is_complete) {
+  DBUG_TRACE;
   uint64_t file_size;
   Status s = fs_->GetFileSize(path_in_trash, IOOptions(), &file_size, nullptr);
   *is_complete = true;
@@ -459,6 +470,7 @@ Status DeleteScheduler::DeleteTrashFile(const std::string& path_in_trash,
 
 Status DeleteScheduler::OnDeleteFile(const std::string& file_path,
                                      bool accounted) {
+  DBUG_TRACE;
   if (accounted) {
     return sst_file_manager_->OnDeleteFile(file_path);
   }
@@ -468,6 +480,7 @@ Status DeleteScheduler::OnDeleteFile(const std::string& file_path,
 }
 
 void DeleteScheduler::WaitForEmptyTrash() {
+  DBUG_TRACE;
   InstrumentedMutexLock l(&mu_);
   while (pending_files_ > 0 && !closing_) {
     cv_.Wait();
@@ -475,6 +488,7 @@ void DeleteScheduler::WaitForEmptyTrash() {
 }
 
 std::optional<int32_t> DeleteScheduler::NewTrashBucket() {
+  DBUG_TRACE;
   if (rate_bytes_per_sec_.load() <= 0) {
     return std::nullopt;
   }
@@ -485,6 +499,7 @@ std::optional<int32_t> DeleteScheduler::NewTrashBucket() {
 }
 
 void DeleteScheduler::WaitForEmptyTrashBucket(int32_t bucket) {
+  DBUG_TRACE;
   InstrumentedMutexLock l(&mu_);
   if (bucket >= next_trash_bucket_) {
     return;
@@ -499,6 +514,7 @@ void DeleteScheduler::WaitForEmptyTrashBucket(int32_t bucket) {
 }
 
 void DeleteScheduler::MaybeCreateBackgroundThread() {
+  DBUG_TRACE;
   if (bg_thread_ == nullptr && rate_bytes_per_sec_.load() > 0) {
     bg_thread_.reset(
         new port::Thread(&DeleteScheduler::BackgroundEmptyTrash, this));
@@ -510,4 +526,3 @@ void DeleteScheduler::MaybeCreateBackgroundThread() {
 }
 
 }  // namespace ROCKSDB_NAMESPACE
-

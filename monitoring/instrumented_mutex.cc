@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "monitoring/instrumented_mutex.h"
 
 #include "monitoring/perf_context_imp.h"
@@ -14,6 +15,7 @@ namespace ROCKSDB_NAMESPACE {
 namespace {
 #ifndef NPERF_CONTEXT
 Statistics* stats_for_report(SystemClock* clock, Statistics* stats) {
+  DBUG_TRACE;
   if (clock != nullptr && stats != nullptr &&
       stats->get_stats_level() > kExceptTimeForMutex) {
     return stats;
@@ -25,6 +27,7 @@ Statistics* stats_for_report(SystemClock* clock, Statistics* stats) {
 }  // namespace
 
 void InstrumentedMutex::Lock() {
+  DBUG_TRACE;
   PERF_CONDITIONAL_TIMER_FOR_MUTEX_GUARD(
       db_mutex_lock_nanos, stats_code_ == DB_MUTEX_WAIT_MICROS,
       stats_for_report(clock_, stats_), stats_code_);
@@ -32,6 +35,7 @@ void InstrumentedMutex::Lock() {
 }
 
 void InstrumentedMutex::LockInternal() {
+DBUG_TRACE;
 #ifndef NDEBUG
   ThreadStatusUtil::TEST_StateDelay(ThreadStatus::STATE_MUTEX_WAIT);
 #endif
@@ -56,6 +60,7 @@ void InstrumentedMutex::LockInternal() {
 }
 
 void InstrumentedCondVar::Wait() {
+  DBUG_TRACE;
   PERF_CONDITIONAL_TIMER_FOR_MUTEX_GUARD(
       db_condition_wait_nanos, stats_code_ == DB_MUTEX_WAIT_MICROS,
       stats_for_report(clock_, stats_), stats_code_);
@@ -63,6 +68,7 @@ void InstrumentedCondVar::Wait() {
 }
 
 void InstrumentedCondVar::WaitInternal() {
+DBUG_TRACE;
 #ifndef NDEBUG
   ThreadStatusUtil::TEST_StateDelay(ThreadStatus::STATE_MUTEX_WAIT);
 #endif
@@ -70,6 +76,7 @@ void InstrumentedCondVar::WaitInternal() {
 }
 
 bool InstrumentedCondVar::TimedWait(uint64_t abs_time_us) {
+  DBUG_TRACE;
   PERF_CONDITIONAL_TIMER_FOR_MUTEX_GUARD(
       db_condition_wait_nanos, stats_code_ == DB_MUTEX_WAIT_MICROS,
       stats_for_report(clock_, stats_), stats_code_);
@@ -77,6 +84,7 @@ bool InstrumentedCondVar::TimedWait(uint64_t abs_time_us) {
 }
 
 bool InstrumentedCondVar::TimedWaitInternal(uint64_t abs_time_us) {
+DBUG_TRACE;
 #ifndef NDEBUG
   ThreadStatusUtil::TEST_StateDelay(ThreadStatus::STATE_MUTEX_WAIT);
 #endif

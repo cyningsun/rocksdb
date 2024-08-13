@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "utilities/transactions/transaction_base.h"
 
 #include <cinttypes>
@@ -22,6 +23,7 @@ namespace ROCKSDB_NAMESPACE {
 Status Transaction::CommitAndTryCreateSnapshot(
     std::shared_ptr<TransactionNotifier> notifier, TxnTimestamp ts,
     std::shared_ptr<const Snapshot>* snapshot) {
+  DBUG_TRACE;
   if (snapshot) {
     snapshot->reset();
   }
@@ -84,6 +86,7 @@ TransactionBaseImpl::~TransactionBaseImpl() {
 }
 
 void TransactionBaseImpl::Clear() {
+  DBUG_TRACE;
   save_points_.reset(nullptr);
   write_batch_.Clear();
   commit_time_batch_.Clear();
@@ -100,6 +103,7 @@ void TransactionBaseImpl::Clear() {
 
 void TransactionBaseImpl::Reinitialize(DB* db,
                                        const WriteOptions& write_options) {
+  DBUG_TRACE;
   Clear();
   ClearSnapshot();
   id_ = 0;
@@ -121,11 +125,13 @@ void TransactionBaseImpl::Reinitialize(DB* db,
 }
 
 void TransactionBaseImpl::SetSnapshot() {
+  DBUG_TRACE;
   const Snapshot* snapshot = dbimpl_->GetSnapshotForWriteConflictBoundary();
   SetSnapshotInternal(snapshot);
 }
 
 void TransactionBaseImpl::SetSnapshotInternal(const Snapshot* snapshot) {
+  DBUG_TRACE;
   // Set a custom deleter for the snapshot_ SharedPtr as the snapshot needs to
   // be released, not deleted when it is no longer referenced.
   snapshot_.reset(snapshot, std::bind(&TransactionBaseImpl::ReleaseSnapshot,
@@ -136,11 +142,13 @@ void TransactionBaseImpl::SetSnapshotInternal(const Snapshot* snapshot) {
 
 void TransactionBaseImpl::SetSnapshotOnNextOperation(
     std::shared_ptr<TransactionNotifier> notifier) {
+  DBUG_TRACE;
   snapshot_needed_ = true;
   snapshot_notifier_ = notifier;
 }
 
 void TransactionBaseImpl::SetSnapshotIfNeeded() {
+  DBUG_TRACE;
   if (snapshot_needed_) {
     std::shared_ptr<TransactionNotifier> notifier = snapshot_notifier_;
     SetSnapshot();
@@ -154,6 +162,7 @@ Status TransactionBaseImpl::TryLock(ColumnFamilyHandle* column_family,
                                     const SliceParts& key, bool read_only,
                                     bool exclusive, const bool do_validate,
                                     const bool assume_tracked) {
+  DBUG_TRACE;
   size_t key_size = 0;
   for (int i = 0; i < key.num_parts; ++i) {
     key_size += key.parts[i].size();
@@ -171,6 +180,7 @@ Status TransactionBaseImpl::TryLock(ColumnFamilyHandle* column_family,
 }
 
 void TransactionBaseImpl::SetSavePoint() {
+  DBUG_TRACE;
   if (save_points_ == nullptr) {
     save_points_.reset(
         new std::stack<TransactionBaseImpl::SavePoint,
@@ -183,6 +193,7 @@ void TransactionBaseImpl::SetSavePoint() {
 }
 
 Status TransactionBaseImpl::RollbackToSavePoint() {
+  DBUG_TRACE;
   if (save_points_ != nullptr && save_points_->size() > 0) {
     // Restore saved SavePoint
     TransactionBaseImpl::SavePoint& save_point = save_points_->top();
@@ -211,6 +222,7 @@ Status TransactionBaseImpl::RollbackToSavePoint() {
 }
 
 Status TransactionBaseImpl::PopSavePoint() {
+  DBUG_TRACE;
   if (save_points_ == nullptr || save_points_->empty()) {
     // No SavePoint yet.
     assert(write_batch_.PopSavePoint().IsNotFound());
@@ -238,6 +250,7 @@ Status TransactionBaseImpl::PopSavePoint() {
 Status TransactionBaseImpl::Get(const ReadOptions& _read_options,
                                 ColumnFamilyHandle* column_family,
                                 const Slice& key, std::string* value) {
+  DBUG_TRACE;
   if (_read_options.io_activity != Env::IOActivity::kUnknown &&
       _read_options.io_activity != Env::IOActivity::kGet) {
     return Status::InvalidArgument(
@@ -255,6 +268,7 @@ Status TransactionBaseImpl::Get(const ReadOptions& _read_options,
 Status TransactionBaseImpl::GetImpl(const ReadOptions& read_options,
                                     ColumnFamilyHandle* column_family,
                                     const Slice& key, std::string* value) {
+  DBUG_TRACE;
   assert(value != nullptr);
   PinnableSlice pinnable_val(value);
   assert(!pinnable_val.IsPinned());
@@ -268,6 +282,7 @@ Status TransactionBaseImpl::GetImpl(const ReadOptions& read_options,
 Status TransactionBaseImpl::Get(const ReadOptions& _read_options,
                                 ColumnFamilyHandle* column_family,
                                 const Slice& key, PinnableSlice* pinnable_val) {
+  DBUG_TRACE;
   if (_read_options.io_activity != Env::IOActivity::kUnknown &&
       _read_options.io_activity != Env::IOActivity::kGet) {
     return Status::InvalidArgument(
@@ -285,6 +300,7 @@ Status TransactionBaseImpl::GetImpl(const ReadOptions& read_options,
                                     ColumnFamilyHandle* column_family,
                                     const Slice& key,
                                     PinnableSlice* pinnable_val) {
+  DBUG_TRACE;
   return write_batch_.GetFromBatchAndDB(db_, read_options, column_family, key,
                                         pinnable_val);
 }
@@ -293,6 +309,7 @@ Status TransactionBaseImpl::GetEntity(const ReadOptions& read_options,
                                       ColumnFamilyHandle* column_family,
                                       const Slice& key,
                                       PinnableWideColumns* columns) {
+  DBUG_TRACE;
   return GetEntityImpl(read_options, column_family, key, columns);
 }
 
@@ -301,6 +318,7 @@ Status TransactionBaseImpl::GetForUpdate(const ReadOptions& read_options,
                                          const Slice& key, std::string* value,
                                          bool exclusive,
                                          const bool do_validate) {
+  DBUG_TRACE;
   if (!do_validate && read_options.snapshot != nullptr) {
     return Status::InvalidArgument(
         "If do_validate is false then GetForUpdate with snapshot is not "
@@ -332,6 +350,7 @@ Status TransactionBaseImpl::GetForUpdate(const ReadOptions& read_options,
                                          PinnableSlice* pinnable_val,
                                          bool exclusive,
                                          const bool do_validate) {
+  DBUG_TRACE;
   if (!do_validate && read_options.snapshot != nullptr) {
     return Status::InvalidArgument(
         "If do_validate is false then GetForUpdate with snapshot is not "
@@ -355,6 +374,7 @@ Status TransactionBaseImpl::GetEntityForUpdate(
     const ReadOptions& read_options, ColumnFamilyHandle* column_family,
     const Slice& key, PinnableWideColumns* columns, bool exclusive,
     bool do_validate) {
+  DBUG_TRACE;
   if (!do_validate && read_options.snapshot != nullptr) {
     return Status::InvalidArgument(
         "Snapshot must not be set if validation is disabled");
@@ -373,6 +393,7 @@ std::vector<Status> TransactionBaseImpl::MultiGet(
     const ReadOptions& _read_options,
     const std::vector<ColumnFamilyHandle*>& column_family,
     const std::vector<Slice>& keys, std::vector<std::string>* values) {
+  DBUG_TRACE;
   size_t num_keys = keys.size();
   std::vector<Status> stat_list(num_keys);
   if (_read_options.io_activity != Env::IOActivity::kUnknown &&
@@ -405,6 +426,7 @@ void TransactionBaseImpl::MultiGet(const ReadOptions& _read_options,
                                    const size_t num_keys, const Slice* keys,
                                    PinnableSlice* values, Status* statuses,
                                    const bool sorted_input) {
+  DBUG_TRACE;
   if (_read_options.io_activity != Env::IOActivity::kUnknown &&
       _read_options.io_activity != Env::IOActivity::kMultiGet) {
     Status s = Status::InvalidArgument(
@@ -431,6 +453,7 @@ void TransactionBaseImpl::MultiGetEntity(const ReadOptions& read_options,
                                          size_t num_keys, const Slice* keys,
                                          PinnableWideColumns* results,
                                          Status* statuses, bool sorted_input) {
+  DBUG_TRACE;
   MultiGetEntityImpl(read_options, column_family, num_keys, keys, results,
                      statuses, sorted_input);
 }
@@ -439,6 +462,7 @@ std::vector<Status> TransactionBaseImpl::MultiGetForUpdate(
     const ReadOptions& read_options,
     const std::vector<ColumnFamilyHandle*>& column_family,
     const std::vector<Slice>& keys, std::vector<std::string>* values) {
+  DBUG_TRACE;
   size_t num_keys = keys.size();
   if (read_options.io_activity != Env::IOActivity::kUnknown) {
     Status s = Status::InvalidArgument(
@@ -470,6 +494,7 @@ std::vector<Status> TransactionBaseImpl::MultiGetForUpdate(
 }
 
 Iterator* TransactionBaseImpl::GetIterator(const ReadOptions& read_options) {
+  DBUG_TRACE;
   Iterator* db_iter = db_->NewIterator(read_options);
   assert(db_iter);
 
@@ -479,6 +504,7 @@ Iterator* TransactionBaseImpl::GetIterator(const ReadOptions& read_options) {
 
 Iterator* TransactionBaseImpl::GetIterator(const ReadOptions& read_options,
                                            ColumnFamilyHandle* column_family) {
+  DBUG_TRACE;
   Iterator* db_iter = db_->NewIterator(read_options, column_family);
   assert(db_iter);
 
@@ -515,6 +541,7 @@ Status TransactionBaseImpl::PutEntityImpl(ColumnFamilyHandle* column_family,
 Status TransactionBaseImpl::Put(ColumnFamilyHandle* column_family,
                                 const Slice& key, const Slice& value,
                                 const bool assume_tracked) {
+  DBUG_TRACE;
   const bool do_validate = !assume_tracked;
   Status s = TryLock(column_family, key, false /* read_only */,
                      true /* exclusive */, do_validate, assume_tracked);
@@ -532,6 +559,7 @@ Status TransactionBaseImpl::Put(ColumnFamilyHandle* column_family,
 Status TransactionBaseImpl::Put(ColumnFamilyHandle* column_family,
                                 const SliceParts& key, const SliceParts& value,
                                 const bool assume_tracked) {
+  DBUG_TRACE;
   const bool do_validate = !assume_tracked;
   Status s = TryLock(column_family, key, false /* read_only */,
                      true /* exclusive */, do_validate, assume_tracked);
@@ -549,6 +577,7 @@ Status TransactionBaseImpl::Put(ColumnFamilyHandle* column_family,
 Status TransactionBaseImpl::Merge(ColumnFamilyHandle* column_family,
                                   const Slice& key, const Slice& value,
                                   const bool assume_tracked) {
+  DBUG_TRACE;
   const bool do_validate = !assume_tracked;
   Status s = TryLock(column_family, key, false /* read_only */,
                      true /* exclusive */, do_validate, assume_tracked);
@@ -566,6 +595,7 @@ Status TransactionBaseImpl::Merge(ColumnFamilyHandle* column_family,
 Status TransactionBaseImpl::Delete(ColumnFamilyHandle* column_family,
                                    const Slice& key,
                                    const bool assume_tracked) {
+  DBUG_TRACE;
   const bool do_validate = !assume_tracked;
   Status s = TryLock(column_family, key, false /* read_only */,
                      true /* exclusive */, do_validate, assume_tracked);
@@ -583,6 +613,7 @@ Status TransactionBaseImpl::Delete(ColumnFamilyHandle* column_family,
 Status TransactionBaseImpl::Delete(ColumnFamilyHandle* column_family,
                                    const SliceParts& key,
                                    const bool assume_tracked) {
+  DBUG_TRACE;
   const bool do_validate = !assume_tracked;
   Status s = TryLock(column_family, key, false /* read_only */,
                      true /* exclusive */, do_validate, assume_tracked);
@@ -600,6 +631,7 @@ Status TransactionBaseImpl::Delete(ColumnFamilyHandle* column_family,
 Status TransactionBaseImpl::SingleDelete(ColumnFamilyHandle* column_family,
                                          const Slice& key,
                                          const bool assume_tracked) {
+  DBUG_TRACE;
   const bool do_validate = !assume_tracked;
   Status s = TryLock(column_family, key, false /* read_only */,
                      true /* exclusive */, do_validate, assume_tracked);
@@ -617,6 +649,7 @@ Status TransactionBaseImpl::SingleDelete(ColumnFamilyHandle* column_family,
 Status TransactionBaseImpl::SingleDelete(ColumnFamilyHandle* column_family,
                                          const SliceParts& key,
                                          const bool assume_tracked) {
+  DBUG_TRACE;
   const bool do_validate = !assume_tracked;
   Status s = TryLock(column_family, key, false /* read_only */,
                      true /* exclusive */, do_validate, assume_tracked);
@@ -633,6 +666,7 @@ Status TransactionBaseImpl::SingleDelete(ColumnFamilyHandle* column_family,
 
 Status TransactionBaseImpl::PutUntracked(ColumnFamilyHandle* column_family,
                                          const Slice& key, const Slice& value) {
+  DBUG_TRACE;
   Status s = TryLock(column_family, key, false /* read_only */,
                      true /* exclusive */, false /* do_validate */);
 
@@ -649,6 +683,7 @@ Status TransactionBaseImpl::PutUntracked(ColumnFamilyHandle* column_family,
 Status TransactionBaseImpl::PutUntracked(ColumnFamilyHandle* column_family,
                                          const SliceParts& key,
                                          const SliceParts& value) {
+  DBUG_TRACE;
   Status s = TryLock(column_family, key, false /* read_only */,
                      true /* exclusive */, false /* do_validate */);
 
@@ -665,6 +700,7 @@ Status TransactionBaseImpl::PutUntracked(ColumnFamilyHandle* column_family,
 Status TransactionBaseImpl::MergeUntracked(ColumnFamilyHandle* column_family,
                                            const Slice& key,
                                            const Slice& value) {
+  DBUG_TRACE;
   Status s = TryLock(column_family, key, false /* read_only */,
                      true /* exclusive */, false /* do_validate */);
 
@@ -680,6 +716,7 @@ Status TransactionBaseImpl::MergeUntracked(ColumnFamilyHandle* column_family,
 
 Status TransactionBaseImpl::DeleteUntracked(ColumnFamilyHandle* column_family,
                                             const Slice& key) {
+  DBUG_TRACE;
   Status s = TryLock(column_family, key, false /* read_only */,
                      true /* exclusive */, false /* do_validate */);
 
@@ -695,6 +732,7 @@ Status TransactionBaseImpl::DeleteUntracked(ColumnFamilyHandle* column_family,
 
 Status TransactionBaseImpl::DeleteUntracked(ColumnFamilyHandle* column_family,
                                             const SliceParts& key) {
+  DBUG_TRACE;
   Status s = TryLock(column_family, key, false /* read_only */,
                      true /* exclusive */, false /* do_validate */);
 
@@ -710,6 +748,7 @@ Status TransactionBaseImpl::DeleteUntracked(ColumnFamilyHandle* column_family,
 
 Status TransactionBaseImpl::SingleDeleteUntracked(
     ColumnFamilyHandle* column_family, const Slice& key) {
+  DBUG_TRACE;
   Status s = TryLock(column_family, key, false /* read_only */,
                      true /* exclusive */, false /* do_validate */);
 
@@ -724,36 +763,42 @@ Status TransactionBaseImpl::SingleDeleteUntracked(
 }
 
 void TransactionBaseImpl::PutLogData(const Slice& blob) {
+  DBUG_TRACE;
   auto s = write_batch_.PutLogData(blob);
   (void)s;
   assert(s.ok());
 }
 
 WriteBatchWithIndex* TransactionBaseImpl::GetWriteBatch() {
+  DBUG_TRACE;
   return &write_batch_;
 }
 
 uint64_t TransactionBaseImpl::GetElapsedTime() const {
+  DBUG_TRACE;
   return (dbimpl_->GetSystemClock()->NowMicros() - start_time_) / 1000;
 }
 
-uint64_t TransactionBaseImpl::GetNumPuts() const { return num_puts_; }
+uint64_t TransactionBaseImpl::GetNumPuts() const { DBUG_TRACE; return num_puts_; }
 
 uint64_t TransactionBaseImpl::GetNumPutEntities() const {
+  DBUG_TRACE;
   return num_put_entities_;
 }
 
-uint64_t TransactionBaseImpl::GetNumDeletes() const { return num_deletes_; }
+uint64_t TransactionBaseImpl::GetNumDeletes() const { DBUG_TRACE; return num_deletes_; }
 
-uint64_t TransactionBaseImpl::GetNumMerges() const { return num_merges_; }
+uint64_t TransactionBaseImpl::GetNumMerges() const { DBUG_TRACE; return num_merges_; }
 
 uint64_t TransactionBaseImpl::GetNumKeys() const {
+  DBUG_TRACE;
   return tracked_locks_->GetNumPointLocks();
 }
 
 void TransactionBaseImpl::TrackKey(uint32_t cfh_id, const std::string& key,
                                    SequenceNumber seq, bool read_only,
                                    bool exclusive) {
+  DBUG_TRACE;
   PointLockRequest r;
   r.column_family_id = cfh_id;
   r.key = key;
@@ -776,6 +821,7 @@ void TransactionBaseImpl::TrackKey(uint32_t cfh_id, const std::string& key,
 // Returns either a WriteBatch or WriteBatchWithIndex depending on whether
 // DisableIndexing() has been called.
 WriteBatchBase* TransactionBaseImpl::GetBatchForWrite() {
+  DBUG_TRACE;
   if (indexing_enabled_) {
     // Use WriteBatchWithIndex
     return &write_batch_;
@@ -786,6 +832,7 @@ WriteBatchBase* TransactionBaseImpl::GetBatchForWrite() {
 }
 
 void TransactionBaseImpl::ReleaseSnapshot(const Snapshot* snapshot, DB* db) {
+  DBUG_TRACE;
   if (snapshot != nullptr) {
     ROCKS_LOG_DETAILS(dbimpl_->immutable_db_options().info_log,
                       "ReleaseSnapshot %" PRIu64 " Set",
@@ -796,6 +843,7 @@ void TransactionBaseImpl::ReleaseSnapshot(const Snapshot* snapshot, DB* db) {
 
 void TransactionBaseImpl::UndoGetForUpdate(ColumnFamilyHandle* column_family,
                                            const Slice& key) {
+  DBUG_TRACE;
   PointLockRequest r;
   r.column_family_id = GetColumnFamilyID(column_family);
   r.key = key.ToString();
@@ -823,6 +871,7 @@ void TransactionBaseImpl::UndoGetForUpdate(ColumnFamilyHandle* column_family,
 }
 
 Status TransactionBaseImpl::RebuildFromWriteBatch(WriteBatch* src_batch) {
+  DBUG_TRACE;
   struct IndexedWriteBatchBuilder : public WriteBatch::Handler {
     Transaction* txn_;
     DBImpl* db_;
@@ -832,12 +881,14 @@ Status TransactionBaseImpl::RebuildFromWriteBatch(WriteBatch* src_batch) {
     }
 
     Status PutCF(uint32_t cf, const Slice& key, const Slice& val) override {
+      DBUG_TRACE;
       Slice user_key = GetUserKey(cf, key);
       return txn_->Put(db_->GetColumnFamilyHandle(cf), user_key, val);
     }
 
     Status PutEntityCF(uint32_t cf, const Slice& key,
                        const Slice& entity) override {
+      DBUG_TRACE;
       Slice user_key = GetUserKey(cf, key);
       Slice entity_copy = entity;
       WideColumns columns;
@@ -851,16 +902,19 @@ Status TransactionBaseImpl::RebuildFromWriteBatch(WriteBatch* src_batch) {
     }
 
     Status DeleteCF(uint32_t cf, const Slice& key) override {
+      DBUG_TRACE;
       Slice user_key = GetUserKey(cf, key);
       return txn_->Delete(db_->GetColumnFamilyHandle(cf), user_key);
     }
 
     Status SingleDeleteCF(uint32_t cf, const Slice& key) override {
+      DBUG_TRACE;
       Slice user_key = GetUserKey(cf, key);
       return txn_->SingleDelete(db_->GetColumnFamilyHandle(cf), user_key);
     }
 
     Status MergeCF(uint32_t cf, const Slice& key, const Slice& val) override {
+      DBUG_TRACE;
       Slice user_key = GetUserKey(cf, key);
       return txn_->Merge(db_->GetColumnFamilyHandle(cf), user_key, val);
     }
@@ -868,24 +922,29 @@ Status TransactionBaseImpl::RebuildFromWriteBatch(WriteBatch* src_batch) {
     // this is used for reconstructing prepared transactions upon
     // recovery. there should not be any meta markers in the batches
     // we are processing.
-    Status MarkBeginPrepare(bool) override { return Status::InvalidArgument(); }
+    Status MarkBeginPrepare(bool) override { DBUG_TRACE; return Status::InvalidArgument(); }
 
     Status MarkEndPrepare(const Slice&) override {
+      DBUG_TRACE;
       return Status::InvalidArgument();
     }
 
     Status MarkCommit(const Slice&) override {
+      DBUG_TRACE;
       return Status::InvalidArgument();
     }
 
     Status MarkCommitWithTimestamp(const Slice&, const Slice&) override {
+      DBUG_TRACE;
       return Status::InvalidArgument();
     }
 
     Status MarkRollback(const Slice&) override {
+      DBUG_TRACE;
       return Status::InvalidArgument();
     }
     size_t GetTimestampSize(uint32_t cf_id) {
+      DBUG_TRACE;
       auto cfd = db_->versions_->GetColumnFamilySet()->GetColumnFamily(cf_id);
       const Comparator* ucmp = cfd->user_comparator();
       assert(ucmp);
@@ -893,6 +952,7 @@ Status TransactionBaseImpl::RebuildFromWriteBatch(WriteBatch* src_batch) {
     }
 
     Slice GetUserKey(uint32_t cf_id, const Slice& key) {
+      DBUG_TRACE;
       size_t ts_sz = GetTimestampSize(cf_id);
       if (ts_sz == 0) {
         return key;
@@ -907,6 +967,7 @@ Status TransactionBaseImpl::RebuildFromWriteBatch(WriteBatch* src_batch) {
 }
 
 WriteBatch* TransactionBaseImpl::GetCommitTimeWriteBatch() {
+  DBUG_TRACE;
   return &commit_time_batch_;
 }
 }  // namespace ROCKSDB_NAMESPACE

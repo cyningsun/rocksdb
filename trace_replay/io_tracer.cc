@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "trace_replay/io_tracer.h"
 
 #include <cinttypes>
@@ -28,6 +29,7 @@ IOTraceWriter::IOTraceWriter(SystemClock* clock,
 
 Status IOTraceWriter::WriteIOOp(const IOTraceRecord& record,
                                 IODebugContext* dbg) {
+  DBUG_TRACE;
   uint64_t trace_file_size = trace_writer_->GetFileSize();
   if (trace_file_size > trace_options_.max_trace_file_size) {
     return Status::OK();
@@ -98,6 +100,7 @@ Status IOTraceWriter::WriteIOOp(const IOTraceRecord& record,
 }
 
 Status IOTraceWriter::WriteHeader() {
+  DBUG_TRACE;
   Trace trace;
   trace.ts = clock_->NowMicros();
   trace.type = TraceType::kTraceBegin;
@@ -113,6 +116,7 @@ IOTraceReader::IOTraceReader(std::unique_ptr<TraceReader>&& reader)
     : trace_reader_(std::move(reader)) {}
 
 Status IOTraceReader::ReadHeader(IOTraceHeader* header) {
+  DBUG_TRACE;
   assert(header != nullptr);
   std::string encoded_trace;
   Status s = trace_reader_->Read(&encoded_trace);
@@ -155,6 +159,7 @@ Status IOTraceReader::ReadHeader(IOTraceHeader* header) {
 }
 
 Status IOTraceReader::ReadIOOp(IOTraceRecord* record) {
+  DBUG_TRACE;
   assert(record);
   std::string encoded_trace;
   Status s = trace_reader_->Read(&encoded_trace);
@@ -269,6 +274,7 @@ IOTracer::~IOTracer() { EndIOTrace(); }
 Status IOTracer::StartIOTrace(SystemClock* clock,
                               const TraceOptions& trace_options,
                               std::unique_ptr<TraceWriter>&& trace_writer) {
+  DBUG_TRACE;
   InstrumentedMutexLock lock_guard(&trace_writer_mutex_);
   if (writer_.load()) {
     return Status::Busy();
@@ -281,6 +287,7 @@ Status IOTracer::StartIOTrace(SystemClock* clock,
 }
 
 void IOTracer::EndIOTrace() {
+  DBUG_TRACE;
   InstrumentedMutexLock lock_guard(&trace_writer_mutex_);
   if (!writer_.load()) {
     return;
@@ -291,6 +298,7 @@ void IOTracer::EndIOTrace() {
 }
 
 void IOTracer::WriteIOOp(const IOTraceRecord& record, IODebugContext* dbg) {
+  DBUG_TRACE;
   if (!writer_.load()) {
     return;
   }

@@ -6,6 +6,7 @@
 // Copyright (c) 2011 The LevelDB Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
+#include "rocksdb/util/dbug.h"
 #include "table/block_based/index_reader_common.h"
 
 #include "block_cache.h"
@@ -16,6 +17,7 @@ Status BlockBasedTable::IndexReaderCommon::ReadIndexBlock(
     const ReadOptions& read_options, bool use_cache, GetContext* get_context,
     BlockCacheLookupContext* lookup_context,
     CachableEntry<Block>* index_block) {
+  DBUG_TRACE;
   PERF_TIMER_GUARD(read_index_block_nanos);
 
   assert(table != nullptr);
@@ -37,6 +39,7 @@ Status BlockBasedTable::IndexReaderCommon::ReadIndexBlock(
 Status BlockBasedTable::IndexReaderCommon::GetOrReadIndexBlock(
     GetContext* get_context, BlockCacheLookupContext* lookup_context,
     CachableEntry<Block>* index_block, const ReadOptions& ro) const {
+  DBUG_TRACE;
   assert(index_block != nullptr);
 
   if (!index_block_.IsEmpty()) {
@@ -51,6 +54,7 @@ Status BlockBasedTable::IndexReaderCommon::GetOrReadIndexBlock(
 
 void BlockBasedTable::IndexReaderCommon::EraseFromCacheBeforeDestruction(
     uint32_t uncache_aggressiveness) {
+  DBUG_TRACE;
   if (uncache_aggressiveness > 0) {
     if (index_block_.IsCached()) {
       index_block_.ResetEraseIfLastRef();

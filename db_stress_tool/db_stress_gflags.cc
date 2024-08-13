@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/cache.h"
 #include "rocksdb/options.h"
 #include "rocksdb/utilities/backup_engine.h"
@@ -14,6 +15,7 @@
 #include "db_stress_tool/db_stress_common.h"
 
 static bool ValidateUint32Range(const char* flagname, uint64_t value) {
+  DBUG_TRACE;
   if (value > std::numeric_limits<uint32_t>::max()) {
     fprintf(stderr, "Invalid value for --%s: %lu, overflow\n", flagname,
             (unsigned long)value);
@@ -545,6 +547,7 @@ static const bool FLAGS_subcompactions_dummy __attribute__((__unused__)) =
     RegisterFlagValidator(&FLAGS_subcompactions, &ValidateUint32Range);
 
 static bool ValidateInt32Positive(const char* flagname, int32_t value) {
+  DBUG_TRACE;
   if (value < 0) {
     fprintf(stderr, "Invalid value for --%s: %d, must be >=0\n", flagname,
             value);
@@ -831,6 +834,7 @@ DEFINE_bool(use_multi_get_entity, false,
             "If set, use the MultiGetEntity API for reads");
 
 static bool ValidateInt32Percent(const char* flagname, int32_t value) {
+  DBUG_TRACE;
   if (value < 0 || value > 100) {
     fprintf(stderr, "Invalid value for --%s: %d, 0<= pct <=100 \n", flagname,
             value);
@@ -944,6 +948,7 @@ DEFINE_bool(in_place_update, false, "On true, does inplace update in memtable");
 DEFINE_string(memtablerep, "skip_list", "");
 
 inline static bool ValidatePrefixSize(const char* flagname, int32_t value) {
+  DBUG_TRACE;
   if (value < -1 || value > 8) {
     fprintf(stderr, "Invalid value for --%s: %d. -1 <= PrefixSize <= 8\n",
             flagname, value);
@@ -1217,7 +1222,7 @@ DEFINE_uint64(stats_dump_period_sec,
 
 DEFINE_bool(verification_only, false,
             "If true, tests will only execute verification step");
-extern "C" bool RocksDbIOUringEnable() { return true; }
+extern "C" bool RocksDbIOUringEnable() { DBUG_TRACE; return true; }
 
 DEFINE_uint32(memtable_max_range_deletions, 0,
               "If nonzero, RocksDB will try to flush the current memtable"

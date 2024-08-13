@@ -4,6 +4,7 @@
 //  (found in the LICENSE.Apache file in the root directory).
 
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/env_encryption.h"
 
 #include <algorithm>
@@ -27,12 +28,14 @@
 namespace ROCKSDB_NAMESPACE {
 std::shared_ptr<EncryptionProvider> EncryptionProvider::NewCTRProvider(
     const std::shared_ptr<BlockCipher>& cipher) {
+  DBUG_TRACE;
   return std::make_shared<CTREncryptionProvider>(cipher);
 }
 
 IOStatus EncryptedSequentialFile::Read(size_t n, const IOOptions& options,
                                        Slice* result, char* scratch,
                                        IODebugContext* dbg) {
+  DBUG_TRACE;
   assert(scratch);
   IOStatus io_s = file_->Read(n, options, result, scratch, dbg);
   if (!io_s.ok()) {
@@ -51,6 +54,7 @@ IOStatus EncryptedSequentialFile::Read(size_t n, const IOOptions& options,
 }
 
 IOStatus EncryptedSequentialFile::Skip(uint64_t n) {
+  DBUG_TRACE;
   auto status = file_->Skip(n);
   if (!status.ok()) {
     return status;
@@ -60,15 +64,18 @@ IOStatus EncryptedSequentialFile::Skip(uint64_t n) {
 }
 
 bool EncryptedSequentialFile::use_direct_io() const {
+  DBUG_TRACE;
   return file_->use_direct_io();
 }
 
 size_t EncryptedSequentialFile::GetRequiredBufferAlignment() const {
+  DBUG_TRACE;
   return file_->GetRequiredBufferAlignment();
 }
 
 IOStatus EncryptedSequentialFile::InvalidateCache(size_t offset,
                                                   size_t length) {
+  DBUG_TRACE;
   return file_->InvalidateCache(offset + prefixLength_, length);
 }
 
@@ -76,6 +83,7 @@ IOStatus EncryptedSequentialFile::PositionedRead(uint64_t offset, size_t n,
                                                  const IOOptions& options,
                                                  Slice* result, char* scratch,
                                                  IODebugContext* dbg) {
+  DBUG_TRACE;
   assert(scratch);
   offset += prefixLength_;  // Skip prefix
   auto io_s = file_->PositionedRead(offset, n, options, result, scratch, dbg);
@@ -95,6 +103,7 @@ IOStatus EncryptedRandomAccessFile::Read(uint64_t offset, size_t n,
                                          const IOOptions& options,
                                          Slice* result, char* scratch,
                                          IODebugContext* dbg) const {
+  DBUG_TRACE;
   assert(scratch);
   offset += prefixLength_;
   auto io_s = file_->Read(offset, n, options, result, scratch, dbg);
@@ -112,33 +121,40 @@ IOStatus EncryptedRandomAccessFile::Read(uint64_t offset, size_t n,
 IOStatus EncryptedRandomAccessFile::Prefetch(uint64_t offset, size_t n,
                                              const IOOptions& options,
                                              IODebugContext* dbg) {
+  DBUG_TRACE;
   return file_->Prefetch(offset + prefixLength_, n, options, dbg);
 }
 
 size_t EncryptedRandomAccessFile::GetUniqueId(char* id, size_t max_size) const {
+  DBUG_TRACE;
   return file_->GetUniqueId(id, max_size);
 }
 
 void EncryptedRandomAccessFile::Hint(AccessPattern pattern) {
+  DBUG_TRACE;
   file_->Hint(pattern);
 }
 
 bool EncryptedRandomAccessFile::use_direct_io() const {
+  DBUG_TRACE;
   return file_->use_direct_io();
 }
 
 size_t EncryptedRandomAccessFile::GetRequiredBufferAlignment() const {
+  DBUG_TRACE;
   return file_->GetRequiredBufferAlignment();
 }
 
 IOStatus EncryptedRandomAccessFile::InvalidateCache(size_t offset,
                                                     size_t length) {
+  DBUG_TRACE;
   return file_->InvalidateCache(offset + prefixLength_, length);
 }
 
 IOStatus EncryptedWritableFile::Append(const Slice& data,
                                        const IOOptions& options,
                                        IODebugContext* dbg) {
+  DBUG_TRACE;
   AlignedBuffer buf;
   Slice dataToAppend(data);
   if (data.size() > 0) {
@@ -168,6 +184,7 @@ IOStatus EncryptedWritableFile::PositionedAppend(const Slice& data,
                                                  uint64_t offset,
                                                  const IOOptions& options,
                                                  IODebugContext* dbg) {
+  DBUG_TRACE;
   AlignedBuffer buf;
   Slice dataToAppend(data);
   offset += prefixLength_;
@@ -192,45 +209,54 @@ IOStatus EncryptedWritableFile::PositionedAppend(const Slice& data,
 }
 
 bool EncryptedWritableFile::use_direct_io() const {
+  DBUG_TRACE;
   return file_->use_direct_io();
 }
 
 bool EncryptedWritableFile::IsSyncThreadSafe() const {
+  DBUG_TRACE;
   return file_->IsSyncThreadSafe();
 }
 
 size_t EncryptedWritableFile::GetRequiredBufferAlignment() const {
+  DBUG_TRACE;
   return file_->GetRequiredBufferAlignment();
 }
 
 uint64_t EncryptedWritableFile::GetFileSize(const IOOptions& options,
                                             IODebugContext* dbg) {
+  DBUG_TRACE;
   return file_->GetFileSize(options, dbg) - prefixLength_;
 }
 
 IOStatus EncryptedWritableFile::Truncate(uint64_t size,
                                          const IOOptions& options,
                                          IODebugContext* dbg) {
+  DBUG_TRACE;
   return file_->Truncate(size + prefixLength_, options, dbg);
 }
 
 IOStatus EncryptedWritableFile::InvalidateCache(size_t offset, size_t length) {
+  DBUG_TRACE;
   return file_->InvalidateCache(offset + prefixLength_, length);
 }
 
 IOStatus EncryptedWritableFile::RangeSync(uint64_t offset, uint64_t nbytes,
                                           const IOOptions& options,
                                           IODebugContext* dbg) {
+  DBUG_TRACE;
   return file_->RangeSync(offset + prefixLength_, nbytes, options, dbg);
 }
 
 void EncryptedWritableFile::PrepareWrite(size_t offset, size_t len,
                                          const IOOptions& options,
                                          IODebugContext* dbg) {
+  DBUG_TRACE;
   file_->PrepareWrite(offset + prefixLength_, len, options, dbg);
 }
 
 void EncryptedWritableFile::SetPreallocationBlockSize(size_t size) {
+  DBUG_TRACE;
   // the size here doesn't need to include prefixLength_, as it's a
   // configuration will be use for `PrepareWrite()`.
   file_->SetPreallocationBlockSize(size);
@@ -238,41 +264,49 @@ void EncryptedWritableFile::SetPreallocationBlockSize(size_t size) {
 
 void EncryptedWritableFile::GetPreallocationStatus(
     size_t* block_size, size_t* last_allocated_block) {
+  DBUG_TRACE;
   file_->GetPreallocationStatus(block_size, last_allocated_block);
 }
 
 IOStatus EncryptedWritableFile::Allocate(uint64_t offset, uint64_t len,
                                          const IOOptions& options,
                                          IODebugContext* dbg) {
+  DBUG_TRACE;
   return file_->Allocate(offset + prefixLength_, len, options, dbg);
 }
 
 IOStatus EncryptedWritableFile::Flush(const IOOptions& options,
                                       IODebugContext* dbg) {
+  DBUG_TRACE;
   return file_->Flush(options, dbg);
 }
 
 IOStatus EncryptedWritableFile::Sync(const IOOptions& options,
                                      IODebugContext* dbg) {
+  DBUG_TRACE;
   return file_->Sync(options, dbg);
 }
 
 IOStatus EncryptedWritableFile::Close(const IOOptions& options,
                                       IODebugContext* dbg) {
+  DBUG_TRACE;
   return file_->Close(options, dbg);
 }
 
 bool EncryptedRandomRWFile::use_direct_io() const {
+  DBUG_TRACE;
   return file_->use_direct_io();
 }
 
 size_t EncryptedRandomRWFile::GetRequiredBufferAlignment() const {
+  DBUG_TRACE;
   return file_->GetRequiredBufferAlignment();
 }
 
 IOStatus EncryptedRandomRWFile::Write(uint64_t offset, const Slice& data,
                                       const IOOptions& options,
                                       IODebugContext* dbg) {
+  DBUG_TRACE;
   AlignedBuffer buf;
   Slice dataToWrite(data);
   offset += prefixLength_;
@@ -299,6 +333,7 @@ IOStatus EncryptedRandomRWFile::Write(uint64_t offset, const Slice& data,
 IOStatus EncryptedRandomRWFile::Read(uint64_t offset, size_t n,
                                      const IOOptions& options, Slice* result,
                                      char* scratch, IODebugContext* dbg) const {
+  DBUG_TRACE;
   assert(scratch);
   offset += prefixLength_;
   auto status = file_->Read(offset, n, options, result, scratch, dbg);
@@ -315,21 +350,25 @@ IOStatus EncryptedRandomRWFile::Read(uint64_t offset, size_t n,
 
 IOStatus EncryptedRandomRWFile::Flush(const IOOptions& options,
                                       IODebugContext* dbg) {
+  DBUG_TRACE;
   return file_->Flush(options, dbg);
 }
 
 IOStatus EncryptedRandomRWFile::Sync(const IOOptions& options,
                                      IODebugContext* dbg) {
+  DBUG_TRACE;
   return file_->Sync(options, dbg);
 }
 
 IOStatus EncryptedRandomRWFile::Fsync(const IOOptions& options,
                                       IODebugContext* dbg) {
+  DBUG_TRACE;
   return file_->Fsync(options, dbg);
 }
 
 IOStatus EncryptedRandomRWFile::Close(const IOOptions& options,
                                       IODebugContext* dbg) {
+  DBUG_TRACE;
   return file_->Close(options, dbg);
 }
 
@@ -346,12 +385,14 @@ static std::unordered_map<std::string, OptionTypeInfo> encrypted_fs_type_info =
 class EncryptedFileSystemImpl : public EncryptedFileSystem {
  public:
   const char* Name() const override {
+    DBUG_TRACE;
     return EncryptedFileSystem::kClassName();
   }
   // Returns the raw encryption provider that should be used to write the input
   // encrypted file.  If there is no such provider, NotFound is returned.
   IOStatus GetWritableProvider(const std::string& /*fname*/,
                                EncryptionProvider** result) {
+    DBUG_TRACE;
     if (provider_) {
       *result = provider_.get();
       return IOStatus::OK();
@@ -365,6 +406,7 @@ class EncryptedFileSystemImpl : public EncryptedFileSystem {
   // encrypted file.  If there is no such provider, NotFound is returned.
   IOStatus GetReadableProvider(const std::string& /*fname*/,
                                EncryptionProvider** result) {
+    DBUG_TRACE;
     if (provider_) {
       *result = provider_.get();
       return IOStatus::OK();
@@ -574,6 +616,7 @@ class EncryptedFileSystemImpl : public EncryptedFileSystem {
 
   Status AddCipher(const std::string& descriptor, const char* cipher,
                    size_t len, bool for_write) override {
+    DBUG_TRACE;
     return provider_->AddCipher(descriptor, cipher, len, for_write);
   }
 
@@ -581,6 +624,7 @@ class EncryptedFileSystemImpl : public EncryptedFileSystem {
                              const FileOptions& options,
                              std::unique_ptr<FSSequentialFile>* result,
                              IODebugContext* dbg) override {
+    DBUG_TRACE;
     result->reset();
     if (options.use_mmap_reads) {
       return IOStatus::InvalidArgument();
@@ -618,6 +662,7 @@ class EncryptedFileSystemImpl : public EncryptedFileSystem {
                                const FileOptions& options,
                                std::unique_ptr<FSRandomAccessFile>* result,
                                IODebugContext* dbg) override {
+    DBUG_TRACE;
     result->reset();
     if (options.use_mmap_reads) {
       return IOStatus::InvalidArgument();
@@ -647,6 +692,7 @@ class EncryptedFileSystemImpl : public EncryptedFileSystem {
   IOStatus NewWritableFile(const std::string& fname, const FileOptions& options,
                            std::unique_ptr<FSWritableFile>* result,
                            IODebugContext* dbg) override {
+    DBUG_TRACE;
     result->reset();
     if (options.use_mmap_writes) {
       return IOStatus::InvalidArgument();
@@ -665,6 +711,7 @@ class EncryptedFileSystemImpl : public EncryptedFileSystem {
                               const FileOptions& options,
                               std::unique_ptr<FSWritableFile>* result,
                               IODebugContext* dbg) override {
+    DBUG_TRACE;
     result->reset();
     if (options.use_mmap_writes) {
       return IOStatus::InvalidArgument();
@@ -684,6 +731,7 @@ class EncryptedFileSystemImpl : public EncryptedFileSystem {
                              const FileOptions& options,
                              std::unique_ptr<FSWritableFile>* result,
                              IODebugContext* dbg) override {
+    DBUG_TRACE;
     result->reset();
     if (options.use_mmap_writes) {
       return IOStatus::InvalidArgument();
@@ -701,6 +749,7 @@ class EncryptedFileSystemImpl : public EncryptedFileSystem {
   IOStatus NewRandomRWFile(const std::string& fname, const FileOptions& options,
                            std::unique_ptr<FSRandomRWFile>* result,
                            IODebugContext* dbg) override {
+    DBUG_TRACE;
     result->reset();
     if (options.use_mmap_reads || options.use_mmap_writes) {
       return IOStatus::InvalidArgument();
@@ -741,6 +790,7 @@ class EncryptedFileSystemImpl : public EncryptedFileSystem {
                                      const IOOptions& options,
                                      std::vector<FileAttributes>* result,
                                      IODebugContext* dbg) override {
+    DBUG_TRACE;
     auto status =
         FileSystemWrapper::GetChildrenFileAttributes(dir, options, result, dbg);
     if (!status.ok()) {
@@ -765,6 +815,7 @@ class EncryptedFileSystemImpl : public EncryptedFileSystem {
 
   IOStatus GetFileSize(const std::string& fname, const IOOptions& options,
                        uint64_t* file_size, IODebugContext* dbg) override {
+    DBUG_TRACE;
     auto status =
         FileSystemWrapper::GetFileSize(fname, options, file_size, dbg);
     if (!status.ok() || !(*file_size)) {
@@ -789,6 +840,7 @@ Status NewEncryptedFileSystemImpl(
     const std::shared_ptr<FileSystem>& base,
     const std::shared_ptr<EncryptionProvider>& provider,
     std::unique_ptr<FileSystem>* result) {
+  DBUG_TRACE;
   result->reset(new EncryptedFileSystemImpl(base, provider));
   return Status::OK();
 }
@@ -796,6 +848,7 @@ Status NewEncryptedFileSystemImpl(
 std::shared_ptr<FileSystem> NewEncryptedFS(
     const std::shared_ptr<FileSystem>& base,
     const std::shared_ptr<EncryptionProvider>& provider) {
+  DBUG_TRACE;
   std::unique_ptr<FileSystem> efs;
   Status s = NewEncryptedFileSystemImpl(base, provider, &efs);
   if (s.ok()) {
@@ -811,12 +864,14 @@ std::shared_ptr<FileSystem> NewEncryptedFS(
 
 Env* NewEncryptedEnv(Env* base_env,
                      const std::shared_ptr<EncryptionProvider>& provider) {
+  DBUG_TRACE;
   return new CompositeEnvWrapper(
       base_env, NewEncryptedFS(base_env->GetFileSystem(), provider));
 }
 
 Status BlockAccessCipherStream::Encrypt(uint64_t fileOffset, char* data,
                                         size_t dataSize) {
+  DBUG_TRACE;
   // Calculate block index
   auto blockSize = BlockSize();
   uint64_t blockIndex = fileOffset / blockSize;
@@ -861,6 +916,7 @@ Status BlockAccessCipherStream::Encrypt(uint64_t fileOffset, char* data,
 
 Status BlockAccessCipherStream::Decrypt(uint64_t fileOffset, char* data,
                                         size_t dataSize) {
+  DBUG_TRACE;
   // Calculate block index
   auto blockSize = BlockSize();
   uint64_t blockIndex = fileOffset / blockSize;
@@ -933,17 +989,18 @@ class ROT13BlockCipher : public BlockCipher {
                     &rot13_block_cipher_type_info);
   }
 
-  static const char* kClassName() { return "ROT13"; }
-  const char* Name() const override { return kClassName(); }
+  static const char* kClassName() { DBUG_TRACE; return "ROT13"; }
+  const char* Name() const override { DBUG_TRACE; return kClassName(); }
 
-  size_t BlockSize() override { return blockSize_; }
+  size_t BlockSize() override { DBUG_TRACE; return blockSize_; }
   Status Encrypt(char* data) override {
+    DBUG_TRACE;
     for (size_t i = 0; i < blockSize_; ++i) {
       data[i] += 13;
     }
     return Status::OK();
   }
-  Status Decrypt(char* data) override { return Encrypt(data); }
+  Status Decrypt(char* data) override { DBUG_TRACE; return Encrypt(data); }
 };
 
 static const std::unordered_map<std::string, OptionTypeInfo>
@@ -956,12 +1013,14 @@ static const std::unordered_map<std::string, OptionTypeInfo>
 }  // anonymous namespace
 
 void CTRCipherStream::AllocateScratch(std::string& scratch) {
+  DBUG_TRACE;
   auto blockSize = cipher_->BlockSize();
   scratch.reserve(blockSize);
 }
 
 Status CTRCipherStream::EncryptBlock(uint64_t blockIndex, char* data,
                                      char* scratch) {
+  DBUG_TRACE;
   // Create nonce + counter
   auto blockSize = cipher_->BlockSize();
   memmove(scratch, iv_.data(), blockSize);
@@ -982,6 +1041,7 @@ Status CTRCipherStream::EncryptBlock(uint64_t blockIndex, char* data,
 
 Status CTRCipherStream::DecryptBlock(uint64_t blockIndex, char* data,
                                      char* scratch) {
+  DBUG_TRACE;
   // For CTR decryption & encryption are the same
   return EncryptBlock(blockIndex, data, scratch);
 }
@@ -993,6 +1053,7 @@ CTREncryptionProvider::CTREncryptionProvider(
 }
 
 bool CTREncryptionProvider::IsInstanceOf(const std::string& name) const {
+  DBUG_TRACE;
   // Special case for test purposes.
   if (name == "1://test" && cipher_ != nullptr) {
     return cipher_->IsInstanceOf(ROT13BlockCipher::kClassName());
@@ -1002,12 +1063,14 @@ bool CTREncryptionProvider::IsInstanceOf(const std::string& name) const {
 }
 
 size_t CTREncryptionProvider::GetPrefixLength() const {
+  DBUG_TRACE;
   return defaultPrefixLength;
 }
 
 Status CTREncryptionProvider::AddCipher(const std::string& /*descriptor*/,
                                         const char* cipher, size_t len,
                                         bool /*for_write*/) {
+  DBUG_TRACE;
   if (cipher_) {
     return Status::NotSupported("Cannot add keys to CTREncryptionProvider");
   } else if (strcmp(ROT13BlockCipher::kClassName(), cipher) == 0) {
@@ -1023,6 +1086,7 @@ Status CTREncryptionProvider::AddCipher(const std::string& /*descriptor*/,
 // (plain text) prefix.
 static void decodeCTRParameters(const char* prefix, size_t blockSize,
                                 uint64_t& initialCounter, Slice& iv) {
+  DBUG_TRACE;
   // First block contains 64-bit initial counter
   initialCounter = DecodeFixed64(prefix);
   // Second block contains IV
@@ -1032,6 +1096,7 @@ static void decodeCTRParameters(const char* prefix, size_t blockSize,
 Status CTREncryptionProvider::CreateNewPrefix(const std::string& /*fname*/,
                                               char* prefix,
                                               size_t prefixLength) const {
+  DBUG_TRACE;
   if (!cipher_) {
     return Status::InvalidArgument("Encryption Cipher is missing");
   }
@@ -1070,6 +1135,7 @@ Status CTREncryptionProvider::CreateNewPrefix(const std::string& /*fname*/,
 // that has been initialized.
 size_t CTREncryptionProvider::PopulateSecretPrefixPart(
     char* /*prefix*/, size_t /*prefixLength*/, size_t /*blockSize*/) const {
+  DBUG_TRACE;
   // Nothing to do here, put in custom data in override when needed.
   return 0;
 }
@@ -1077,6 +1143,7 @@ size_t CTREncryptionProvider::PopulateSecretPrefixPart(
 Status CTREncryptionProvider::CreateCipherStream(
     const std::string& fname, const EnvOptions& options, Slice& prefix,
     std::unique_ptr<BlockAccessCipherStream>* result) {
+  DBUG_TRACE;
   if (!cipher_) {
     return Status::InvalidArgument("Encryption Cipher is missing");
   }
@@ -1118,6 +1185,7 @@ Status CTREncryptionProvider::CreateCipherStreamFromPrefix(
     const std::string& /*fname*/, const EnvOptions& /*options*/,
     uint64_t initialCounter, const Slice& iv, const Slice& /*prefix*/,
     std::unique_ptr<BlockAccessCipherStream>* result) {
+  DBUG_TRACE;
   (*result) = std::unique_ptr<BlockAccessCipherStream>(
       new CTRCipherStream(cipher_, iv.data(), initialCounter));
   return Status::OK();
@@ -1125,6 +1193,7 @@ Status CTREncryptionProvider::CreateCipherStreamFromPrefix(
 
 namespace {
 static void RegisterEncryptionBuiltins() {
+  DBUG_TRACE;
   static std::once_flag once;
   std::call_once(once, [&]() {
     auto lib = ObjectRegistry::Default()->AddLibrary("encryption");
@@ -1177,6 +1246,7 @@ static void RegisterEncryptionBuiltins() {
 Status BlockCipher::CreateFromString(const ConfigOptions& config_options,
                                      const std::string& value,
                                      std::shared_ptr<BlockCipher>* result) {
+  DBUG_TRACE;
   RegisterEncryptionBuiltins();
   return LoadSharedObject<BlockCipher>(config_options, value, result);
 }
@@ -1184,6 +1254,7 @@ Status BlockCipher::CreateFromString(const ConfigOptions& config_options,
 Status EncryptionProvider::CreateFromString(
     const ConfigOptions& config_options, const std::string& value,
     std::shared_ptr<EncryptionProvider>* result) {
+  DBUG_TRACE;
   RegisterEncryptionBuiltins();
   return LoadSharedObject<EncryptionProvider>(config_options, value, result);
 }

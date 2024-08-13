@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #ifdef GFLAGS
 
 #include "db_stress_tool/db_stress_wide_merge_operator.h"
@@ -14,6 +15,7 @@ namespace ROCKSDB_NAMESPACE {
 bool DBStressWideMergeOperator::FullMergeV3(
     const MergeOperationInputV3& merge_in,
     MergeOperationOutputV3* merge_out) const {
+  DBUG_TRACE;
   assert(!merge_in.operand_list.empty());
   assert(merge_out);
 

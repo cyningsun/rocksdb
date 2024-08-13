@@ -4,6 +4,7 @@
 // (found in the LICENSE.Apache file in the root directory).
 
 
+#include "rocksdb/util/dbug.h"
 #include "utilities/transactions/lock/point/point_lock_tracker.h"
 
 namespace ROCKSDB_NAMESPACE {
@@ -16,9 +17,9 @@ class TrackedKeysColumnFamilyIterator
   explicit TrackedKeysColumnFamilyIterator(const TrackedKeys& keys)
       : tracked_keys_(keys), it_(keys.begin()) {}
 
-  bool HasNext() const override { return it_ != tracked_keys_.end(); }
+  bool HasNext() const override { DBUG_TRACE; return it_ != tracked_keys_.end(); }
 
-  ColumnFamilyId Next() override { return (it_++)->first; }
+  ColumnFamilyId Next() override { DBUG_TRACE; return (it_++)->first; }
 
  private:
   const TrackedKeys& tracked_keys_;
@@ -30,9 +31,9 @@ class TrackedKeysIterator : public LockTracker::KeyIterator {
   TrackedKeysIterator(const TrackedKeys& keys, ColumnFamilyId id)
       : key_infos_(keys.at(id)), it_(key_infos_.begin()) {}
 
-  bool HasNext() const override { return it_ != key_infos_.end(); }
+  bool HasNext() const override { DBUG_TRACE; return it_ != key_infos_.end(); }
 
-  const std::string& Next() override { return (it_++)->first; }
+  const std::string& Next() override { DBUG_TRACE; return (it_++)->first; }
 
  private:
   const TrackedKeyInfos& key_infos_;
@@ -42,6 +43,7 @@ class TrackedKeysIterator : public LockTracker::KeyIterator {
 }  // namespace
 
 void PointLockTracker::Track(const PointLockRequest& r) {
+  DBUG_TRACE;
   auto& keys = tracked_keys_[r.column_family_id];
   auto result = keys.try_emplace(r.key, r.seq);
   auto it = result.first;
@@ -64,6 +66,7 @@ void PointLockTracker::Track(const PointLockRequest& r) {
 }
 
 UntrackStatus PointLockTracker::Untrack(const PointLockRequest& r) {
+  DBUG_TRACE;
   auto cf_keys = tracked_keys_.find(r.column_family_id);
   if (cf_keys == tracked_keys_.end()) {
     return UntrackStatus::NOT_TRACKED;
@@ -108,6 +111,7 @@ UntrackStatus PointLockTracker::Untrack(const PointLockRequest& r) {
 }
 
 void PointLockTracker::Merge(const LockTracker& tracker) {
+  DBUG_TRACE;
   const PointLockTracker& t = static_cast<const PointLockTracker&>(tracker);
   for (const auto& cf_keys : t.tracked_keys_) {
     ColumnFamilyId cf = cf_keys.first;
@@ -135,6 +139,7 @@ void PointLockTracker::Merge(const LockTracker& tracker) {
 }
 
 void PointLockTracker::Subtract(const LockTracker& tracker) {
+  DBUG_TRACE;
   const PointLockTracker& t = static_cast<const PointLockTracker&>(tracker);
   for (const auto& cf_keys : t.tracked_keys_) {
     ColumnFamilyId cf = cf_keys.first;
@@ -170,6 +175,7 @@ void PointLockTracker::Subtract(const LockTracker& tracker) {
 
 LockTracker* PointLockTracker::GetTrackedLocksSinceSavePoint(
     const LockTracker& save_point_tracker) const {
+  DBUG_TRACE;
   // Examine the number of reads/writes performed on all keys written
   // since the last SavePoint and compare to the total number of reads/writes
   // for each key.
@@ -210,6 +216,7 @@ LockTracker* PointLockTracker::GetTrackedLocksSinceSavePoint(
 
 PointLockStatus PointLockTracker::GetPointLockStatus(
     ColumnFamilyId column_family_id, const std::string& key) const {
+  DBUG_TRACE;
   assert(IsPointLockSupported());
   PointLockStatus status;
   auto it = tracked_keys_.find(column_family_id);
@@ -231,6 +238,7 @@ PointLockStatus PointLockTracker::GetPointLockStatus(
 }
 
 uint64_t PointLockTracker::GetNumPointLocks() const {
+  DBUG_TRACE;
   uint64_t num_keys = 0;
   for (const auto& cf_keys : tracked_keys_) {
     num_keys += cf_keys.second.size();
@@ -240,16 +248,17 @@ uint64_t PointLockTracker::GetNumPointLocks() const {
 
 LockTracker::ColumnFamilyIterator* PointLockTracker::GetColumnFamilyIterator()
     const {
+  DBUG_TRACE;
   return new TrackedKeysColumnFamilyIterator(tracked_keys_);
 }
 
 LockTracker::KeyIterator* PointLockTracker::GetKeyIterator(
     ColumnFamilyId column_family_id) const {
+  DBUG_TRACE;
   assert(tracked_keys_.find(column_family_id) != tracked_keys_.end());
   return new TrackedKeysIterator(tracked_keys_, column_family_id);
 }
 
-void PointLockTracker::Clear() { tracked_keys_.clear(); }
+void PointLockTracker::Clear() { DBUG_TRACE; tracked_keys_.clear(); }
 
 }  // namespace ROCKSDB_NAMESPACE
-

@@ -6,6 +6,7 @@
 // Copyright (c) 2011 The LevelDB Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
+#include "rocksdb/util/dbug.h"
 #include <cinttypes>
 
 #include "db/db_impl/db_impl.h"
@@ -21,6 +22,7 @@ namespace ROCKSDB_NAMESPACE {
 // Convenience methods
 Status DBImpl::Put(const WriteOptions& o, ColumnFamilyHandle* column_family,
                    const Slice& key, const Slice& val) {
+  DBUG_TRACE;
   const Status s = FailIfCfHasTs(column_family);
   if (!s.ok()) {
     return s;
@@ -30,6 +32,7 @@ Status DBImpl::Put(const WriteOptions& o, ColumnFamilyHandle* column_family,
 
 Status DBImpl::Put(const WriteOptions& o, ColumnFamilyHandle* column_family,
                    const Slice& key, const Slice& ts, const Slice& val) {
+  DBUG_TRACE;
   const Status s = FailIfTsMismatchCf(column_family, ts);
   if (!s.ok()) {
     return s;
@@ -40,6 +43,7 @@ Status DBImpl::Put(const WriteOptions& o, ColumnFamilyHandle* column_family,
 Status DBImpl::PutEntity(const WriteOptions& options,
                          ColumnFamilyHandle* column_family, const Slice& key,
                          const WideColumns& columns) {
+  DBUG_TRACE;
   const Status s = FailIfCfHasTs(column_family);
   if (!s.ok()) {
     return s;
@@ -50,6 +54,7 @@ Status DBImpl::PutEntity(const WriteOptions& options,
 
 Status DBImpl::PutEntity(const WriteOptions& options, const Slice& key,
                          const AttributeGroups& attribute_groups) {
+  DBUG_TRACE;
   for (const AttributeGroup& ag : attribute_groups) {
     const Status s = FailIfCfHasTs(ag.column_family());
     if (!s.ok()) {
@@ -61,6 +66,7 @@ Status DBImpl::PutEntity(const WriteOptions& options, const Slice& key,
 
 Status DBImpl::Merge(const WriteOptions& o, ColumnFamilyHandle* column_family,
                      const Slice& key, const Slice& val) {
+  DBUG_TRACE;
   const Status s = FailIfCfHasTs(column_family);
   if (!s.ok()) {
     return s;
@@ -75,6 +81,7 @@ Status DBImpl::Merge(const WriteOptions& o, ColumnFamilyHandle* column_family,
 
 Status DBImpl::Merge(const WriteOptions& o, ColumnFamilyHandle* column_family,
                      const Slice& key, const Slice& ts, const Slice& val) {
+  DBUG_TRACE;
   const Status s = FailIfTsMismatchCf(column_family, ts);
   if (!s.ok()) {
     return s;
@@ -84,6 +91,7 @@ Status DBImpl::Merge(const WriteOptions& o, ColumnFamilyHandle* column_family,
 
 Status DBImpl::Delete(const WriteOptions& write_options,
                       ColumnFamilyHandle* column_family, const Slice& key) {
+  DBUG_TRACE;
   const Status s = FailIfCfHasTs(column_family);
   if (!s.ok()) {
     return s;
@@ -94,6 +102,7 @@ Status DBImpl::Delete(const WriteOptions& write_options,
 Status DBImpl::Delete(const WriteOptions& write_options,
                       ColumnFamilyHandle* column_family, const Slice& key,
                       const Slice& ts) {
+  DBUG_TRACE;
   const Status s = FailIfTsMismatchCf(column_family, ts);
   if (!s.ok()) {
     return s;
@@ -104,6 +113,7 @@ Status DBImpl::Delete(const WriteOptions& write_options,
 Status DBImpl::SingleDelete(const WriteOptions& write_options,
                             ColumnFamilyHandle* column_family,
                             const Slice& key) {
+  DBUG_TRACE;
   const Status s = FailIfCfHasTs(column_family);
   if (!s.ok()) {
     return s;
@@ -114,6 +124,7 @@ Status DBImpl::SingleDelete(const WriteOptions& write_options,
 Status DBImpl::SingleDelete(const WriteOptions& write_options,
                             ColumnFamilyHandle* column_family, const Slice& key,
                             const Slice& ts) {
+  DBUG_TRACE;
   const Status s = FailIfTsMismatchCf(column_family, ts);
   if (!s.ok()) {
     return s;
@@ -124,6 +135,7 @@ Status DBImpl::SingleDelete(const WriteOptions& write_options,
 Status DBImpl::DeleteRange(const WriteOptions& write_options,
                            ColumnFamilyHandle* column_family,
                            const Slice& begin_key, const Slice& end_key) {
+  DBUG_TRACE;
   const Status s = FailIfCfHasTs(column_family);
   if (!s.ok()) {
     return s;
@@ -135,6 +147,7 @@ Status DBImpl::DeleteRange(const WriteOptions& write_options,
                            ColumnFamilyHandle* column_family,
                            const Slice& begin_key, const Slice& end_key,
                            const Slice& ts) {
+  DBUG_TRACE;
   const Status s = FailIfTsMismatchCf(column_family, ts);
   if (!s.ok()) {
     return s;
@@ -144,10 +157,12 @@ Status DBImpl::DeleteRange(const WriteOptions& write_options,
 
 void DBImpl::SetRecoverableStatePreReleaseCallback(
     PreReleaseCallback* callback) {
+  DBUG_TRACE;
   recoverable_state_pre_release_callback_.reset(callback);
 }
 
 Status DBImpl::Write(const WriteOptions& write_options, WriteBatch* my_batch) {
+  DBUG_TRACE;
   Status s;
   if (write_options.protection_bytes_per_key > 0) {
     s = WriteBatchInternal::UpdateProtectionInfo(
@@ -164,6 +179,7 @@ Status DBImpl::Write(const WriteOptions& write_options, WriteBatch* my_batch) {
 Status DBImpl::WriteWithCallback(const WriteOptions& write_options,
                                  WriteBatch* my_batch, WriteCallback* callback,
                                  UserWriteCallback* user_write_cb) {
+  DBUG_TRACE;
   Status s;
   if (write_options.protection_bytes_per_key > 0) {
     s = WriteBatchInternal::UpdateProtectionInfo(
@@ -178,6 +194,7 @@ Status DBImpl::WriteWithCallback(const WriteOptions& write_options,
 Status DBImpl::WriteWithCallback(const WriteOptions& write_options,
                                  WriteBatch* my_batch,
                                  UserWriteCallback* user_write_cb) {
+  DBUG_TRACE;
   Status s;
   if (write_options.protection_bytes_per_key > 0) {
     s = WriteBatchInternal::UpdateProtectionInfo(
@@ -199,6 +216,7 @@ Status DBImpl::WriteImpl(const WriteOptions& write_options,
                          uint64_t* seq_used, size_t batch_cnt,
                          PreReleaseCallback* pre_release_callback,
                          PostMemTableCallback* post_memtable_callback) {
+  DBUG_TRACE;
   assert(!seq_per_batch_ || batch_cnt != 0);
   assert(my_batch == nullptr || my_batch->Count() == 0 ||
          write_options.protection_bytes_per_key == 0 ||
@@ -705,6 +723,7 @@ Status DBImpl::PipelinedWriteImpl(const WriteOptions& write_options,
                                   UserWriteCallback* user_write_cb,
                                   uint64_t* log_used, uint64_t log_ref,
                                   bool disable_memtable, uint64_t* seq_used) {
+  DBUG_TRACE;
   PERF_TIMER_GUARD(write_pre_and_post_process_time);
   StopWatch write_sw(immutable_db_options_.clock, stats_, DB_WRITE);
 
@@ -889,6 +908,7 @@ Status DBImpl::UnorderedWriteMemtable(const WriteOptions& write_options,
                                       WriteCallback* callback, uint64_t log_ref,
                                       SequenceNumber seq,
                                       const size_t sub_batch_cnt) {
+  DBUG_TRACE;
   PERF_TIMER_GUARD(write_pre_and_post_process_time);
   StopWatch write_sw(immutable_db_options_.clock, stats_, DB_WRITE);
 
@@ -948,6 +968,7 @@ Status DBImpl::WriteImplWALOnly(
     const uint64_t log_ref, uint64_t* seq_used, const size_t sub_batch_cnt,
     PreReleaseCallback* pre_release_callback, const AssignOrder assign_order,
     const PublishLastSeq publish_last_seq, const bool disable_memtable) {
+  DBUG_TRACE;
   PERF_TIMER_GUARD(write_pre_and_post_process_time);
   WriteThread::Writer w(write_options, my_batch, callback, user_write_cb,
                         log_ref, disable_memtable, sub_batch_cnt,
@@ -1151,6 +1172,7 @@ Status DBImpl::WriteImplWALOnly(
 }
 
 void DBImpl::WriteStatusCheckOnLocked(const Status& status) {
+  DBUG_TRACE;
   // Is setting bg_error_ enough here?  This will at least stop
   // compaction and fail any further writes.
   InstrumentedMutexLock l(&mutex_);
@@ -1163,6 +1185,7 @@ void DBImpl::WriteStatusCheckOnLocked(const Status& status) {
 }
 
 void DBImpl::WriteStatusCheck(const Status& status) {
+  DBUG_TRACE;
   // Is setting bg_error_ enough here?  This will at least stop
   // compaction and fail any further writes.
   assert(!status.IsIOFenced() || !error_handler_.GetBGError().ok());
@@ -1176,6 +1199,7 @@ void DBImpl::WriteStatusCheck(const Status& status) {
 }
 
 void DBImpl::IOStatusCheck(const IOStatus& io_status) {
+  DBUG_TRACE;
   // Is setting bg_error_ enough here?  This will at least stop
   // compaction and fail any further writes.
   if ((immutable_db_options_.paranoid_checks && !io_status.ok() &&
@@ -1192,6 +1216,7 @@ void DBImpl::IOStatusCheck(const IOStatus& io_status) {
 }
 
 void DBImpl::MemTableInsertStatusCheck(const Status& status) {
+  DBUG_TRACE;
   // A non-OK status here indicates that the state implied by the
   // WAL has diverged from the in-memory state.  This could be
   // because of a corrupt write_batch (very bad), or because the
@@ -1209,6 +1234,7 @@ void DBImpl::MemTableInsertStatusCheck(const Status& status) {
 Status DBImpl::PreprocessWrite(const WriteOptions& write_options,
                                LogContext* log_context,
                                WriteContext* write_context) {
+  DBUG_TRACE;
   assert(write_context != nullptr && log_context != nullptr);
   Status status;
 
@@ -1323,6 +1349,7 @@ Status DBImpl::MergeBatch(const WriteThread::WriteGroup& write_group,
                           WriteBatch* tmp_batch, WriteBatch** merged_batch,
                           size_t* write_with_wal,
                           WriteBatch** to_be_cached_state) {
+  DBUG_TRACE;
   assert(write_with_wal != nullptr);
   assert(tmp_batch != nullptr);
   assert(*to_be_cached_state == nullptr);
@@ -1371,6 +1398,7 @@ IOStatus DBImpl::WriteToWAL(const WriteBatch& merged_batch,
                             log::Writer* log_writer, uint64_t* log_used,
                             uint64_t* log_size,
                             LogFileNumberSize& log_file_number_size) {
+  DBUG_TRACE;
   assert(log_size != nullptr);
 
   Slice log_entry = WriteBatchInternal::Contents(&merged_batch);
@@ -1416,6 +1444,7 @@ IOStatus DBImpl::WriteToWAL(const WriteThread::WriteGroup& write_group,
                             bool need_log_sync, bool need_log_dir_sync,
                             SequenceNumber sequence,
                             LogFileNumberSize& log_file_number_size) {
+  DBUG_TRACE;
   IOStatus io_s;
   assert(!two_write_queues_);
   assert(!write_group.leader->disable_wal);
@@ -1531,6 +1560,7 @@ IOStatus DBImpl::WriteToWAL(const WriteThread::WriteGroup& write_group,
 IOStatus DBImpl::ConcurrentWriteToWAL(
     const WriteThread::WriteGroup& write_group, uint64_t* log_used,
     SequenceNumber* last_sequence, size_t seq_inc) {
+  DBUG_TRACE;
   IOStatus io_s;
 
   assert(two_write_queues_ || immutable_db_options_.unordered_write);
@@ -1598,6 +1628,7 @@ IOStatus DBImpl::ConcurrentWriteToWAL(
 }
 
 Status DBImpl::WriteRecoverableState() {
+  DBUG_TRACE;
   mutex_.AssertHeld();
   if (!cached_recoverable_state_empty_) {
     bool dont_care_bool;
@@ -1654,6 +1685,7 @@ void DBImpl::SelectColumnFamiliesForAtomicFlush(
     autovector<ColumnFamilyData*>* selected_cfds,
     const autovector<ColumnFamilyData*>& provided_candidate_cfds,
     FlushReason flush_reason) {
+  DBUG_TRACE;
   mutex_.AssertHeld();
   assert(selected_cfds);
 
@@ -1693,6 +1725,7 @@ void DBImpl::SelectColumnFamiliesForAtomicFlush(
 
 // Assign sequence number for atomic flush.
 void DBImpl::AssignAtomicFlushSeq(const autovector<ColumnFamilyData*>& cfds) {
+  DBUG_TRACE;
   assert(immutable_db_options_.atomic_flush);
   auto seq = versions_->LastSequence();
   for (auto cfd : cfds) {
@@ -1701,6 +1734,7 @@ void DBImpl::AssignAtomicFlushSeq(const autovector<ColumnFamilyData*>& cfds) {
 }
 
 Status DBImpl::SwitchWAL(WriteContext* write_context) {
+  DBUG_TRACE;
   mutex_.AssertHeld();
   assert(write_context != nullptr);
   Status status;
@@ -1803,6 +1837,7 @@ Status DBImpl::SwitchWAL(WriteContext* write_context) {
 }
 
 Status DBImpl::HandleWriteBufferManagerFlush(WriteContext* write_context) {
+  DBUG_TRACE;
   mutex_.AssertHeld();
   assert(write_context != nullptr);
   Status status;
@@ -1895,6 +1930,7 @@ Status DBImpl::HandleWriteBufferManagerFlush(WriteContext* write_context) {
 }
 
 uint64_t DBImpl::GetMaxTotalWalSize() const {
+  DBUG_TRACE;
   uint64_t max_total_wal_size =
       max_total_wal_size_.load(std::memory_order_acquire);
   if (max_total_wal_size > 0) {
@@ -1907,6 +1943,7 @@ uint64_t DBImpl::GetMaxTotalWalSize() const {
 // REQUIRES: this thread is currently at the leader for write_thread
 Status DBImpl::DelayWrite(uint64_t num_bytes, WriteThread& write_thread,
                           const WriteOptions& write_options) {
+  DBUG_TRACE;
   mutex_.AssertHeld();
   uint64_t start_time = 0;
   bool delayed = false;
@@ -2010,6 +2047,7 @@ Status DBImpl::DelayWrite(uint64_t num_bytes, WriteThread& write_thread,
 // REQUIRES: mutex_ is held
 // REQUIRES: this thread is currently at the front of the writer queue
 void DBImpl::WriteBufferManagerStallWrites() {
+  DBUG_TRACE;
   mutex_.AssertHeld();
   // First block future writer threads who want to add themselves to the queue
   // of WriteThread.
@@ -2032,6 +2070,7 @@ void DBImpl::WriteBufferManagerStallWrites() {
 
 Status DBImpl::ThrottleLowPriWritesIfNeeded(const WriteOptions& write_options,
                                             WriteBatch* my_batch) {
+  DBUG_TRACE;
   assert(write_options.low_pri);
   // This is called outside the DB mutex. Although it is safe to make the call,
   // the consistency condition is not guaranteed to hold. It's OK to live with
@@ -2065,6 +2104,7 @@ Status DBImpl::ThrottleLowPriWritesIfNeeded(const WriteOptions& write_options,
 }
 
 void DBImpl::MaybeFlushStatsCF(autovector<ColumnFamilyData*>* cfds) {
+  DBUG_TRACE;
   assert(cfds != nullptr);
   if (!cfds->empty() && immutable_db_options_.persist_stats_to_disk) {
     ColumnFamilyData* cfd_stats =
@@ -2099,6 +2139,7 @@ void DBImpl::MaybeFlushStatsCF(autovector<ColumnFamilyData*>* cfds) {
 }
 
 Status DBImpl::TrimMemtableHistory(WriteContext* context) {
+  DBUG_TRACE;
   autovector<ColumnFamilyData*> cfds;
   ColumnFamilyData* tmp_cfd;
   while ((tmp_cfd = trim_history_scheduler_.TakeNextColumnFamily()) !=
@@ -2123,6 +2164,7 @@ Status DBImpl::TrimMemtableHistory(WriteContext* context) {
 }
 
 Status DBImpl::ScheduleFlushes(WriteContext* context) {
+  DBUG_TRACE;
   autovector<ColumnFamilyData*> cfds;
   if (immutable_db_options_.atomic_flush) {
     SelectColumnFamiliesForAtomicFlush(&cfds);
@@ -2178,6 +2220,7 @@ Status DBImpl::ScheduleFlushes(WriteContext* context) {
 
 void DBImpl::NotifyOnMemTableSealed(ColumnFamilyData* /*cfd*/,
                                     const MemTableInfo& mem_table_info) {
+  DBUG_TRACE;
   if (immutable_db_options_.listeners.size() == 0U) {
     return;
   }
@@ -2197,6 +2240,7 @@ void DBImpl::NotifyOnMemTableSealed(ColumnFamilyData* /*cfd*/,
 // REQUIRES: this thread is currently at the front of the 2nd writer queue if
 // two_write_queues_ is true (This is to simplify the reasoning.)
 Status DBImpl::SwitchMemtable(ColumnFamilyData* cfd, WriteContext* context) {
+  DBUG_TRACE;
   mutex_.AssertHeld();
   assert(lock_wal_count_ == 0);
 
@@ -2419,6 +2463,7 @@ Status DBImpl::SwitchMemtable(ColumnFamilyData* cfd, WriteContext* context) {
 }
 
 size_t DBImpl::GetWalPreallocateBlockSize(uint64_t write_buffer_size) const {
+  DBUG_TRACE;
   mutex_.AssertHeld();
   size_t bsize =
       static_cast<size_t>(write_buffer_size / 10 + write_buffer_size);
@@ -2444,6 +2489,7 @@ size_t DBImpl::GetWalPreallocateBlockSize(uint64_t write_buffer_size) const {
 // can call if they wish
 Status DB::Put(const WriteOptions& opt, ColumnFamilyHandle* column_family,
                const Slice& key, const Slice& value) {
+  DBUG_TRACE;
   // Pre-allocate size of write batch conservatively.
   // 8 bytes are taken by header, 4 bytes for count, 1 byte for type,
   // and we allocate 11 extra bytes for key length, as well as value length.
@@ -2458,6 +2504,7 @@ Status DB::Put(const WriteOptions& opt, ColumnFamilyHandle* column_family,
 
 Status DB::Put(const WriteOptions& opt, ColumnFamilyHandle* column_family,
                const Slice& key, const Slice& ts, const Slice& value) {
+  DBUG_TRACE;
   ColumnFamilyHandle* default_cf = DefaultColumnFamily();
   assert(default_cf);
   const Comparator* const default_cf_ucmp = default_cf->GetComparator();
@@ -2475,6 +2522,7 @@ Status DB::Put(const WriteOptions& opt, ColumnFamilyHandle* column_family,
 Status DB::PutEntity(const WriteOptions& options,
                      ColumnFamilyHandle* column_family, const Slice& key,
                      const WideColumns& columns) {
+  DBUG_TRACE;
   const ColumnFamilyHandle* const default_cf = DefaultColumnFamily();
   assert(default_cf);
 
@@ -2495,6 +2543,7 @@ Status DB::PutEntity(const WriteOptions& options,
 
 Status DB::PutEntity(const WriteOptions& options, const Slice& key,
                      const AttributeGroups& attribute_groups) {
+  DBUG_TRACE;
   ColumnFamilyHandle* default_cf = DefaultColumnFamily();
   assert(default_cf);
   const Comparator* const default_cf_ucmp = default_cf->GetComparator();
@@ -2511,6 +2560,7 @@ Status DB::PutEntity(const WriteOptions& options, const Slice& key,
 
 Status DB::Delete(const WriteOptions& opt, ColumnFamilyHandle* column_family,
                   const Slice& key) {
+  DBUG_TRACE;
   WriteBatch batch(0 /* reserved_bytes */, 0 /* max_bytes */,
                    opt.protection_bytes_per_key, 0 /* default_cf_ts_sz */);
   Status s = batch.Delete(column_family, key);
@@ -2522,6 +2572,7 @@ Status DB::Delete(const WriteOptions& opt, ColumnFamilyHandle* column_family,
 
 Status DB::Delete(const WriteOptions& opt, ColumnFamilyHandle* column_family,
                   const Slice& key, const Slice& ts) {
+  DBUG_TRACE;
   ColumnFamilyHandle* default_cf = DefaultColumnFamily();
   assert(default_cf);
   const Comparator* const default_cf_ucmp = default_cf->GetComparator();
@@ -2538,6 +2589,7 @@ Status DB::Delete(const WriteOptions& opt, ColumnFamilyHandle* column_family,
 
 Status DB::SingleDelete(const WriteOptions& opt,
                         ColumnFamilyHandle* column_family, const Slice& key) {
+  DBUG_TRACE;
   WriteBatch batch(0 /* reserved_bytes */, 0 /* max_bytes */,
                    opt.protection_bytes_per_key, 0 /* default_cf_ts_sz */);
   Status s = batch.SingleDelete(column_family, key);
@@ -2550,6 +2602,7 @@ Status DB::SingleDelete(const WriteOptions& opt,
 Status DB::SingleDelete(const WriteOptions& opt,
                         ColumnFamilyHandle* column_family, const Slice& key,
                         const Slice& ts) {
+  DBUG_TRACE;
   ColumnFamilyHandle* default_cf = DefaultColumnFamily();
   assert(default_cf);
   const Comparator* const default_cf_ucmp = default_cf->GetComparator();
@@ -2567,6 +2620,7 @@ Status DB::SingleDelete(const WriteOptions& opt,
 Status DB::DeleteRange(const WriteOptions& opt,
                        ColumnFamilyHandle* column_family,
                        const Slice& begin_key, const Slice& end_key) {
+  DBUG_TRACE;
   WriteBatch batch(0 /* reserved_bytes */, 0 /* max_bytes */,
                    opt.protection_bytes_per_key, 0 /* default_cf_ts_sz */);
   Status s = batch.DeleteRange(column_family, begin_key, end_key);
@@ -2580,6 +2634,7 @@ Status DB::DeleteRange(const WriteOptions& opt,
                        ColumnFamilyHandle* column_family,
                        const Slice& begin_key, const Slice& end_key,
                        const Slice& ts) {
+  DBUG_TRACE;
   ColumnFamilyHandle* default_cf = DefaultColumnFamily();
   assert(default_cf);
   const Comparator* const default_cf_ucmp = default_cf->GetComparator();
@@ -2596,6 +2651,7 @@ Status DB::DeleteRange(const WriteOptions& opt,
 
 Status DB::Merge(const WriteOptions& opt, ColumnFamilyHandle* column_family,
                  const Slice& key, const Slice& value) {
+  DBUG_TRACE;
   WriteBatch batch(0 /* reserved_bytes */, 0 /* max_bytes */,
                    opt.protection_bytes_per_key, 0 /* default_cf_ts_sz */);
   Status s = batch.Merge(column_family, key, value);
@@ -2607,6 +2663,7 @@ Status DB::Merge(const WriteOptions& opt, ColumnFamilyHandle* column_family,
 
 Status DB::Merge(const WriteOptions& opt, ColumnFamilyHandle* column_family,
                  const Slice& key, const Slice& ts, const Slice& value) {
+  DBUG_TRACE;
   ColumnFamilyHandle* default_cf = DefaultColumnFamily();
   assert(default_cf);
   const Comparator* const default_cf_ucmp = default_cf->GetComparator();

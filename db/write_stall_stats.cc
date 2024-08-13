@@ -3,15 +3,18 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "db/write_stall_stats.h"
 
 namespace ROCKSDB_NAMESPACE {
 const std::string& InvalidWriteStallHyphenString() {
+  DBUG_TRACE;
   static const std::string kInvalidWriteStallHyphenString = "invalid";
   return kInvalidWriteStallHyphenString;
 }
 
 const std::string& WriteStallCauseToHyphenString(WriteStallCause cause) {
+  DBUG_TRACE;
   static const std::string kMemtableLimit = "memtable-limit";
   static const std::string kL0FileCountLimit = "l0-file-count-limit";
   static const std::string kPendingCompactionBytes = "pending-compaction-bytes";
@@ -34,6 +37,7 @@ const std::string& WriteStallCauseToHyphenString(WriteStallCause cause) {
 
 const std::string& WriteStallConditionToHyphenString(
     WriteStallCondition condition) {
+  DBUG_TRACE;
   static const std::string kDelayed = "delays";
   static const std::string kStopped = "stops";
   switch (condition) {
@@ -49,6 +53,7 @@ const std::string& WriteStallConditionToHyphenString(
 
 InternalStats::InternalCFStatsType InternalCFStat(
     WriteStallCause cause, WriteStallCondition condition) {
+  DBUG_TRACE;
   switch (cause) {
     case WriteStallCause::kMemtableLimit: {
       switch (condition) {
@@ -91,6 +96,7 @@ InternalStats::InternalCFStatsType InternalCFStat(
 
 InternalStats::InternalDBStatsType InternalDBStat(
     WriteStallCause cause, WriteStallCondition condition) {
+  DBUG_TRACE;
   switch (cause) {
     case WriteStallCause::kWriteBufferManagerLimit: {
       switch (condition) {
@@ -108,6 +114,7 @@ InternalStats::InternalDBStatsType InternalDBStat(
 }
 
 bool isCFScopeWriteStallCause(WriteStallCause cause) {
+  DBUG_TRACE;
   uint32_t int_cause = static_cast<uint32_t>(cause);
   uint32_t lower_bound =
       static_cast<uint32_t>(WriteStallCause::kCFScopeWriteStallCauseEnumMax) -
@@ -119,6 +126,7 @@ bool isCFScopeWriteStallCause(WriteStallCause cause) {
 }
 
 bool isDBScopeWriteStallCause(WriteStallCause cause) {
+  DBUG_TRACE;
   uint32_t int_cause = static_cast<uint32_t>(cause);
   uint32_t lower_bound =
       static_cast<uint32_t>(WriteStallCause::kDBScopeWriteStallCauseEnumMax) -
@@ -130,17 +138,20 @@ bool isDBScopeWriteStallCause(WriteStallCause cause) {
 }
 
 const std::string& WriteStallStatsMapKeys::TotalStops() {
+  DBUG_TRACE;
   static const std::string kTotalStops = "total-stops";
   return kTotalStops;
 }
 
 const std::string& WriteStallStatsMapKeys::TotalDelays() {
+  DBUG_TRACE;
   static const std::string kTotalDelays = "total-delays";
   return kTotalDelays;
 }
 
 const std::string&
 WriteStallStatsMapKeys::CFL0FileCountLimitDelaysWithOngoingCompaction() {
+  DBUG_TRACE;
   static const std::string ret =
       "cf-l0-file-count-limit-delays-with-ongoing-compaction";
   return ret;
@@ -148,6 +159,7 @@ WriteStallStatsMapKeys::CFL0FileCountLimitDelaysWithOngoingCompaction() {
 
 const std::string&
 WriteStallStatsMapKeys::CFL0FileCountLimitStopsWithOngoingCompaction() {
+  DBUG_TRACE;
   static const std::string ret =
       "cf-l0-file-count-limit-stops-with-ongoing-compaction";
   return ret;
@@ -155,6 +167,7 @@ WriteStallStatsMapKeys::CFL0FileCountLimitStopsWithOngoingCompaction() {
 
 std::string WriteStallStatsMapKeys::CauseConditionCount(
     WriteStallCause cause, WriteStallCondition condition) {
+  DBUG_TRACE;
   std::string cause_condition_count_name;
 
   std::string cause_name;

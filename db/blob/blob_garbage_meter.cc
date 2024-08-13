@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "db/blob/blob_garbage_meter.h"
 
 #include "db/blob/blob_index.h"
@@ -12,6 +13,7 @@
 namespace ROCKSDB_NAMESPACE {
 
 Status BlobGarbageMeter::ProcessInFlow(const Slice& key, const Slice& value) {
+  DBUG_TRACE;
   uint64_t blob_file_number = kInvalidBlobFileNumber;
   uint64_t bytes = 0;
 
@@ -30,6 +32,7 @@ Status BlobGarbageMeter::ProcessInFlow(const Slice& key, const Slice& value) {
 }
 
 Status BlobGarbageMeter::ProcessOutFlow(const Slice& key, const Slice& value) {
+  DBUG_TRACE;
   uint64_t blob_file_number = kInvalidBlobFileNumber;
   uint64_t bytes = 0;
 

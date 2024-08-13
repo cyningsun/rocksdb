@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "monitoring/histogram_windowing.h"
 
 #include <algorithm>
@@ -37,6 +38,7 @@ HistogramWindowingImpl::HistogramWindowingImpl(uint64_t num_windows,
 HistogramWindowingImpl::~HistogramWindowingImpl() = default;
 
 void HistogramWindowingImpl::Clear() {
+  DBUG_TRACE;
   std::lock_guard<std::mutex> lock(mutex_);
 
   stats_.Clear();
@@ -47,13 +49,14 @@ void HistogramWindowingImpl::Clear() {
   last_swap_time_.store(clock_->NowMicros(), std::memory_order_relaxed);
 }
 
-bool HistogramWindowingImpl::Empty() const { return stats_.Empty(); }
+bool HistogramWindowingImpl::Empty() const { DBUG_TRACE; return stats_.Empty(); }
 
 // This function is designed to be lock free, as it's in the critical path
 // of any operation.
 // Each individual value is atomic, it is just that some samples can go
 // in the older bucket which is tolerable.
 void HistogramWindowingImpl::Add(uint64_t value) {
+  DBUG_TRACE;
   TimerTick();
 
   // Parent (global) member update
@@ -64,12 +67,14 @@ void HistogramWindowingImpl::Add(uint64_t value) {
 }
 
 void HistogramWindowingImpl::Merge(const Histogram& other) {
+  DBUG_TRACE;
   if (strcmp(Name(), other.Name()) == 0) {
     Merge(*static_cast_with_check<const HistogramWindowingImpl>(&other));
   }
 }
 
 void HistogramWindowingImpl::Merge(const HistogramWindowingImpl& other) {
+  DBUG_TRACE;
   std::lock_guard<std::mutex> lock(mutex_);
   stats_.Merge(other.stats_);
 
@@ -94,12 +99,14 @@ void HistogramWindowingImpl::Merge(const HistogramWindowingImpl& other) {
 }
 
 std::string HistogramWindowingImpl::ToString() const {
+  DBUG_TRACE;
   return stats_.ToString();
 }
 
-double HistogramWindowingImpl::Median() const { return Percentile(50.0); }
+double HistogramWindowingImpl::Median() const { DBUG_TRACE; return Percentile(50.0); }
 
 double HistogramWindowingImpl::Percentile(double p) const {
+  DBUG_TRACE;
   // Retry 3 times in total
   for (int retry = 0; retry < 3; retry++) {
     uint64_t start_num = stats_.num();
@@ -112,17 +119,20 @@ double HistogramWindowingImpl::Percentile(double p) const {
   return 0.0;
 }
 
-double HistogramWindowingImpl::Average() const { return stats_.Average(); }
+double HistogramWindowingImpl::Average() const { DBUG_TRACE; return stats_.Average(); }
 
 double HistogramWindowingImpl::StandardDeviation() const {
+  DBUG_TRACE;
   return stats_.StandardDeviation();
 }
 
 void HistogramWindowingImpl::Data(HistogramData* const data) const {
+  DBUG_TRACE;
   stats_.Data(data);
 }
 
 void HistogramWindowingImpl::TimerTick() {
+  DBUG_TRACE;
   uint64_t curr_time = clock_->NowMicros();
   size_t curr_window_ = static_cast<size_t>(current_window());
   if (curr_time - last_swap_time() > micros_per_window_ &&
@@ -132,6 +142,7 @@ void HistogramWindowingImpl::TimerTick() {
 }
 
 void HistogramWindowingImpl::SwapHistoryBucket() {
+  DBUG_TRACE;
   // Threads executing Add() would be competing for this mutex, the first one
   // who got the metex would take care of the bucket swap, other threads
   // can skip this.

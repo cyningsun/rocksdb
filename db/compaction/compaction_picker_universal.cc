@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "db/compaction/compaction_picker_universal.h"
 
 #include <cstdint>
@@ -115,6 +116,7 @@ class UniversalCompactionBuilder {
   Compaction* PickPeriodicCompaction();
 
   bool ShouldSkipLastSortedRunForSizeAmpCompaction() const {
+    DBUG_TRACE;
     assert(!sorted_runs_.empty());
     return ioptions_.preclude_last_level_data_seconds > 0 &&
            ioptions_.num_levels > 2 &&
@@ -154,6 +156,7 @@ class UniversalCompactionBuilder {
   std::size_t MightExcludeNewL0sToReduceWriteStop(
       std::size_t num_l0_input_pre_exclusion, std::size_t end_index,
       std::size_t& start_index, uint64_t& candidate_size) const {
+    DBUG_TRACE;
     if (num_l0_input_pre_exclusion == 0) {
       return 0;
     }
@@ -266,6 +269,7 @@ struct SmallestKeyHeapComparator {
   explicit SmallestKeyHeapComparator(const Comparator* ucmp) { ucmp_ = ucmp; }
 
   bool operator()(InputFileInfo i1, InputFileInfo i2) const {
+    DBUG_TRACE;
     return (ucmp_->CompareWithoutTimestamp(i1.f->smallest.user_key(),
                                            i2.f->smallest.user_key()) > 0);
   }
@@ -282,6 +286,7 @@ using SmallestKeyHeap =
 // overlapping during universal compaction when the allow_trivial_move
 // is set.
 SmallestKeyHeap create_level_heap(Compaction* c, const Comparator* ucmp) {
+  DBUG_TRACE;
   SmallestKeyHeap smallest_key_priority_q =
       SmallestKeyHeap(SmallestKeyHeapComparator(ucmp));
 
@@ -312,6 +317,7 @@ SmallestKeyHeap create_level_heap(Compaction* c, const Comparator* ucmp) {
 void GetSmallestLargestSeqno(const std::vector<FileMetaData*>& files,
                              SequenceNumber* smallest_seqno,
                              SequenceNumber* largest_seqno) {
+  DBUG_TRACE;
   bool is_first = true;
   for (FileMetaData* f : files) {
     assert(f->fd.smallest_seqno <= f->fd.largest_seqno);
@@ -335,6 +341,7 @@ void GetSmallestLargestSeqno(const std::vector<FileMetaData*>& files,
 // Algorithm that checks to see if there are any overlapping
 // files in the input
 bool UniversalCompactionBuilder::IsInputFilesNonOverlapping(Compaction* c) {
+  DBUG_TRACE;
   auto comparator = icmp_->user_comparator();
   int first_iter = 1;
 
@@ -379,6 +386,7 @@ bool UniversalCompactionBuilder::IsInputFilesNonOverlapping(Compaction* c) {
 
 bool UniversalCompactionPicker::NeedsCompaction(
     const VersionStorageInfo* vstorage) const {
+  DBUG_TRACE;
   const int kLevel0 = 0;
   if (vstorage->CompactionScore(kLevel0) >= 1) {
     return true;
@@ -396,6 +404,7 @@ Compaction* UniversalCompactionPicker::PickCompaction(
     const std::string& cf_name, const MutableCFOptions& mutable_cf_options,
     const MutableDBOptions& mutable_db_options, VersionStorageInfo* vstorage,
     LogBuffer* log_buffer) {
+  DBUG_TRACE;
   UniversalCompactionBuilder builder(ioptions_, icmp_, cf_name,
                                      mutable_cf_options, mutable_db_options,
                                      vstorage, this, log_buffer);
@@ -405,6 +414,7 @@ Compaction* UniversalCompactionPicker::PickCompaction(
 void UniversalCompactionBuilder::SortedRun::Dump(char* out_buf,
                                                  size_t out_buf_size,
                                                  bool print_path) const {
+  DBUG_TRACE;
   if (level == 0) {
     assert(file != nullptr);
     if (file->fd.GetPathId() == 0 || !print_path) {
@@ -423,6 +433,7 @@ void UniversalCompactionBuilder::SortedRun::Dump(char* out_buf,
 
 void UniversalCompactionBuilder::SortedRun::DumpSizeInfo(
     char* out_buf, size_t out_buf_size, size_t sorted_run_count) const {
+  DBUG_TRACE;
   if (level == 0) {
     assert(file != nullptr);
     snprintf(out_buf, out_buf_size,
@@ -444,6 +455,7 @@ std::vector<UniversalCompactionBuilder::SortedRun>
 UniversalCompactionBuilder::CalculateSortedRuns(
     const VersionStorageInfo& vstorage, int last_level,
     uint64_t* max_run_size) {
+  DBUG_TRACE;
   assert(max_run_size);
   *max_run_size = 0;
   std::vector<UniversalCompactionBuilder::SortedRun> ret;
@@ -480,6 +492,7 @@ UniversalCompactionBuilder::CalculateSortedRuns(
 // Universal style of compaction. Pick files that are contiguous in
 // time-range to compact.
 Compaction* UniversalCompactionBuilder::PickCompaction() {
+  DBUG_TRACE;
   const int kLevel0 = 0;
   score_ = vstorage_->CompactionScore(kLevel0);
   int max_output_level =
@@ -678,6 +691,7 @@ Compaction* UniversalCompactionBuilder::PickCompaction() {
 uint32_t UniversalCompactionBuilder::GetPathId(
     const ImmutableCFOptions& ioptions,
     const MutableCFOptions& mutable_cf_options, uint64_t file_size) {
+  DBUG_TRACE;
   // Two conditions need to be satisfied:
   // (1) the target path needs to be able to hold the file's size
   // (2) Total size left in this and previous paths need to be not
@@ -715,6 +729,7 @@ uint32_t UniversalCompactionBuilder::GetPathId(
 //
 Compaction* UniversalCompactionBuilder::PickCompactionToReduceSortedRuns(
     unsigned int ratio, unsigned int max_number_of_files_to_compact) {
+  DBUG_TRACE;
   unsigned int min_merge_width =
       mutable_cf_options_.compaction_options_universal.min_merge_width;
   unsigned int max_merge_width =
@@ -934,6 +949,7 @@ Compaction* UniversalCompactionBuilder::PickCompactionToReduceSortedRuns(
 // ending at the earliest base file (overriding configured values of file-size
 // ratios, min_merge_width and max_merge_width).
 Compaction* UniversalCompactionBuilder::PickCompactionToReduceSizeAmp() {
+  DBUG_TRACE;
   assert(!sorted_runs_.empty());
 
   const size_t end_index = ShouldSkipLastSortedRunForSizeAmpCompaction()
@@ -1032,6 +1048,7 @@ Compaction* UniversalCompactionBuilder::PickCompactionToReduceSizeAmp() {
 
 Compaction* UniversalCompactionBuilder::PickIncrementalForReduceSizeAmp(
     double fanout_threshold) {
+  DBUG_TRACE;
   // Try find all potential compactions with total size just over
   // options.max_compaction_size / 2, and take the one with the lowest
   // fanout (defined in declaration of the function).
@@ -1266,6 +1283,7 @@ Compaction* UniversalCompactionBuilder::PickIncrementalForReduceSizeAmp(
 // Pick files marked for compaction. Typically, files are marked by
 // CompactOnDeleteCollector due to the presence of tombstones.
 Compaction* UniversalCompactionBuilder::PickDeleteTriggeredCompaction() {
+  DBUG_TRACE;
   CompactionInputFiles start_level_inputs;
   int output_level;
   std::vector<CompactionInputFiles> inputs;
@@ -1409,12 +1427,14 @@ Compaction* UniversalCompactionBuilder::PickDeleteTriggeredCompaction() {
 
 Compaction* UniversalCompactionBuilder::PickCompactionToOldest(
     size_t start_index, CompactionReason compaction_reason) {
+  DBUG_TRACE;
   return PickCompactionWithSortedRunRange(start_index, sorted_runs_.size() - 1,
                                           compaction_reason);
 }
 
 Compaction* UniversalCompactionBuilder::PickCompactionWithSortedRunRange(
     size_t start_index, size_t end_index, CompactionReason compaction_reason) {
+  DBUG_TRACE;
   assert(start_index < sorted_runs_.size());
 
   // Estimate total file size
@@ -1500,6 +1520,7 @@ Compaction* UniversalCompactionBuilder::PickCompactionWithSortedRunRange(
 }
 
 Compaction* UniversalCompactionBuilder::PickPeriodicCompaction() {
+  DBUG_TRACE;
   ROCKS_LOG_BUFFER(log_buffer_, "[%s] Universal: Periodic Compaction",
                    cf_name_.c_str());
 
@@ -1566,6 +1587,7 @@ Compaction* UniversalCompactionBuilder::PickPeriodicCompaction() {
 }
 
 uint64_t UniversalCompactionBuilder::GetMaxOverlappingBytes() const {
+  DBUG_TRACE;
   if (!mutable_cf_options_.compaction_options_universal.incremental) {
     return std::numeric_limits<uint64_t>::max();
   } else {

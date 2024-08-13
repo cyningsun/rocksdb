@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "db/blob/blob_fetcher.h"
 
 #include "db/version_set.h"
@@ -14,6 +15,7 @@ Status BlobFetcher::FetchBlob(const Slice& user_key,
                               FilePrefetchBuffer* prefetch_buffer,
                               PinnableSlice* blob_value,
                               uint64_t* bytes_read) const {
+  DBUG_TRACE;
   assert(version_);
 
   return version_->GetBlob(read_options_, user_key, blob_index_slice,
@@ -25,6 +27,7 @@ Status BlobFetcher::FetchBlob(const Slice& user_key,
                               FilePrefetchBuffer* prefetch_buffer,
                               PinnableSlice* blob_value,
                               uint64_t* bytes_read) const {
+  DBUG_TRACE;
   assert(version_);
 
   return version_->GetBlob(read_options_, user_key, blob_index, prefetch_buffer,

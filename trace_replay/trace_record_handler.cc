@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "trace_replay/trace_record_handler.h"
 
 #include "rocksdb/iterator.h"
@@ -33,6 +34,7 @@ TraceExecutionHandler::~TraceExecutionHandler() { cf_map_.clear(); }
 Status TraceExecutionHandler::Handle(
     const WriteQueryTraceRecord& record,
     std::unique_ptr<TraceRecordResult>* result) {
+  DBUG_TRACE;
   if (result != nullptr) {
     result->reset(nullptr);
   }
@@ -54,6 +56,7 @@ Status TraceExecutionHandler::Handle(
 Status TraceExecutionHandler::Handle(
     const GetQueryTraceRecord& record,
     std::unique_ptr<TraceRecordResult>* result) {
+  DBUG_TRACE;
   if (result != nullptr) {
     result->reset(nullptr);
   }
@@ -85,6 +88,7 @@ Status TraceExecutionHandler::Handle(
 Status TraceExecutionHandler::Handle(
     const IteratorSeekQueryTraceRecord& record,
     std::unique_ptr<TraceRecordResult>* result) {
+  DBUG_TRACE;
   if (result != nullptr) {
     result->reset(nullptr);
   }
@@ -142,6 +146,7 @@ Status TraceExecutionHandler::Handle(
 Status TraceExecutionHandler::Handle(
     const MultiGetQueryTraceRecord& record,
     std::unique_ptr<TraceRecordResult>* result) {
+  DBUG_TRACE;
   if (result != nullptr) {
     result->reset(nullptr);
   }

@@ -6,6 +6,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "monitoring/in_memory_stats_history.h"
 
 #include "db/db_impl/db_impl.h"
@@ -14,23 +15,25 @@ namespace ROCKSDB_NAMESPACE {
 
 InMemoryStatsHistoryIterator::~InMemoryStatsHistoryIterator() = default;
 
-bool InMemoryStatsHistoryIterator::Valid() const { return valid_; }
+bool InMemoryStatsHistoryIterator::Valid() const { DBUG_TRACE; return valid_; }
 
-Status InMemoryStatsHistoryIterator::status() const { return status_; }
+Status InMemoryStatsHistoryIterator::status() const { DBUG_TRACE; return status_; }
 
 // Because of garbage collection, the next stats snapshot may or may not be
 // right after the current one. When reading from DBImpl::stats_history_, this
 // call will be protected by DB Mutex so it will not return partial or
 // corrupted results.
 void InMemoryStatsHistoryIterator::Next() {
+  DBUG_TRACE;
   // increment start_time by 1 to avoid infinite loop
   AdvanceIteratorByTime(GetStatsTime() + 1, end_time_);
 }
 
-uint64_t InMemoryStatsHistoryIterator::GetStatsTime() const { return time_; }
+uint64_t InMemoryStatsHistoryIterator::GetStatsTime() const { DBUG_TRACE; return time_; }
 
 const std::map<std::string, uint64_t>&
 InMemoryStatsHistoryIterator::GetStatsMap() const {
+  DBUG_TRACE;
   return stats_map_;
 }
 
@@ -38,6 +41,7 @@ InMemoryStatsHistoryIterator::GetStatsMap() const {
 // if success, update time_ and stats_map_ with new_time and stats_map
 void InMemoryStatsHistoryIterator::AdvanceIteratorByTime(uint64_t start_time,
                                                          uint64_t end_time) {
+  DBUG_TRACE;
   // try to find next entry in stats_history_ map
   if (db_impl_ != nullptr) {
     valid_ =

@@ -4,6 +4,7 @@
 //  (found in the LICENSE.Apache file in the root directory).
 
 
+#include "rocksdb/util/dbug.h"
 #include "utilities/transactions/transaction_util.h"
 
 #include <cinttypes>
@@ -23,6 +24,7 @@ Status TransactionUtil::CheckKeyForConflicts(
     SequenceNumber snap_seq, const std::string* const read_ts, bool cache_only,
     ReadCallback* snap_checker, SequenceNumber min_uncommitted,
     bool enable_udt_validation) {
+  DBUG_TRACE;
   Status result;
 
   auto cfh = static_cast_with_check<ColumnFamilyHandleImpl>(column_family);
@@ -56,6 +58,7 @@ Status TransactionUtil::CheckKey(DBImpl* db_impl, SuperVersion* sv,
                                  bool cache_only, ReadCallback* snap_checker,
                                  SequenceNumber min_uncommitted,
                                  bool enable_udt_validation) {
+  DBUG_TRACE;
   // When `min_uncommitted` is provided, keys are not always committed
   // in sequence number order, and `snap_checker` is used to check whether
   // specific sequence number is in the database is visible to the transaction.
@@ -155,6 +158,7 @@ Status TransactionUtil::CheckKey(DBImpl* db_impl, SuperVersion* sv,
 Status TransactionUtil::CheckKeysForConflicts(DBImpl* db_impl,
                                               const LockTracker& tracker,
                                               bool cache_only) {
+  DBUG_TRACE;
   Status result;
 
   std::unique_ptr<LockTracker::ColumnFamilyIterator> cf_it(
@@ -204,4 +208,3 @@ Status TransactionUtil::CheckKeysForConflicts(DBImpl* db_impl,
 }
 
 }  // namespace ROCKSDB_NAMESPACE
-

@@ -5,6 +5,7 @@
 //
 
 
+#include "rocksdb/util/dbug.h"
 #ifdef GFLAGS
 #ifdef NUMA
 #include <numa.h>
@@ -194,6 +195,7 @@ std::map<int, std::string> taIndexToOpt = {
 namespace {
 
 uint64_t MultiplyCheckOverflow(uint64_t op1, uint64_t op2) {
+  DBUG_TRACE;
   if (op1 == 0 || op2 == 0) {
     return 0;
   }
@@ -212,6 +214,7 @@ AnalyzerOptions::AnalyzerOptions()
 AnalyzerOptions::~AnalyzerOptions() = default;
 
 void AnalyzerOptions::SparseCorrelationInput(const std::string& in_str) {
+  DBUG_TRACE;
   std::string cur = in_str;
   if (cur.size() == 0) {
     return;
@@ -365,6 +368,7 @@ TraceAnalyzer::~TraceAnalyzer() = default;
 // Prepare the processing
 // Initiate the global trace reader and writer here
 Status TraceAnalyzer::PrepareProcessing() {
+  DBUG_TRACE;
   Status s;
   // Prepare the trace reader
   if (trace_reader_ == nullptr) {
@@ -409,6 +413,7 @@ Status TraceAnalyzer::PrepareProcessing() {
 }
 
 Status TraceAnalyzer::ReadTraceHeader(Trace* header) {
+  DBUG_TRACE;
   assert(header != nullptr);
   std::string encoded_trace;
   // Read the trace head
@@ -430,6 +435,7 @@ Status TraceAnalyzer::ReadTraceHeader(Trace* header) {
 }
 
 Status TraceAnalyzer::ReadTraceFooter(Trace* footer) {
+  DBUG_TRACE;
   assert(footer != nullptr);
   Status s = ReadTraceRecord(footer);
   if (!s.ok()) {
@@ -442,6 +448,7 @@ Status TraceAnalyzer::ReadTraceFooter(Trace* footer) {
 }
 
 Status TraceAnalyzer::ReadTraceRecord(Trace* trace) {
+  DBUG_TRACE;
   assert(trace != nullptr);
   std::string encoded_trace;
   Status s = trace_reader_->Read(&encoded_trace);
@@ -455,6 +462,7 @@ Status TraceAnalyzer::ReadTraceRecord(Trace* trace) {
 // to different operation type handler. With different race
 // format, this function can be changed
 Status TraceAnalyzer::StartProcessing() {
+  DBUG_TRACE;
   Status s;
   Trace header;
   s = ReadTraceHeader(&header);
@@ -514,6 +522,7 @@ Status TraceAnalyzer::StartProcessing() {
 // other statistic result such as key size distribution, value size
 // distribution, these data structures are re-processed here.
 Status TraceAnalyzer::MakeStatistics() {
+  DBUG_TRACE;
   int ret;
   Status s;
   for (int type = 0; type < kTaTypeNum; type++) {
@@ -654,6 +663,7 @@ Status TraceAnalyzer::MakeStatistics() {
 // Process the statistics of the key access and
 // prefix of the accessed keys if required
 Status TraceAnalyzer::MakeStatisticKeyStatsOrPrefix(TraceStats& stats) {
+  DBUG_TRACE;
   int ret;
   Status s;
   std::string prefix = "0";
@@ -760,6 +770,7 @@ Status TraceAnalyzer::MakeStatisticKeyStatsOrPrefix(TraceStats& stats) {
 // correlations
 Status TraceAnalyzer::MakeStatisticCorrelation(TraceStats& stats,
                                                StatsUnit& unit) {
+  DBUG_TRACE;
   if (stats.correlation_output.size() !=
       analyzer_opts_.correlation_list.size()) {
     return Status::Corruption("Cannot make the statistic of correlation.");
@@ -779,6 +790,7 @@ Status TraceAnalyzer::MakeStatisticCorrelation(TraceStats& stats,
 
 // Process the statistics of QPS
 Status TraceAnalyzer::MakeStatisticQPS() {
+  DBUG_TRACE;
   if (begin_time_ == 0) {
     begin_time_ = trace_create_time_;
   }
@@ -996,6 +1008,7 @@ Status TraceAnalyzer::MakeStatisticQPS() {
 // we can make some statistics of the whole key space
 // also, we output the top k accessed keys here
 Status TraceAnalyzer::ReProcessing() {
+  DBUG_TRACE;
   int ret;
   Status s;
   for (auto& cf_it : cfs_) {
@@ -1155,6 +1168,7 @@ Status TraceAnalyzer::ReProcessing() {
 
 // End the processing, print the requested results
 Status TraceAnalyzer::EndProcessing() {
+  DBUG_TRACE;
   Status s;
   if (trace_sequence_f_) {
     s = trace_sequence_f_->Close();
@@ -1176,6 +1190,7 @@ Status TraceAnalyzer::KeyStatsInsertion(const uint32_t& type,
                                         const std::string& key,
                                         const size_t value_size,
                                         const uint64_t ts) {
+  DBUG_TRACE;
   Status s;
   StatsUnit unit;
   unit.key_id = 0;
@@ -1330,6 +1345,7 @@ Status TraceAnalyzer::StatsUnitCorrelationUpdate(StatsUnit& unit,
                                                  const uint32_t& type_second,
                                                  const uint64_t& ts,
                                                  const std::string& key) {
+  DBUG_TRACE;
   if (type_second >= kTaTypeNum) {
     fprintf(stderr, "Unknown Type Id: %u\n", type_second);
     return Status::NotFound();
@@ -1370,6 +1386,7 @@ Status TraceAnalyzer::StatsUnitCorrelationUpdate(StatsUnit& unit,
 // the trace analyzer options
 Status TraceAnalyzer::OpenStatsOutputFiles(const std::string& type,
                                            TraceStats& new_stats) {
+  DBUG_TRACE;
   Status s;
   if (FLAGS_output_key_stats) {
     s = CreateOutputFile(type, new_stats.cf_name, "accessed_key_stats.txt",
@@ -1434,6 +1451,7 @@ Status TraceAnalyzer::CreateOutputFile(
     const std::string& type, const std::string& cf_name,
     const std::string& ending,
     std::unique_ptr<ROCKSDB_NAMESPACE::WritableFile>* f_ptr) {
+  DBUG_TRACE;
   std::string path;
   path = output_path_ + "/" + FLAGS_output_prefix + "-" + type + "-" + cf_name +
          "-" + ending;
@@ -1448,6 +1466,7 @@ Status TraceAnalyzer::CreateOutputFile(
 
 // Close the output files in the TraceStats if they are opened
 Status TraceAnalyzer::CloseOutputFiles() {
+  DBUG_TRACE;
   Status s;
   for (int type = 0; type < kTaTypeNum; type++) {
     if (!ta_[type].enabled) {
@@ -1503,6 +1522,7 @@ Status TraceAnalyzer::CloseOutputFiles() {
 
 Status TraceAnalyzer::Handle(const WriteQueryTraceRecord& record,
                              std::unique_ptr<TraceRecordResult>* /*result*/) {
+  DBUG_TRACE;
   total_writes_++;
   // Note that, if the write happens in a transaction,
   // 'Write' will be called twice, one for Prepare, one for
@@ -1529,6 +1549,7 @@ Status TraceAnalyzer::Handle(const WriteQueryTraceRecord& record,
 
 Status TraceAnalyzer::Handle(const GetQueryTraceRecord& record,
                              std::unique_ptr<TraceRecordResult>* /*result*/) {
+  DBUG_TRACE;
   total_gets_++;
   return OutputAnalysisResult(TraceOperationType::kGet, record.GetTimestamp(),
                               record.GetColumnFamilyID(),
@@ -1537,6 +1558,7 @@ Status TraceAnalyzer::Handle(const GetQueryTraceRecord& record,
 
 Status TraceAnalyzer::Handle(const IteratorSeekQueryTraceRecord& record,
                              std::unique_ptr<TraceRecordResult>* /*result*/) {
+  DBUG_TRACE;
   TraceOperationType op_type;
   if (record.GetSeekType() == IteratorSeekQueryTraceRecord::kSeek) {
     op_type = TraceOperationType::kIteratorSeek;
@@ -1555,6 +1577,7 @@ Status TraceAnalyzer::Handle(const IteratorSeekQueryTraceRecord& record,
 
 Status TraceAnalyzer::Handle(const MultiGetQueryTraceRecord& record,
                              std::unique_ptr<TraceRecordResult>* /*result*/) {
+  DBUG_TRACE;
   total_multigets_++;
 
   std::vector<uint32_t> cf_ids = record.GetColumnFamilyIDs();
@@ -1583,18 +1606,21 @@ Status TraceAnalyzer::Handle(const MultiGetQueryTraceRecord& record,
 // Handle the Put request in the write batch of the trace
 Status TraceAnalyzer::PutCF(uint32_t column_family_id, const Slice& key,
                             const Slice& value) {
+  DBUG_TRACE;
   return OutputAnalysisResult(TraceOperationType::kPut, write_batch_ts_,
                               column_family_id, key, value.size());
 }
 
 Status TraceAnalyzer::PutEntityCF(uint32_t column_family_id, const Slice& key,
                                   const Slice& value) {
+  DBUG_TRACE;
   return OutputAnalysisResult(TraceOperationType::kPutEntity, write_batch_ts_,
                               column_family_id, key, value.size());
 }
 
 // Handle the Delete request in the write batch of the trace
 Status TraceAnalyzer::DeleteCF(uint32_t column_family_id, const Slice& key) {
+  DBUG_TRACE;
   return OutputAnalysisResult(TraceOperationType::kDelete, write_batch_ts_,
                               column_family_id, key, 0);
 }
@@ -1602,6 +1628,7 @@ Status TraceAnalyzer::DeleteCF(uint32_t column_family_id, const Slice& key) {
 // Handle the SingleDelete request in the write batch of the trace
 Status TraceAnalyzer::SingleDeleteCF(uint32_t column_family_id,
                                      const Slice& key) {
+  DBUG_TRACE;
   return OutputAnalysisResult(TraceOperationType::kSingleDelete,
                               write_batch_ts_, column_family_id, key, 0);
 }
@@ -1610,6 +1637,7 @@ Status TraceAnalyzer::SingleDeleteCF(uint32_t column_family_id,
 Status TraceAnalyzer::DeleteRangeCF(uint32_t column_family_id,
                                     const Slice& begin_key,
                                     const Slice& end_key) {
+  DBUG_TRACE;
   return OutputAnalysisResult(TraceOperationType::kRangeDelete, write_batch_ts_,
                               {column_family_id, column_family_id},
                               {begin_key, end_key}, {0, 0});
@@ -1618,6 +1646,7 @@ Status TraceAnalyzer::DeleteRangeCF(uint32_t column_family_id,
 // Handle the Merge request in the write batch of the trace
 Status TraceAnalyzer::MergeCF(uint32_t column_family_id, const Slice& key,
                               const Slice& value) {
+  DBUG_TRACE;
   return OutputAnalysisResult(TraceOperationType::kMerge, write_batch_ts_,
                               column_family_id, key, value.size());
 }
@@ -1627,6 +1656,7 @@ Status TraceAnalyzer::OutputAnalysisResult(TraceOperationType op_type,
                                            std::vector<uint32_t> cf_ids,
                                            std::vector<Slice> keys,
                                            std::vector<size_t> value_sizes) {
+  DBUG_TRACE;
   assert(!cf_ids.empty());
   assert(cf_ids.size() == keys.size());
   assert(cf_ids.size() == value_sizes.size());
@@ -1677,6 +1707,7 @@ Status TraceAnalyzer::OutputAnalysisResult(TraceOperationType op_type,
                                            uint64_t timestamp, uint32_t cf_id,
                                            const Slice& key,
                                            size_t value_size) {
+  DBUG_TRACE;
   return OutputAnalysisResult(
       op_type, timestamp, std::vector<uint32_t>({cf_id}),
       std::vector<Slice>({key}), std::vector<size_t>({value_size}));
@@ -1689,6 +1720,7 @@ Status TraceAnalyzer::OutputAnalysisResult(TraceOperationType op_type,
 //          |__cf_id
 //                |_statistics
 void TraceAnalyzer::PrintStatistics() {
+  DBUG_TRACE;
   for (int type = 0; type < kTaTypeNum; type++) {
     if (!ta_[type].enabled) {
       continue;
@@ -1854,6 +1886,7 @@ Status TraceAnalyzer::WriteTraceSequence(const uint32_t& type,
                                          const Slice& key,
                                          const size_t value_size,
                                          const uint64_t ts) {
+  DBUG_TRACE;
   std::string hex_key =
       ROCKSDB_NAMESPACE::LDBCommand::StringToHex(key.ToString());
   int ret;
@@ -1871,6 +1904,7 @@ Status TraceAnalyzer::WriteTraceSequence(const uint32_t& type,
 
 // The entrance function of Trace_Analyzer
 int trace_analyzer_tool(int argc, char** argv) {
+  DBUG_TRACE;
   std::string trace_path;
   std::string output_path;
 

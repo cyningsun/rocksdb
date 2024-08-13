@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 //
+#include "rocksdb/util/dbug.h"
 #include "db/error_handler.h"
 
 #include "db/db_impl/db_impl.h"
@@ -228,6 +229,7 @@ std::map<std::tuple<BackgroundErrorReason, bool>, Status::Severity>
 };
 
 void ErrorHandler::CancelErrorRecovery() {
+  DBUG_TRACE;
   db_mutex_->AssertHeld();
 
   // We'll release the lock before calling sfm, so make sure no new
@@ -270,6 +272,7 @@ void ErrorHandler::CancelErrorRecovery() {
 // end whether recovery succeeded or not
 void ErrorHandler::HandleKnownErrors(const Status& bg_err,
                                      BackgroundErrorReason reason) {
+  DBUG_TRACE;
   db_mutex_->AssertHeld();
   if (bg_err.ok()) {
     return;
@@ -382,6 +385,7 @@ void ErrorHandler::HandleKnownErrors(const Status& bg_err,
 //    such as delegating to SstFileManager to handle no space error.
 void ErrorHandler::SetBGError(const Status& bg_status,
                               BackgroundErrorReason reason) {
+  DBUG_TRACE;
   db_mutex_->AssertHeld();
   Status tmp_status = bg_status;
   IOStatus bg_io_err = status_to_io_status(std::move(tmp_status));
@@ -478,6 +482,7 @@ void ErrorHandler::SetBGError(const Status& bg_status,
 
 void ErrorHandler::AddFilesToQuarantine(
     autovector<const autovector<uint64_t>*> files_to_quarantine) {
+  DBUG_TRACE;
   db_mutex_->AssertHeld();
   std::ostringstream quarantine_files_oss;
   bool is_first_one = true;
@@ -495,6 +500,7 @@ void ErrorHandler::AddFilesToQuarantine(
 }
 
 void ErrorHandler::ClearFilesToQuarantine() {
+  DBUG_TRACE;
   db_mutex_->AssertHeld();
   files_to_quarantine_.clear();
   ROCKS_LOG_INFO(db_options_.info_log,
@@ -503,6 +509,7 @@ void ErrorHandler::ClearFilesToQuarantine() {
 
 Status ErrorHandler::OverrideNoSpaceError(const Status& bg_error,
                                           bool* auto_recovery) {
+  DBUG_TRACE;
   if (bg_error.severity() >= Status::Severity::kFatalError) {
     return bg_error;
   }
@@ -534,6 +541,7 @@ Status ErrorHandler::OverrideNoSpaceError(const Status& bg_error,
 }
 
 void ErrorHandler::RecoverFromNoSpace() {
+  DBUG_TRACE;
   SstFileManagerImpl* sfm =
       static_cast<SstFileManagerImpl*>(db_options_.sst_file_manager.get());
 
@@ -544,6 +552,7 @@ void ErrorHandler::RecoverFromNoSpace() {
 }
 
 Status ErrorHandler::ClearBGError() {
+  DBUG_TRACE;
   db_mutex_->AssertHeld();
 
   // Signal that recovery succeeded
@@ -567,6 +576,7 @@ Status ErrorHandler::ClearBGError() {
 }
 
 Status ErrorHandler::RecoverFromBGError(bool is_manual) {
+  DBUG_TRACE;
   InstrumentedMutexLock l(db_mutex_);
   bool no_bg_work_original_flag = soft_error_no_bg_work_;
   if (is_manual) {
@@ -623,6 +633,7 @@ Status ErrorHandler::RecoverFromBGError(bool is_manual) {
 
 void ErrorHandler::StartRecoverFromRetryableBGIOError(
     const IOStatus& io_error) {
+  DBUG_TRACE;
   db_mutex_->AssertHeld();
   if (bg_error_.ok() || io_error.ok()) {
     return;
@@ -670,6 +681,7 @@ void ErrorHandler::StartRecoverFromRetryableBGIOError(
 // Automatic recover from Retryable BG IO error. Must be called after db
 // mutex is released.
 void ErrorHandler::RecoverFromRetryableBGIOError() {
+  DBUG_TRACE;
   assert(recovery_in_prog_);
   TEST_SYNC_POINT("RecoverFromRetryableBGIOError:BeforeStart");
   TEST_SYNC_POINT("RecoverFromRetryableBGIOError:BeforeStart2");
@@ -759,6 +771,7 @@ void ErrorHandler::RecoverFromRetryableBGIOError() {
 }
 
 void ErrorHandler::CheckAndSetRecoveryAndBGError(const Status& bg_err) {
+  DBUG_TRACE;
   if (recovery_in_prog_ && recovery_error_.ok()) {
     recovery_error_ = status_to_io_status(Status(bg_err));
   }
@@ -771,6 +784,7 @@ void ErrorHandler::CheckAndSetRecoveryAndBGError(const Status& bg_err) {
 }
 
 void ErrorHandler::EndAutoRecovery() {
+  DBUG_TRACE;
   db_mutex_->AssertHeld();
   if (!end_recovery_) {
     end_recovery_ = true;
@@ -790,6 +804,7 @@ void ErrorHandler::EndAutoRecovery() {
 void ErrorHandler::RecordStats(
     const std::vector<Tickers>& ticker_types,
     const std::vector<std::tuple<Histograms, uint64_t>>& int_histograms) {
+  DBUG_TRACE;
   if (bg_error_stats_ == nullptr) {
     return;
   }

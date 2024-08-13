@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "test_util/testutil.h"
 
 #include <fcntl.h>
@@ -31,7 +32,7 @@
 #include "util/random.h"
 
 #ifndef ROCKSDB_UNITTESTS_WITH_CUSTOM_OBJECTS_FROM_STATIC_LIBS
-void RegisterCustomObjects(int /*argc*/, char** /*argv*/) {}
+void RegisterCustomObjects(int /*argc*/, char** /*argv*/) {DBUG_TRACE;}
 #endif
 
 namespace ROCKSDB_NAMESPACE::test {
@@ -49,6 +50,7 @@ const std::set<uint32_t> kFooterFormatVersionsToTest{
 const ReadOptionsNoIo kReadOptionsNoIo;
 
 std::string RandomKey(Random* rnd, int len, RandomKeyType type) {
+  DBUG_TRACE;
   // Make sure to generate a wide variety of characters so we
   // test the boundary conditions for short-key optimizations.
   static const char kTestChars[] = {'\0', '\1', 'a',    'b',    'c',
@@ -76,6 +78,7 @@ std::string RandomKey(Random* rnd, int len, RandomKeyType type) {
 }
 
 const std::vector<UserDefinedTimestampTestMode>& GetUDTTestModes() {
+  DBUG_TRACE;
   static std::vector<UserDefinedTimestampTestMode> udt_test_modes = {
       UserDefinedTimestampTestMode::kStripUserDefinedTimestamp,
       UserDefinedTimestampTestMode::kNormal,
@@ -84,15 +87,18 @@ const std::vector<UserDefinedTimestampTestMode>& GetUDTTestModes() {
 }
 
 bool IsUDTEnabled(const UserDefinedTimestampTestMode& test_mode) {
+  DBUG_TRACE;
   return test_mode != UserDefinedTimestampTestMode::kNone;
 }
 
 bool ShouldPersistUDT(const UserDefinedTimestampTestMode& test_mode) {
+  DBUG_TRACE;
   return test_mode != UserDefinedTimestampTestMode::kStripUserDefinedTimestamp;
 }
 
 Slice CompressibleString(Random* rnd, double compressed_fraction, int len,
                          std::string* dst) {
+  DBUG_TRACE;
   int raw = static_cast<int>(len * compressed_fraction);
   if (raw < 1) {
     raw = 1;
@@ -113,9 +119,10 @@ class Uint64ComparatorImpl : public Comparator {
  public:
   Uint64ComparatorImpl() = default;
 
-  const char* Name() const override { return "rocksdb.Uint64Comparator"; }
+  const char* Name() const override { DBUG_TRACE; return "rocksdb.Uint64Comparator"; }
 
   int Compare(const Slice& a, const Slice& b) const override {
+    DBUG_TRACE;
     assert(a.size() == sizeof(uint64_t) && b.size() == sizeof(uint64_t));
     const uint64_t* left = reinterpret_cast<const uint64_t*>(a.data());
     const uint64_t* right = reinterpret_cast<const uint64_t*>(b.data());
@@ -133,18 +140,20 @@ class Uint64ComparatorImpl : public Comparator {
   }
 
   void FindShortestSeparator(std::string* /*start*/,
-                             const Slice& /*limit*/) const override {}
+                             const Slice& /*limit*/) const override {DBUG_TRACE;}
 
-  void FindShortSuccessor(std::string* /*key*/) const override {}
+  void FindShortSuccessor(std::string* /*key*/) const override {DBUG_TRACE;}
 };
 }  // namespace
 
 const Comparator* Uint64Comparator() {
+  DBUG_TRACE;
   static Uint64ComparatorImpl uint64comp;
   return &uint64comp;
 }
 
 const Comparator* BytewiseComparatorWithU64TsWrapper() {
+  DBUG_TRACE;
   ConfigOptions config_options;
   const Comparator* user_comparator = nullptr;
   Status s = Comparator::CreateFromString(
@@ -154,6 +163,7 @@ const Comparator* BytewiseComparatorWithU64TsWrapper() {
 }
 
 const Comparator* ReverseBytewiseComparatorWithU64TsWrapper() {
+  DBUG_TRACE;
   ConfigOptions config_options;
   const Comparator* user_comparator = nullptr;
   Status s = Comparator::CreateFromString(
@@ -164,6 +174,7 @@ const Comparator* ReverseBytewiseComparatorWithU64TsWrapper() {
 }
 
 void CorruptKeyType(InternalKey* ikey) {
+  DBUG_TRACE;
   std::string keystr = ikey->Encode().ToString();
   keystr[keystr.size() - 8] = kTypeLogData;
   ikey->DecodeFrom(Slice(keystr.data(), keystr.size()));
@@ -171,6 +182,7 @@ void CorruptKeyType(InternalKey* ikey) {
 
 std::string KeyStr(const std::string& user_key, const SequenceNumber& seq,
                    const ValueType& t, bool corrupt) {
+  DBUG_TRACE;
   InternalKey k(user_key, seq, t);
   if (corrupt) {
     CorruptKeyType(&k);
@@ -181,6 +193,7 @@ std::string KeyStr(const std::string& user_key, const SequenceNumber& seq,
 std::string KeyStr(uint64_t ts, const std::string& user_key,
                    const SequenceNumber& seq, const ValueType& t,
                    bool corrupt) {
+  DBUG_TRACE;
   std::string user_key_with_ts(user_key);
   std::string ts_str;
   PutFixed64(&ts_str, ts);
@@ -189,6 +202,7 @@ std::string KeyStr(uint64_t ts, const std::string& user_key,
 }
 
 bool SleepingBackgroundTask::TimedWaitUntilSleeping(uint64_t wait_time) {
+  DBUG_TRACE;
   auto abs_time = SystemClock::Default()->NowMicros() + wait_time;
   MutexLock l(&mutex_);
   while (!sleeping_ || !should_sleep_) {
@@ -200,6 +214,7 @@ bool SleepingBackgroundTask::TimedWaitUntilSleeping(uint64_t wait_time) {
 }
 
 bool SleepingBackgroundTask::TimedWaitUntilDone(uint64_t wait_time) {
+  DBUG_TRACE;
   auto abs_time = SystemClock::Default()->NowMicros() + wait_time;
   MutexLock l(&mutex_);
   while (!done_with_sleep_) {
@@ -211,6 +226,7 @@ bool SleepingBackgroundTask::TimedWaitUntilDone(uint64_t wait_time) {
 }
 
 std::string RandomName(Random* rnd, const size_t len) {
+  DBUG_TRACE;
   std::stringstream ss;
   for (size_t i = 0; i < len; ++i) {
     ss << static_cast<char>(rnd->Uniform(26) + 'a');
@@ -219,6 +235,7 @@ std::string RandomName(Random* rnd, const size_t len) {
 }
 
 CompressionType RandomCompressionType(Random* rnd) {
+  DBUG_TRACE;
   auto ret = static_cast<CompressionType>(rnd->Uniform(6));
   while (!CompressionTypeSupported(ret)) {
     ret = static_cast<CompressionType>((static_cast<int>(ret) + 1) % 6);
@@ -229,6 +246,7 @@ CompressionType RandomCompressionType(Random* rnd) {
 void RandomCompressionTypeVector(const size_t count,
                                  std::vector<CompressionType>* types,
                                  Random* rnd) {
+  DBUG_TRACE;
   types->clear();
   for (size_t i = 0; i < count; ++i) {
     types->emplace_back(RandomCompressionType(rnd));
@@ -236,6 +254,7 @@ void RandomCompressionTypeVector(const size_t count,
 }
 
 const SliceTransform* RandomSliceTransform(Random* rnd, int pre_defined) {
+  DBUG_TRACE;
   int random_num = pre_defined >= 0 ? pre_defined : rnd->Uniform(4);
   switch (random_num) {
     case 0:
@@ -250,6 +269,7 @@ const SliceTransform* RandomSliceTransform(Random* rnd, int pre_defined) {
 }
 
 BlockBasedTableOptions RandomBlockBasedTableOptions(Random* rnd) {
+  DBUG_TRACE;
   BlockBasedTableOptions opt;
   opt.cache_index_and_filter_blocks = rnd->Uniform(2);
   opt.pin_l0_filter_and_index_blocks_in_cache = rnd->Uniform(2);
@@ -271,6 +291,7 @@ BlockBasedTableOptions RandomBlockBasedTableOptions(Random* rnd) {
 }
 
 TableFactory* RandomTableFactory(Random* rnd, int pre_defined) {
+  DBUG_TRACE;
   int random_num = pre_defined >= 0 ? pre_defined : rnd->Uniform(4);
   switch (random_num) {
     case 0:
@@ -283,18 +304,22 @@ TableFactory* RandomTableFactory(Random* rnd, int pre_defined) {
 }
 
 MergeOperator* RandomMergeOperator(Random* rnd) {
+  DBUG_TRACE;
   return new ChanglingMergeOperator(RandomName(rnd, 10));
 }
 
 CompactionFilter* RandomCompactionFilter(Random* rnd) {
+  DBUG_TRACE;
   return new ChanglingCompactionFilter(RandomName(rnd, 10));
 }
 
 CompactionFilterFactory* RandomCompactionFilterFactory(Random* rnd) {
+  DBUG_TRACE;
   return new ChanglingCompactionFilterFactory(RandomName(rnd, 10));
 }
 
 void RandomInitDBOptions(DBOptions* db_opt, Random* rnd) {
+  DBUG_TRACE;
   // boolean options
   db_opt->advise_random_on_open = rnd->Uniform(2);
   db_opt->allow_mmap_reads = rnd->Uniform(2);
@@ -356,6 +381,7 @@ void RandomInitDBOptions(DBOptions* db_opt, Random* rnd) {
 
 void RandomInitCFOptions(ColumnFamilyOptions* cf_opt, DBOptions& db_options,
                          Random* rnd) {
+  DBUG_TRACE;
   cf_opt->compaction_style = (CompactionStyle)(rnd->Uniform(4));
 
   // boolean options
@@ -442,6 +468,7 @@ void RandomInitCFOptions(ColumnFamilyOptions* cf_opt, DBOptions& db_options,
 }
 
 bool IsDirectIOSupported(Env* env, const std::string& dir) {
+  DBUG_TRACE;
   EnvOptions env_options;
   env_options.use_mmap_writes = false;
   env_options.use_direct_writes = true;
@@ -459,6 +486,7 @@ bool IsDirectIOSupported(Env* env, const std::string& dir) {
 
 bool IsPrefetchSupported(const std::shared_ptr<FileSystem>& fs,
                          const std::string& dir) {
+  DBUG_TRACE;
   bool supported = false;
   std::string tmp = TempFileName(dir, 999);
   Random rnd(301);
@@ -479,6 +507,7 @@ bool IsPrefetchSupported(const std::shared_ptr<FileSystem>& fs,
 }
 
 size_t GetLinesCount(const std::string& fname, const std::string& pattern) {
+  DBUG_TRACE;
   std::stringstream ssbuf;
   std::string line;
   size_t count = 0;
@@ -497,6 +526,7 @@ size_t GetLinesCount(const std::string& fname, const std::string& pattern) {
 
 Status CorruptFile(Env* env, const std::string& fname, int offset,
                    int bytes_to_corrupt, bool verify_checksum /*=true*/) {
+  DBUG_TRACE;
   uint64_t size;
   Status s = env->GetFileSize(fname, &size);
   if (!s.ok()) {
@@ -536,6 +566,7 @@ Status CorruptFile(Env* env, const std::string& fname, int offset,
 }
 
 Status TruncateFile(Env* env, const std::string& fname, uint64_t new_length) {
+  DBUG_TRACE;
   uint64_t old_length;
   Status s = env->GetFileSize(fname, &old_length);
   if (!s.ok() || new_length == old_length) {
@@ -553,6 +584,7 @@ Status TruncateFile(Env* env, const std::string& fname, uint64_t new_length) {
 
 // Try and delete a directory if it exists
 Status TryDeleteDir(Env* env, const std::string& dirname) {
+  DBUG_TRACE;
   bool is_dir = false;
   Status s = env->IsDirectory(dirname, &is_dir);
   if (s.ok() && is_dir) {
@@ -563,10 +595,12 @@ Status TryDeleteDir(Env* env, const std::string& dirname) {
 
 // Delete a directory if it exists
 void DeleteDir(Env* env, const std::string& dirname) {
+  DBUG_TRACE;
   TryDeleteDir(env, dirname).PermitUncheckedError();
 }
 
 FileType GetFileType(const std::string& path) {
+  DBUG_TRACE;
   FileType type = kTempFile;
   std::size_t found = path.find_last_of('/');
   if (found == std::string::npos) {
@@ -579,6 +613,7 @@ FileType GetFileType(const std::string& path) {
 }
 
 uint64_t GetFileNumber(const std::string& path) {
+  DBUG_TRACE;
   FileType type = kTempFile;
   std::size_t found = path.find_last_of('/');
   if (found == std::string::npos) {
@@ -592,6 +627,7 @@ uint64_t GetFileNumber(const std::string& path) {
 
 Status CreateEnvFromSystem(const ConfigOptions& config_options, Env** result,
                            std::shared_ptr<Env>* guard) {
+  DBUG_TRACE;
   const char* env_uri = getenv("TEST_ENV_URI");
   const char* fs_uri = getenv("TEST_FS_URI");
   if (env_uri || fs_uri) {
@@ -617,27 +653,32 @@ class SpecialMemTableRep : public MemTableRep {
         num_entries_(0) {}
 
   KeyHandle Allocate(const size_t len, char** buf) override {
+    DBUG_TRACE;
     return memtable_->Allocate(len, buf);
   }
 
   // Insert key into the list.
   // REQUIRES: nothing that compares equal to key is currently in the list.
   void Insert(KeyHandle handle) override {
+    DBUG_TRACE;
     num_entries_++;
     memtable_->Insert(handle);
   }
 
   void InsertConcurrently(KeyHandle handle) override {
+    DBUG_TRACE;
     num_entries_++;
     memtable_->Insert(handle);
   }
 
   // Returns true iff an entry that compares equal to key is in the list.
   bool Contains(const char* key) const override {
+    DBUG_TRACE;
     return memtable_->Contains(key);
   }
 
   size_t ApproximateMemoryUsage() override {
+    DBUG_TRACE;
     // Return a high memory usage when number of entries exceeds the threshold
     // to trigger a flush.
     return (num_entries_ < num_entries_flush_) ? 0 : 1024 * 1024 * 1024;
@@ -645,15 +686,18 @@ class SpecialMemTableRep : public MemTableRep {
 
   void Get(const LookupKey& k, void* callback_args,
            bool (*callback_func)(void* arg, const char* entry)) override {
+    DBUG_TRACE;
     memtable_->Get(k, callback_args, callback_func);
   }
 
   uint64_t ApproximateNumEntries(const Slice& start_ikey,
                                  const Slice& end_ikey) override {
+    DBUG_TRACE;
     return memtable_->ApproximateNumEntries(start_ikey, end_ikey);
   }
 
   MemTableRep::Iterator* GetIterator(Arena* arena = nullptr) override {
+    DBUG_TRACE;
     return memtable_->GetIterator(arena);
   }
 
@@ -667,6 +711,7 @@ class SpecialMemTableRep : public MemTableRep {
 class SpecialSkipListFactory : public MemTableRepFactory {
  public:
   static bool Register(ObjectLibrary& library, const std::string& /*arg*/) {
+    DBUG_TRACE;
     library.AddFactory<MemTableRepFactory>(
         ObjectLibrary::PatternEntry(SpecialSkipListFactory::kClassName(), true)
             .AddNumber(":"),
@@ -693,14 +738,16 @@ class SpecialSkipListFactory : public MemTableRepFactory {
                                  Allocator* allocator,
                                  const SliceTransform* transform,
                                  Logger* /*logger*/) override {
+    DBUG_TRACE;
     return new SpecialMemTableRep(
         allocator,
         factory_.CreateMemTableRep(compare, allocator, transform, nullptr),
         num_entries_flush_);
   }
-  static const char* kClassName() { return "SpecialSkipListFactory"; }
-  const char* Name() const override { return kClassName(); }
+  static const char* kClassName() { DBUG_TRACE; return "SpecialSkipListFactory"; }
+  const char* Name() const override { DBUG_TRACE; return kClassName(); }
   std::string GetId() const override {
+    DBUG_TRACE;
     std::string id = Name();
     if (num_entries_flush_ > 0) {
       id.append(":").append(std::to_string(num_entries_flush_));
@@ -709,6 +756,7 @@ class SpecialSkipListFactory : public MemTableRepFactory {
   }
 
   bool IsInsertConcurrentlySupported() const override {
+    DBUG_TRACE;
     return factory_.IsInsertConcurrentlySupported();
   }
 
@@ -719,12 +767,14 @@ class SpecialSkipListFactory : public MemTableRepFactory {
 }  // namespace
 
 MemTableRepFactory* NewSpecialSkipListFactory(int num_entries_per_flush) {
+  DBUG_TRACE;
   RegisterTestLibrary();
   return new SpecialSkipListFactory(num_entries_per_flush);
 }
 
 // This method loads existing test classes into the ObjectRegistry
 int RegisterTestObjects(ObjectLibrary& library, const std::string& arg) {
+  DBUG_TRACE;
   size_t num_types;
   library.AddFactory<const Comparator>(
       test::SimpleSuffixReverseComparator::kClassName(),
@@ -767,6 +817,7 @@ int RegisterTestObjects(ObjectLibrary& library, const std::string& arg) {
 
 
 void RegisterTestLibrary(const std::string& arg) {
+  DBUG_TRACE;
   static bool registered = false;
   if (!registered) {
     registered = true;

@@ -6,14 +6,16 @@
 // Copyright (c) 2011 The LevelDB Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
+#include "rocksdb/util/dbug.h"
 #include "table/block_based/partitioned_index_iterator.h"
 
 namespace ROCKSDB_NAMESPACE {
-void PartitionedIndexIterator::Seek(const Slice& target) { SeekImpl(&target); }
+void PartitionedIndexIterator::Seek(const Slice& target) { DBUG_TRACE; SeekImpl(&target); }
 
-void PartitionedIndexIterator::SeekToFirst() { SeekImpl(nullptr); }
+void PartitionedIndexIterator::SeekToFirst() { DBUG_TRACE; SeekImpl(nullptr); }
 
 void PartitionedIndexIterator::SeekImpl(const Slice* target) {
+  DBUG_TRACE;
   SavePrevIndexValue();
 
   if (target) {
@@ -48,6 +50,7 @@ void PartitionedIndexIterator::SeekImpl(const Slice* target) {
 }
 
 void PartitionedIndexIterator::SeekToLast() {
+  DBUG_TRACE;
   SavePrevIndexValue();
   index_iter_->SeekToLast();
   if (!index_iter_->Valid()) {
@@ -60,12 +63,14 @@ void PartitionedIndexIterator::SeekToLast() {
 }
 
 void PartitionedIndexIterator::Next() {
+  DBUG_TRACE;
   assert(block_iter_points_to_real_block_);
   block_iter_.Next();
   FindKeyForward();
 }
 
 void PartitionedIndexIterator::Prev() {
+  DBUG_TRACE;
   assert(block_iter_points_to_real_block_);
   block_iter_.Prev();
 
@@ -73,6 +78,7 @@ void PartitionedIndexIterator::Prev() {
 }
 
 void PartitionedIndexIterator::InitPartitionedIndexBlock() {
+  DBUG_TRACE;
   BlockHandle partitioned_index_handle = index_iter_->value().handle;
   if (!block_iter_points_to_real_block_ ||
       partitioned_index_handle.offset() != prev_block_offset_ ||
@@ -110,6 +116,7 @@ void PartitionedIndexIterator::InitPartitionedIndexBlock() {
 }
 
 void PartitionedIndexIterator::FindKeyForward() {
+  DBUG_TRACE;
   // This method's code is kept short to make it likely to be inlined.
 
   assert(block_iter_points_to_real_block_);
@@ -126,6 +133,7 @@ void PartitionedIndexIterator::FindKeyForward() {
 }
 
 void PartitionedIndexIterator::FindBlockForward() {
+  DBUG_TRACE;
   // TODO the while loop inherits from two-level-iterator. We don't know
   // whether a block can be empty so it can be replaced by an "if".
   do {
@@ -145,6 +153,7 @@ void PartitionedIndexIterator::FindBlockForward() {
 }
 
 void PartitionedIndexIterator::FindKeyBackward() {
+  DBUG_TRACE;
   while (!block_iter_.Valid()) {
     if (!block_iter_.status().ok()) {
       return;

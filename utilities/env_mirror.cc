@@ -8,6 +8,7 @@
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/utilities/env_mirror.h"
 
 namespace ROCKSDB_NAMESPACE {
@@ -21,6 +22,7 @@ class SequentialFileMirror : public SequentialFile {
   explicit SequentialFileMirror(std::string f) : fname(f) {}
 
   Status Read(size_t n, Slice* result, char* scratch) override {
+    DBUG_TRACE;
     Slice aslice;
     Status as = a_->Read(n, &aslice, scratch);
     if (as == Status::OK()) {
@@ -49,12 +51,14 @@ class SequentialFileMirror : public SequentialFile {
   }
 
   Status Skip(uint64_t n) override {
+    DBUG_TRACE;
     Status as = a_->Skip(n);
     Status bs = b_->Skip(n);
     assert(as == bs);
     return as;
   }
   Status InvalidateCache(size_t offset, size_t length) override {
+    DBUG_TRACE;
     Status as = a_->InvalidateCache(offset, length);
     Status bs = b_->InvalidateCache(offset, length);
     assert(as == bs);
@@ -70,6 +74,7 @@ class RandomAccessFileMirror : public RandomAccessFile {
 
   Status Read(uint64_t offset, size_t n, Slice* result,
               char* scratch) const override {
+    DBUG_TRACE;
     Status as = a_->Read(offset, n, result, scratch);
     if (as == Status::OK()) {
       char* bscratch = new char[n];
@@ -92,6 +97,7 @@ class RandomAccessFileMirror : public RandomAccessFile {
   }
 
   size_t GetUniqueId(char* id, size_t max_size) const override {
+    DBUG_TRACE;
     // NOTE: not verified
     return a_->GetUniqueId(id, max_size);
   }
@@ -105,6 +111,7 @@ class WritableFileMirror : public WritableFile {
       : WritableFile(options), fname(f) {}
 
   Status Append(const Slice& data) override {
+    DBUG_TRACE;
     Status as = a_->Append(data);
     Status bs = b_->Append(data);
     assert(as == bs);
@@ -112,9 +119,11 @@ class WritableFileMirror : public WritableFile {
   }
   Status Append(const Slice& data,
                 const DataVerificationInfo& /* verification_info */) override {
+    DBUG_TRACE;
     return Append(data);
   }
   Status PositionedAppend(const Slice& data, uint64_t offset) override {
+    DBUG_TRACE;
     Status as = a_->PositionedAppend(data, offset);
     Status bs = b_->PositionedAppend(data, offset);
     assert(as == bs);
@@ -123,66 +132,79 @@ class WritableFileMirror : public WritableFile {
   Status PositionedAppend(
       const Slice& data, uint64_t offset,
       const DataVerificationInfo& /* verification_info */) override {
+    DBUG_TRACE;
     return PositionedAppend(data, offset);
   }
   Status Truncate(uint64_t size) override {
+    DBUG_TRACE;
     Status as = a_->Truncate(size);
     Status bs = b_->Truncate(size);
     assert(as == bs);
     return as;
   }
   Status Close() override {
+    DBUG_TRACE;
     Status as = a_->Close();
     Status bs = b_->Close();
     assert(as == bs);
     return as;
   }
   Status Flush() override {
+    DBUG_TRACE;
     Status as = a_->Flush();
     Status bs = b_->Flush();
     assert(as == bs);
     return as;
   }
   Status Sync() override {
+    DBUG_TRACE;
     Status as = a_->Sync();
     Status bs = b_->Sync();
     assert(as == bs);
     return as;
   }
   Status Fsync() override {
+    DBUG_TRACE;
     Status as = a_->Fsync();
     Status bs = b_->Fsync();
     assert(as == bs);
     return as;
   }
   bool IsSyncThreadSafe() const override {
+    DBUG_TRACE;
     bool as = a_->IsSyncThreadSafe();
     assert(as == b_->IsSyncThreadSafe());
     return as;
   }
   void SetIOPriority(Env::IOPriority pri) override {
+    DBUG_TRACE;
     a_->SetIOPriority(pri);
     b_->SetIOPriority(pri);
   }
   Env::IOPriority GetIOPriority() override {
+    DBUG_TRACE;
     // NOTE: we don't verify this one
     return a_->GetIOPriority();
   }
   uint64_t GetFileSize() override {
+    DBUG_TRACE;
     uint64_t as = a_->GetFileSize();
     assert(as == b_->GetFileSize());
     return as;
   }
   void GetPreallocationStatus(size_t* block_size,
                               size_t* last_allocated_block) override {
+    DBUG_TRACE;
     // NOTE: we don't verify this one
     return a_->GetPreallocationStatus(block_size, last_allocated_block);
   }
   size_t GetUniqueId(char* id, size_t max_size) const override {
+    DBUG_TRACE;
     // NOTE: we don't verify this one
     return a_->GetUniqueId(id, max_size);
   }
   Status InvalidateCache(size_t offset, size_t length) override {
+    DBUG_TRACE;
     Status as = a_->InvalidateCache(offset, length);
     Status bs = b_->InvalidateCache(offset, length);
     assert(as == bs);
@@ -191,12 +213,14 @@ class WritableFileMirror : public WritableFile {
 
  protected:
   Status Allocate(uint64_t offset, uint64_t length) override {
+    DBUG_TRACE;
     Status as = a_->Allocate(offset, length);
     Status bs = b_->Allocate(offset, length);
     assert(as == bs);
     return as;
   }
   Status RangeSync(uint64_t offset, uint64_t nbytes) override {
+    DBUG_TRACE;
     Status as = a_->RangeSync(offset, nbytes);
     Status bs = b_->RangeSync(offset, nbytes);
     assert(as == bs);
@@ -207,6 +231,7 @@ class WritableFileMirror : public WritableFile {
 Status EnvMirror::NewSequentialFile(const std::string& f,
                                     std::unique_ptr<SequentialFile>* r,
                                     const EnvOptions& options) {
+  DBUG_TRACE;
   if (f.find("/proc/") == 0) {
     return a_->NewSequentialFile(f, r, options);
   }
@@ -225,6 +250,7 @@ Status EnvMirror::NewSequentialFile(const std::string& f,
 Status EnvMirror::NewRandomAccessFile(const std::string& f,
                                       std::unique_ptr<RandomAccessFile>* r,
                                       const EnvOptions& options) {
+  DBUG_TRACE;
   if (f.find("/proc/") == 0) {
     return a_->NewRandomAccessFile(f, r, options);
   }
@@ -243,6 +269,7 @@ Status EnvMirror::NewRandomAccessFile(const std::string& f,
 Status EnvMirror::NewWritableFile(const std::string& f,
                                   std::unique_ptr<WritableFile>* r,
                                   const EnvOptions& options) {
+  DBUG_TRACE;
   if (f.find("/proc/") == 0) {
     return a_->NewWritableFile(f, r, options);
   }
@@ -262,6 +289,7 @@ Status EnvMirror::ReuseWritableFile(const std::string& fname,
                                     const std::string& old_fname,
                                     std::unique_ptr<WritableFile>* r,
                                     const EnvOptions& options) {
+  DBUG_TRACE;
   if (fname.find("/proc/") == 0) {
     return a_->ReuseWritableFile(fname, old_fname, r, options);
   }

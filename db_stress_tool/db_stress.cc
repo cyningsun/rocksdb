@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #ifndef GFLAGS
 #include <cstdio>
 
@@ -19,6 +20,7 @@ int main() {
 #include "rocksdb/db_stress_tool.h"
 
 int main(int argc, char** argv) {
+  DBUG_TRACE;
   ROCKSDB_NAMESPACE::port::InstallStackTraceHandler();
   return ROCKSDB_NAMESPACE::db_stress_tool(argc, argv);
 }

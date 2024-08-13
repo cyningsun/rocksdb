@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "stringappend2.h"
 
 #include <cassert>
@@ -39,6 +40,7 @@ StringAppendTESTOperator::StringAppendTESTOperator(const std::string& delim)
 bool StringAppendTESTOperator::FullMergeV2(
     const MergeOperationInput& merge_in,
     MergeOperationOutput* merge_out) const {
+  DBUG_TRACE;
   // Clear the *new_value for writing.
   merge_out->new_value.clear();
 
@@ -87,6 +89,7 @@ bool StringAppendTESTOperator::FullMergeV2(
 bool StringAppendTESTOperator::PartialMergeMulti(
     const Slice& /*key*/, const std::deque<Slice>& /*operand_list*/,
     std::string* /*new_value*/, Logger* /*logger*/) const {
+  DBUG_TRACE;
   return false;
 }
 
@@ -95,6 +98,7 @@ bool StringAppendTESTOperator::PartialMergeMulti(
 bool StringAppendTESTOperator::_AssocPartialMergeMulti(
     const Slice& /*key*/, const std::deque<Slice>& operand_list,
     std::string* new_value, Logger* /*logger*/) const {
+  DBUG_TRACE;
   // Clear the *new_value for writing
   assert(new_value);
   new_value->clear();
@@ -123,6 +127,7 @@ bool StringAppendTESTOperator::_AssocPartialMergeMulti(
 
 std::shared_ptr<MergeOperator>
 MergeOperators::CreateStringAppendTESTOperator() {
+  DBUG_TRACE;
   return std::make_shared<StringAppendTESTOperator>(',');
 }
 

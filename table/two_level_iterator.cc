@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "table/two_level_iterator.h"
 
 #include "db/pinned_iterators_manager.h"
@@ -39,20 +40,24 @@ class TwoLevelIndexIterator : public InternalIteratorBase<IndexValue> {
   void Next() override;
   void Prev() override;
 
-  bool Valid() const override { return second_level_iter_.Valid(); }
+  bool Valid() const override { DBUG_TRACE; return second_level_iter_.Valid(); }
   Slice key() const override {
+    DBUG_TRACE;
     assert(Valid());
     return second_level_iter_.key();
   }
   Slice user_key() const override {
+    DBUG_TRACE;
     assert(Valid());
     return second_level_iter_.user_key();
   }
   IndexValue value() const override {
+    DBUG_TRACE;
     assert(Valid());
     return second_level_iter_.value();
   }
   Status status() const override {
+    DBUG_TRACE;
     if (!first_level_iter_.status().ok()) {
       assert(second_level_iter_.iter() == nullptr);
       return first_level_iter_.status();
@@ -64,12 +69,13 @@ class TwoLevelIndexIterator : public InternalIteratorBase<IndexValue> {
     }
   }
   void SetPinnedItersMgr(
-      PinnedIteratorsManager* /*pinned_iters_mgr*/) override {}
-  bool IsKeyPinned() const override { return false; }
-  bool IsValuePinned() const override { return false; }
+      PinnedIteratorsManager* /*pinned_iters_mgr*/) override {DBUG_TRACE;}
+  bool IsKeyPinned() const override { DBUG_TRACE; return false; }
+  bool IsValuePinned() const override { DBUG_TRACE; return false; }
 
  private:
   void SaveError(const Status& s) {
+    DBUG_TRACE;
     if (status_.ok() && !s.ok()) {
       status_ = s;
     }
@@ -94,6 +100,7 @@ TwoLevelIndexIterator::TwoLevelIndexIterator(
     : state_(state), first_level_iter_(first_level_iter) {}
 
 void TwoLevelIndexIterator::Seek(const Slice& target) {
+  DBUG_TRACE;
   first_level_iter_.Seek(target);
 
   InitDataBlock();
@@ -104,6 +111,7 @@ void TwoLevelIndexIterator::Seek(const Slice& target) {
 }
 
 void TwoLevelIndexIterator::SeekForPrev(const Slice& target) {
+  DBUG_TRACE;
   first_level_iter_.Seek(target);
   InitDataBlock();
   if (second_level_iter_.iter() != nullptr) {
@@ -122,6 +130,7 @@ void TwoLevelIndexIterator::SeekForPrev(const Slice& target) {
 }
 
 void TwoLevelIndexIterator::SeekToFirst() {
+  DBUG_TRACE;
   first_level_iter_.SeekToFirst();
   InitDataBlock();
   if (second_level_iter_.iter() != nullptr) {
@@ -131,6 +140,7 @@ void TwoLevelIndexIterator::SeekToFirst() {
 }
 
 void TwoLevelIndexIterator::SeekToLast() {
+  DBUG_TRACE;
   first_level_iter_.SeekToLast();
   InitDataBlock();
   if (second_level_iter_.iter() != nullptr) {
@@ -140,18 +150,21 @@ void TwoLevelIndexIterator::SeekToLast() {
 }
 
 void TwoLevelIndexIterator::Next() {
+  DBUG_TRACE;
   assert(Valid());
   second_level_iter_.Next();
   SkipEmptyDataBlocksForward();
 }
 
 void TwoLevelIndexIterator::Prev() {
+  DBUG_TRACE;
   assert(Valid());
   second_level_iter_.Prev();
   SkipEmptyDataBlocksBackward();
 }
 
 void TwoLevelIndexIterator::SkipEmptyDataBlocksForward() {
+  DBUG_TRACE;
   while (second_level_iter_.iter() == nullptr ||
          (!second_level_iter_.Valid() && second_level_iter_.status().ok())) {
     // Move to next block
@@ -168,6 +181,7 @@ void TwoLevelIndexIterator::SkipEmptyDataBlocksForward() {
 }
 
 void TwoLevelIndexIterator::SkipEmptyDataBlocksBackward() {
+  DBUG_TRACE;
   while (second_level_iter_.iter() == nullptr ||
          (!second_level_iter_.Valid() && second_level_iter_.status().ok())) {
     // Move to next block
@@ -185,11 +199,13 @@ void TwoLevelIndexIterator::SkipEmptyDataBlocksBackward() {
 
 void TwoLevelIndexIterator::SetSecondLevelIterator(
     InternalIteratorBase<IndexValue>* iter) {
+  DBUG_TRACE;
   InternalIteratorBase<IndexValue>* old_iter = second_level_iter_.Set(iter);
   delete old_iter;
 }
 
 void TwoLevelIndexIterator::InitDataBlock() {
+  DBUG_TRACE;
   if (!first_level_iter_.Valid()) {
     SetSecondLevelIterator(nullptr);
   } else {
@@ -217,6 +233,7 @@ void TwoLevelIndexIterator::InitDataBlock() {
 InternalIteratorBase<IndexValue>* NewTwoLevelIterator(
     TwoLevelIteratorState* state,
     InternalIteratorBase<IndexValue>* first_level_iter) {
+  DBUG_TRACE;
   return new TwoLevelIndexIterator(state, first_level_iter);
 }
 }  // namespace ROCKSDB_NAMESPACE

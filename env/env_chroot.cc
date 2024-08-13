@@ -5,6 +5,7 @@
 
 #if !defined(OS_WIN)
 
+#include "rocksdb/util/dbug.h"
 #include "env/env_chroot.h"
 
 #include <unistd.h>  // geteuid
@@ -29,6 +30,7 @@ ChrootFileSystem::ChrootFileSystem(const std::shared_ptr<FileSystem>& base,
 }
 
 Status ChrootFileSystem::PrepareOptions(const ConfigOptions& options) {
+  DBUG_TRACE;
   Status s = FileSystemWrapper::PrepareOptions(options);
   if (!s.ok()) {
     return s;
@@ -57,6 +59,7 @@ Status ChrootFileSystem::PrepareOptions(const ConfigOptions& options) {
 IOStatus ChrootFileSystem::GetTestDirectory(const IOOptions& options,
                                             std::string* path,
                                             IODebugContext* dbg) {
+  DBUG_TRACE;
   // Adapted from PosixEnv's implementation since it doesn't provide a way to
   // create directory in the chroot.
   char buf[256];
@@ -72,6 +75,7 @@ IOStatus ChrootFileSystem::GetTestDirectory(const IOOptions& options,
 // non-OK status, the returned path should not be used.
 std::pair<IOStatus, std::string> ChrootFileSystem::EncodePath(
     const std::string& path) {
+  DBUG_TRACE;
   if (path.empty() || path[0] != '/') {
     return {IOStatus::InvalidArgument(path, "Not an absolute path"), ""};
   }
@@ -103,6 +107,7 @@ std::pair<IOStatus, std::string> ChrootFileSystem::EncodePath(
 // created yet.
 std::pair<IOStatus, std::string> ChrootFileSystem::EncodePathWithNewBasename(
     const std::string& path) {
+  DBUG_TRACE;
   if (path.empty() || path[0] != '/') {
     return {IOStatus::InvalidArgument(path, "Not an absolute path"), ""};
   }
@@ -123,6 +128,7 @@ std::pair<IOStatus, std::string> ChrootFileSystem::EncodePathWithNewBasename(
 
 std::shared_ptr<FileSystem> NewChrootFileSystem(
     const std::shared_ptr<FileSystem>& base, const std::string& chroot_dir) {
+  DBUG_TRACE;
   auto chroot_fs = std::make_shared<ChrootFileSystem>(base, chroot_dir);
   Status s = chroot_fs->PrepareOptions(ConfigOptions());
   if (s.ok()) {
@@ -133,6 +139,7 @@ std::shared_ptr<FileSystem> NewChrootFileSystem(
 }
 
 Env* NewChrootEnv(Env* base_env, const std::string& chroot_dir) {
+  DBUG_TRACE;
   if (!base_env->FileExists(chroot_dir).ok()) {
     return nullptr;
   }

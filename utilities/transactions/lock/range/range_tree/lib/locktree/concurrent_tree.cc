@@ -1,5 +1,6 @@
 /* -*- mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 // vim: ft=cpp:expandtab:ts=8:sw=4:softtabstop=4:
+#include "rocksdb/util/dbug.h"
 #ifndef OS_WIN
 #ident "$Id$"
 /*======
@@ -58,20 +59,23 @@ Copyright (c) 2006, 2015, Percona and/or its affiliates. All rights reserved.
 namespace toku {
 
 void concurrent_tree::create(const comparator *cmp) {
+  DBUG_TRACE;
   // start with an empty root node. we do this instead of
   // setting m_root to null so there's always a root to lock
   m_root.create_root(cmp);
 }
 
-void concurrent_tree::destroy(void) { m_root.destroy_root(); }
+void concurrent_tree::destroy(void) { DBUG_TRACE; m_root.destroy_root(); }
 
-bool concurrent_tree::is_empty(void) { return m_root.is_empty(); }
+bool concurrent_tree::is_empty(void) { DBUG_TRACE; return m_root.is_empty(); }
 
 uint64_t concurrent_tree::get_insertion_memory_overhead(void) {
+  DBUG_TRACE;
   return sizeof(treenode);
 }
 
 void concurrent_tree::locked_keyrange::prepare(concurrent_tree *tree) {
+  DBUG_TRACE;
   // the first step in acquiring a locked keyrange is locking the root
   treenode *const root = &tree->m_root;
   m_tree = tree;
@@ -81,6 +85,7 @@ void concurrent_tree::locked_keyrange::prepare(concurrent_tree *tree) {
 }
 
 void concurrent_tree::locked_keyrange::acquire(const keyrange &range) {
+  DBUG_TRACE;
   treenode *const root = &m_tree->m_root;
 
   treenode *subtree;
@@ -100,15 +105,18 @@ void concurrent_tree::locked_keyrange::acquire(const keyrange &range) {
 
 bool concurrent_tree::locked_keyrange::add_shared_owner(const keyrange &range,
                                                         TXNID new_owner) {
+  DBUG_TRACE;
   return m_subtree->insert(range, new_owner, /*is_shared*/ true);
 }
 
 void concurrent_tree::locked_keyrange::release(void) {
+  DBUG_TRACE;
   m_subtree->mutex_unlock();
 }
 
 void concurrent_tree::locked_keyrange::insert(const keyrange &range,
                                               TXNID txnid, bool is_shared) {
+  DBUG_TRACE;
   // empty means no children, and only the root should ever be empty
   if (m_subtree->is_empty()) {
     m_subtree->set_range_and_txnid(range, txnid, is_shared);
@@ -119,6 +127,7 @@ void concurrent_tree::locked_keyrange::insert(const keyrange &range,
 
 void concurrent_tree::locked_keyrange::remove(const keyrange &range,
                                               TXNID txnid) {
+  DBUG_TRACE;
   invariant(!m_subtree->is_empty());
   treenode *new_subtree = m_subtree->remove(range, txnid);
   // if removing range changed the root of the subtree,
@@ -130,6 +139,7 @@ void concurrent_tree::locked_keyrange::remove(const keyrange &range,
 }
 
 void concurrent_tree::locked_keyrange::remove_all(void) {
+  DBUG_TRACE;
   m_subtree->recursive_remove();
 }
 

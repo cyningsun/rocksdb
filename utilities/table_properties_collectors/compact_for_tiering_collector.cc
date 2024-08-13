@@ -4,6 +4,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "utilities/table_properties_collectors/compact_for_tiering_collector.h"
 
 #include <sstream>
@@ -36,6 +37,7 @@ Status CompactForTieringCollector::AddUserKey(const Slice& /*key*/,
                                               EntryType type,
                                               SequenceNumber seq,
                                               uint64_t /*file_size*/) {
+  DBUG_TRACE;
   SequenceNumber seq_for_check = seq;
   if (type == kEntryTimedPut) {
     seq_for_check = ParsePackedValueForSeqno(value);
@@ -48,6 +50,7 @@ Status CompactForTieringCollector::AddUserKey(const Slice& /*key*/,
 }
 
 Status CompactForTieringCollector::Finish(UserCollectedProperties* properties) {
+  DBUG_TRACE;
   assert(!finish_called_);
   assert(compaction_trigger_ratio_ > 0);
   if (last_level_eligible_entries_counter_ >=
@@ -67,6 +70,7 @@ Status CompactForTieringCollector::Finish(UserCollectedProperties* properties) {
 
 UserCollectedProperties CompactForTieringCollector::GetReadableProperties()
     const {
+  DBUG_TRACE;
   return UserCollectedProperties{
       {kNumEligibleLastLevelEntriesPropertyName,
        std::to_string(last_level_eligible_entries_counter_)},
@@ -74,10 +78,12 @@ UserCollectedProperties CompactForTieringCollector::GetReadableProperties()
 }
 
 bool CompactForTieringCollector::NeedCompact() const {
+  DBUG_TRACE;
   return need_compaction_;
 }
 
 void CompactForTieringCollector::Reset() {
+  DBUG_TRACE;
   last_level_eligible_entries_counter_ = 0;
   total_entries_counter_ = 0;
   finish_called_ = false;
@@ -87,6 +93,7 @@ void CompactForTieringCollector::Reset() {
 TablePropertiesCollector*
 CompactForTieringCollectorFactory::CreateTablePropertiesCollector(
     TablePropertiesCollectorFactory::Context context) {
+  DBUG_TRACE;
   double compaction_trigger_ratio = GetCompactionTriggerRatio();
   if (compaction_trigger_ratio <= 0 ||
       context.level_at_creation == context.num_levels - 1 ||
@@ -128,6 +135,7 @@ CompactForTieringCollectorFactory::CompactForTieringCollectorFactory(
 }
 
 std::string CompactForTieringCollectorFactory::ToString() const {
+  DBUG_TRACE;
   std::ostringstream cfg;
   cfg << Name()
       << ", compaction trigger ratio:" << compaction_trigger_ratio_.load()
@@ -137,6 +145,7 @@ std::string CompactForTieringCollectorFactory::ToString() const {
 
 std::shared_ptr<CompactForTieringCollectorFactory>
 NewCompactForTieringCollectorFactory(double compaction_trigger_ratio) {
+  DBUG_TRACE;
   return std::make_shared<CompactForTieringCollectorFactory>(
       compaction_trigger_ratio);
 }

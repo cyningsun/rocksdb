@@ -3,6 +3,7 @@
 //    COPYING file in the root directory) and Apache 2.0 License
 //    (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #ifdef GFLAGS
 #include "tools/io_tracer_parser_tool.h"
 
@@ -28,6 +29,7 @@ IOTraceRecordParser::IOTraceRecordParser(const std::string& input_file)
 
 void IOTraceRecordParser::PrintHumanReadableHeader(
     const IOTraceHeader& header) {
+  DBUG_TRACE;
   std::stringstream ss;
   ss << "Start Time: " << header.start_time
      << "\nRocksDB Major Version: " << header.rocksdb_major_version
@@ -37,6 +39,7 @@ void IOTraceRecordParser::PrintHumanReadableHeader(
 
 void IOTraceRecordParser::PrintHumanReadableIOTraceRecord(
     const IOTraceRecord& record) {
+  DBUG_TRACE;
   std::stringstream ss;
   ss << "Access Time : " << std::setw(20) << std::left
      << record.access_timestamp << ", File Name: " << std::setw(20) << std::left
@@ -93,6 +96,7 @@ void IOTraceRecordParser::PrintHumanReadableIOTraceRecord(
 }
 
 int IOTraceRecordParser::ReadIOTraceRecords() {
+  DBUG_TRACE;
   Status status;
   Env* env(Env::Default());
   std::unique_ptr<TraceReader> trace_reader;
@@ -127,6 +131,7 @@ int IOTraceRecordParser::ReadIOTraceRecords() {
 }
 
 int io_tracer_parser(int argc, char** argv) {
+  DBUG_TRACE;
   ParseCommandLineFlags(&argc, &argv, true);
 
   if (FLAGS_io_trace_file.empty()) {

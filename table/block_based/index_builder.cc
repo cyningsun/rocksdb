@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "table/block_based/index_builder.h"
 
 #include <cassert>
@@ -30,6 +31,7 @@ IndexBuilder* IndexBuilder::CreateIndexBuilder(
     const bool use_value_delta_encoding,
     const BlockBasedTableOptions& table_opt, size_t ts_sz,
     const bool persist_user_defined_timestamps) {
+  DBUG_TRACE;
   IndexBuilder* result = nullptr;
   switch (index_type) {
     case BlockBasedTableOptions::kBinarySearch: {
@@ -76,6 +78,7 @@ IndexBuilder* IndexBuilder::CreateIndexBuilder(
 Slice ShortenedIndexBuilder::FindShortestInternalKeySeparator(
     const Comparator& comparator, const Slice& start, const Slice& limit,
     std::string* scratch) {
+  DBUG_TRACE;
   // Attempt to shorten the user portion of the key
   Slice user_start = ExtractUserKey(start);
   Slice user_limit = ExtractUserKey(limit);
@@ -100,6 +103,7 @@ Slice ShortenedIndexBuilder::FindShortestInternalKeySeparator(
 
 Slice ShortenedIndexBuilder::FindShortInternalKeySuccessor(
     const Comparator& comparator, const Slice& key, std::string* scratch) {
+  DBUG_TRACE;
   Slice user_key = ExtractUserKey(key);
   scratch->assign(user_key.data(), user_key.size());
   comparator.FindShortSuccessor(scratch);
@@ -122,6 +126,7 @@ PartitionedIndexBuilder* PartitionedIndexBuilder::CreateIndexBuilder(
     const bool use_value_delta_encoding,
     const BlockBasedTableOptions& table_opt, size_t ts_sz,
     const bool persist_user_defined_timestamps) {
+  DBUG_TRACE;
   return new PartitionedIndexBuilder(comparator, table_opt,
                                      use_value_delta_encoding, ts_sz,
                                      persist_user_defined_timestamps);
@@ -156,6 +161,7 @@ PartitionedIndexBuilder::PartitionedIndexBuilder(
       use_value_delta_encoding_(use_value_delta_encoding) {}
 
 void PartitionedIndexBuilder::MakeNewSubIndexBuilder() {
+  DBUG_TRACE;
   assert(sub_index_builder_ == nullptr);
   sub_index_builder_ = std::make_unique<ShortenedIndexBuilder>(
       comparator_, table_opt_.index_block_restart_interval,
@@ -182,6 +188,7 @@ void PartitionedIndexBuilder::MakeNewSubIndexBuilder() {
 }
 
 void PartitionedIndexBuilder::RequestPartitionCut() {
+  DBUG_TRACE;
   partition_cut_requested_ = true;
 }
 
@@ -189,6 +196,7 @@ Slice PartitionedIndexBuilder::AddIndexEntry(
     const Slice& last_key_in_current_block,
     const Slice* first_key_in_next_block, const BlockHandle& block_handle,
     std::string* separator_scratch) {
+  DBUG_TRACE;
   // Note: to avoid two consecuitive flush in the same method call, we do not
   // check flush policy when adding the last key
   if (UNLIKELY(first_key_in_next_block == nullptr)) {  // no more keys
@@ -253,6 +261,7 @@ Slice PartitionedIndexBuilder::AddIndexEntry(
 
 Status PartitionedIndexBuilder::Finish(
     IndexBlocks* index_blocks, const BlockHandle& last_partition_block_handle) {
+  DBUG_TRACE;
   if (partition_cnt_ == 0) {
     partition_cnt_ = entries_.size();
   }
@@ -301,5 +310,5 @@ Status PartitionedIndexBuilder::Finish(
   }
 }
 
-size_t PartitionedIndexBuilder::NumPartitions() const { return partition_cnt_; }
+size_t PartitionedIndexBuilder::NumPartitions() const { DBUG_TRACE; return partition_cnt_; }
 }  // namespace ROCKSDB_NAMESPACE

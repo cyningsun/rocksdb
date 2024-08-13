@@ -2,6 +2,7 @@
 //  This source code is licensed under both the GPLv2 (found in the
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
+#include "rocksdb/util/dbug.h"
 #include "options/options_helper.h"
 
 #include <atomic>
@@ -42,6 +43,7 @@ ConfigOptions::ConfigOptions(const DBOptions& db_opts) : env(db_opts.env) {
 
 Status ValidateOptions(const DBOptions& db_opts,
                        const ColumnFamilyOptions& cf_opts) {
+  DBUG_TRACE;
   Status s;
   auto db_cfg = DBOptionsAsConfigurable(db_opts);
   auto cf_cfg = CFOptionsAsConfigurable(cf_opts);
@@ -54,6 +56,7 @@ Status ValidateOptions(const DBOptions& db_opts,
 
 DBOptions BuildDBOptions(const ImmutableDBOptions& immutable_db_options,
                          const MutableDBOptions& mutable_db_options) {
+  DBUG_TRACE;
   DBOptions options;
 
   options.create_if_missing = immutable_db_options.create_if_missing;
@@ -186,6 +189,7 @@ DBOptions BuildDBOptions(const ImmutableDBOptions& immutable_db_options,
 ColumnFamilyOptions BuildColumnFamilyOptions(
     const ColumnFamilyOptions& options,
     const MutableCFOptions& mutable_cf_options) {
+  DBUG_TRACE;
   ColumnFamilyOptions cf_opts(options);
   UpdateColumnFamilyOptions(mutable_cf_options, &cf_opts);
   // TODO(yhchiang): find some way to handle the following derived options
@@ -195,6 +199,7 @@ ColumnFamilyOptions BuildColumnFamilyOptions(
 
 void UpdateColumnFamilyOptions(const MutableCFOptions& moptions,
                                ColumnFamilyOptions* cf_opts) {
+  DBUG_TRACE;
   // Memtable related options
   cf_opts->write_buffer_size = moptions.write_buffer_size;
   cf_opts->max_write_buffer_number = moptions.max_write_buffer_number;
@@ -279,6 +284,7 @@ void UpdateColumnFamilyOptions(const MutableCFOptions& moptions,
 
 void UpdateColumnFamilyOptions(const ImmutableCFOptions& ioptions,
                                ColumnFamilyOptions* cf_opts) {
+  DBUG_TRACE;
   cf_opts->compaction_style = ioptions.compaction_style;
   cf_opts->compaction_pri = ioptions.compaction_pri;
   cf_opts->comparator = ioptions.user_comparator;
@@ -367,6 +373,7 @@ std::unordered_map<std::string, CompressionType>
         {"kDisableCompressionOption", kDisableCompressionOption}};
 
 std::vector<CompressionType> GetSupportedCompressions() {
+  DBUG_TRACE;
   // std::set internally to deduplicate potential name aliases
   std::set<CompressionType> supported_compressions;
   for (const auto& comp_to_name : OptionsHelper::compression_type_string_map) {
@@ -380,6 +387,7 @@ std::vector<CompressionType> GetSupportedCompressions() {
 }
 
 std::vector<CompressionType> GetSupportedDictCompressions() {
+  DBUG_TRACE;
   std::set<CompressionType> dict_compression_types;
   for (const auto& comp_to_name : OptionsHelper::compression_type_string_map) {
     CompressionType t = comp_to_name.second;
@@ -392,6 +400,7 @@ std::vector<CompressionType> GetSupportedDictCompressions() {
 }
 
 std::vector<ChecksumType> GetSupportedChecksums() {
+  DBUG_TRACE;
   std::set<ChecksumType> checksum_types;
   for (const auto& e : OptionsHelper::checksum_type_string_map) {
     checksum_types.insert(e.second);
@@ -402,6 +411,7 @@ std::vector<ChecksumType> GetSupportedChecksums() {
 
 static bool ParseOptionHelper(void* opt_address, const OptionType& opt_type,
                               const std::string& value) {
+  DBUG_TRACE;
   switch (opt_type) {
     case OptionType::kBoolean:
       *static_cast<bool*>(opt_address) = ParseBoolean("", value);
@@ -479,6 +489,7 @@ static bool ParseOptionHelper(void* opt_address, const OptionType& opt_type,
 bool SerializeSingleOptionHelper(const void* opt_address,
                                  const OptionType opt_type,
                                  std::string* value) {
+  DBUG_TRACE;
   assert(value);
   switch (opt_type) {
     case OptionType::kBoolean:
@@ -587,6 +598,7 @@ Status ConfigureFromMap(
 
 Status StringToMap(const std::string& opts_str,
                    std::unordered_map<std::string, std::string>* opts_map) {
+  DBUG_TRACE;
   assert(opts_map);
   // Example:
   //   opts_str = "write_buffer_size=1024;max_write_buffer_number=2;"
@@ -632,6 +644,7 @@ Status StringToMap(const std::string& opts_str,
 Status GetStringFromDBOptions(std::string* opt_string,
                               const DBOptions& db_options,
                               const std::string& delimiter) {
+  DBUG_TRACE;
   ConfigOptions config_options(db_options);
   config_options.delimiter = delimiter;
   return GetStringFromDBOptions(config_options, db_options, opt_string);
@@ -640,6 +653,7 @@ Status GetStringFromDBOptions(std::string* opt_string,
 Status GetStringFromDBOptions(const ConfigOptions& config_options,
                               const DBOptions& db_options,
                               std::string* opt_string) {
+  DBUG_TRACE;
   assert(opt_string);
   opt_string->clear();
   auto config = DBOptionsAsConfigurable(db_options);
@@ -650,6 +664,7 @@ Status GetStringFromDBOptions(const ConfigOptions& config_options,
 Status GetStringFromColumnFamilyOptions(std::string* opt_string,
                                         const ColumnFamilyOptions& cf_options,
                                         const std::string& delimiter) {
+  DBUG_TRACE;
   ConfigOptions config_options;
   config_options.delimiter = delimiter;
   return GetStringFromColumnFamilyOptions(config_options, cf_options,
@@ -659,12 +674,14 @@ Status GetStringFromColumnFamilyOptions(std::string* opt_string,
 Status GetStringFromColumnFamilyOptions(const ConfigOptions& config_options,
                                         const ColumnFamilyOptions& cf_options,
                                         std::string* opt_string) {
+  DBUG_TRACE;
   const auto config = CFOptionsAsConfigurable(cf_options);
   return config->GetOptionString(config_options, opt_string);
 }
 
 Status GetStringFromCompressionType(std::string* compression_str,
                                     CompressionType compression_type) {
+  DBUG_TRACE;
   bool ok = SerializeEnum<CompressionType>(compression_type_string_map,
                                            compression_type, compression_str);
   if (ok) {
@@ -679,6 +696,7 @@ Status GetColumnFamilyOptionsFromMap(
     const ColumnFamilyOptions& base_options,
     const std::unordered_map<std::string, std::string>& opts_map,
     ColumnFamilyOptions* new_options) {
+  DBUG_TRACE;
   assert(new_options);
 
   *new_options = base_options;
@@ -699,6 +717,7 @@ Status GetColumnFamilyOptionsFromString(const ConfigOptions& config_options,
                                         const ColumnFamilyOptions& base_options,
                                         const std::string& opts_str,
                                         ColumnFamilyOptions* new_options) {
+  DBUG_TRACE;
   std::unordered_map<std::string, std::string> opts_map;
   Status s = StringToMap(opts_str, &opts_map);
   if (!s.ok()) {
@@ -713,6 +732,7 @@ Status GetDBOptionsFromMap(
     const ConfigOptions& config_options, const DBOptions& base_options,
     const std::unordered_map<std::string, std::string>& opts_map,
     DBOptions* new_options) {
+  DBUG_TRACE;
   assert(new_options);
   *new_options = base_options;
   auto config = DBOptionsAsConfigurable(base_options);
@@ -731,6 +751,7 @@ Status GetDBOptionsFromString(const ConfigOptions& config_options,
                               const DBOptions& base_options,
                               const std::string& opts_str,
                               DBOptions* new_options) {
+  DBUG_TRACE;
   std::unordered_map<std::string, std::string> opts_map;
   Status s = StringToMap(opts_str, &opts_map);
   if (!s.ok()) {
@@ -743,6 +764,7 @@ Status GetDBOptionsFromString(const ConfigOptions& config_options,
 
 Status GetOptionsFromString(const Options& base_options,
                             const std::string& opts_str, Options* new_options) {
+  DBUG_TRACE;
   ConfigOptions config_options(base_options);
   config_options.input_strings_escaped = false;
   config_options.ignore_unknown_options = false;
@@ -754,6 +776,7 @@ Status GetOptionsFromString(const Options& base_options,
 Status GetOptionsFromString(const ConfigOptions& config_options,
                             const Options& base_options,
                             const std::string& opts_str, Options* new_options) {
+  DBUG_TRACE;
   ColumnFamilyOptions new_cf_options;
   std::unordered_map<std::string, std::string> unused_opts;
   std::unordered_map<std::string, std::string> opts_map;
@@ -826,6 +849,7 @@ std::unordered_map<std::string, PrepopulateBlobCache>
 
 Status OptionTypeInfo::NextToken(const std::string& opts, char delimiter,
                                  size_t pos, size_t* end, std::string* token) {
+  DBUG_TRACE;
   while (pos < opts.size() && isspace(opts[pos])) {
     ++pos;
   }
@@ -880,6 +904,7 @@ Status OptionTypeInfo::NextToken(const std::string& opts, char delimiter,
 Status OptionTypeInfo::Parse(const ConfigOptions& config_options,
                              const std::string& opt_name,
                              const std::string& value, void* opt_ptr) const {
+  DBUG_TRACE;
   if (IsDeprecated()) {
     return Status::OK();
   }
@@ -930,6 +955,7 @@ Status OptionTypeInfo::ParseType(
     const ConfigOptions& config_options, const std::string& opts_str,
     const std::unordered_map<std::string, OptionTypeInfo>& type_map,
     void* opt_addr, std::unordered_map<std::string, std::string>* unused) {
+  DBUG_TRACE;
   std::unordered_map<std::string, std::string> opts_map;
   Status status = StringToMap(opts_str, &opts_map);
   if (!status.ok()) {
@@ -944,6 +970,7 @@ Status OptionTypeInfo::ParseType(
     const std::unordered_map<std::string, std::string>& opts_map,
     const std::unordered_map<std::string, OptionTypeInfo>& type_map,
     void* opt_addr, std::unordered_map<std::string, std::string>* unused) {
+  DBUG_TRACE;
   for (const auto& opts_iter : opts_map) {
     std::string opt_name;
     const auto* opt_info = Find(opts_iter.first, type_map, &opt_name);
@@ -966,6 +993,7 @@ Status OptionTypeInfo::ParseStruct(
     const ConfigOptions& config_options, const std::string& struct_name,
     const std::unordered_map<std::string, OptionTypeInfo>* struct_map,
     const std::string& opt_name, const std::string& opt_value, void* opt_addr) {
+  DBUG_TRACE;
   assert(struct_map);
   Status status;
   if (opt_name == struct_name || EndsWith(opt_name, "." + struct_name)) {
@@ -1005,6 +1033,7 @@ Status OptionTypeInfo::Serialize(const ConfigOptions& config_options,
                                  const std::string& opt_name,
                                  const void* const opt_ptr,
                                  std::string* opt_value) const {
+  DBUG_TRACE;
   // If the option is no longer used in rocksdb and marked as deprecated,
   // we skip it in the serialization.
   if (opt_ptr == nullptr || IsDeprecated()) {
@@ -1072,6 +1101,7 @@ Status OptionTypeInfo::SerializeType(
     const ConfigOptions& config_options,
     const std::unordered_map<std::string, OptionTypeInfo>& type_map,
     const void* opt_addr, std::string* result) {
+  DBUG_TRACE;
   Status status;
   for (const auto& iter : type_map) {
     std::string single;
@@ -1093,6 +1123,7 @@ Status OptionTypeInfo::SerializeStruct(
     const ConfigOptions& config_options, const std::string& struct_name,
     const std::unordered_map<std::string, OptionTypeInfo>* struct_map,
     const std::string& opt_name, const void* opt_addr, std::string* value) {
+  DBUG_TRACE;
   assert(struct_map);
   Status status;
   if (EndsWith(opt_name, struct_name)) {
@@ -1139,11 +1170,13 @@ bool IsOptionEqual(const void* offset1, const void* offset2) {
 }
 
 static bool AreEqualDoubles(const double a, const double b) {
+  DBUG_TRACE;
   return (fabs(a - b) < 0.00001);
 }
 
 static bool AreOptionsEqual(OptionType type, const void* this_offset,
                             const void* that_offset) {
+  DBUG_TRACE;
   switch (type) {
     case OptionType::kBoolean:
       return IsOptionEqual<bool>(this_offset, that_offset);
@@ -1208,6 +1241,7 @@ bool OptionTypeInfo::AreEqual(const ConfigOptions& config_options,
                               const void* const this_ptr,
                               const void* const that_ptr,
                               std::string* mismatch) const {
+  DBUG_TRACE;
   auto level = GetSanityLevel();
   if (!config_options.IsCheckEnabled(level)) {
     return true;  // If the sanity level is not being checked, skip it
@@ -1261,6 +1295,7 @@ bool OptionTypeInfo::TypesAreEqual(
     const ConfigOptions& config_options,
     const std::unordered_map<std::string, OptionTypeInfo>& type_map,
     const void* this_addr, const void* that_addr, std::string* mismatch) {
+  DBUG_TRACE;
   for (const auto& iter : type_map) {
     const auto& opt_info = iter.second;
     if (!opt_info.AreEqual(config_options, iter.first, this_addr, that_addr,
@@ -1276,6 +1311,7 @@ bool OptionTypeInfo::StructsAreEqual(
     const std::unordered_map<std::string, OptionTypeInfo>* struct_map,
     const std::string& opt_name, const void* this_addr, const void* that_addr,
     std::string* mismatch) {
+  DBUG_TRACE;
   assert(struct_map);
   bool matches = true;
   std::string result;
@@ -1323,6 +1359,7 @@ bool MatchesOptionsTypeFromMap(
     const std::unordered_map<std::string, OptionTypeInfo>& type_map,
     const void* const this_ptr, const void* const that_ptr,
     std::string* mismatch) {
+  DBUG_TRACE;
   for (auto& pair : type_map) {
     // We skip checking deprecated variables as they might
     // contain random values since they might not be initialized
@@ -1342,6 +1379,7 @@ bool OptionTypeInfo::AreEqualByName(const ConfigOptions& config_options,
                                     const std::string& opt_name,
                                     const void* const this_ptr,
                                     const void* const that_ptr) const {
+  DBUG_TRACE;
   if (IsByName()) {
     std::string that_value;
     if (Serialize(config_options, opt_name, that_ptr, &that_value).ok()) {
@@ -1355,6 +1393,7 @@ bool OptionTypeInfo::AreEqualByName(const ConfigOptions& config_options,
                                     const std::string& opt_name,
                                     const void* const opt_ptr,
                                     const std::string& that_value) const {
+  DBUG_TRACE;
   std::string this_value;
   if (!IsByName()) {
     return false;
@@ -1374,6 +1413,7 @@ bool OptionTypeInfo::AreEqualByName(const ConfigOptions& config_options,
 
 Status OptionTypeInfo::Prepare(const ConfigOptions& config_options,
                                const std::string& name, void* opt_ptr) const {
+  DBUG_TRACE;
   if (ShouldPrepare()) {
     if (prepare_func_ != nullptr) {
       void* opt_addr = GetOffset(opt_ptr);
@@ -1394,6 +1434,7 @@ Status OptionTypeInfo::Validate(const DBOptions& db_opts,
                                 const ColumnFamilyOptions& cf_opts,
                                 const std::string& name,
                                 const void* opt_ptr) const {
+  DBUG_TRACE;
   if (ShouldValidate()) {
     if (validate_func_ != nullptr) {
       const void* opt_addr = GetOffset(opt_ptr);
@@ -1414,6 +1455,7 @@ const OptionTypeInfo* OptionTypeInfo::Find(
     const std::string& opt_name,
     const std::unordered_map<std::string, OptionTypeInfo>& opt_map,
     std::string* elem_name) {
+  DBUG_TRACE;
   const auto iter = opt_map.find(opt_name);  // Look up the value in the map
   if (iter != opt_map.end()) {               // Found the option in the map
     *elem_name = opt_name;                   // Return the name

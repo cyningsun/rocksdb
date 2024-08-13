@@ -4,6 +4,7 @@
 //  (found in the LICENSE.Apache file in the root directory).
 //
 
+#include "rocksdb/util/dbug.h"
 #include <sstream>
 
 #include "monitoring/perf_context_imp.h"
@@ -171,6 +172,7 @@ thread_local PerfContext perf_context;
 #endif
 
 PerfContext* get_perf_context() {
+  DBUG_TRACE;
   static_assert(sizeof(PerfContextBase) == sizeof(PerfContextInt));
   static_assert(sizeof(PerfContextByLevelBase) ==
                 sizeof(PerfContextByLevelInt));
@@ -218,6 +220,7 @@ PerfContext::PerfContext(PerfContext&& other) noexcept {
 }
 
 PerfContext& PerfContext::operator=(const PerfContext& other) {
+DBUG_TRACE;
 #ifdef NPERF_CONTEXT
   (void)other;
 #else
@@ -227,6 +230,7 @@ PerfContext& PerfContext::operator=(const PerfContext& other) {
 }
 
 void PerfContext::copyMetrics(const PerfContext* other) noexcept {
+DBUG_TRACE;
 #ifdef NPERF_CONTEXT
   (void)other;
 #else
@@ -245,6 +249,7 @@ void PerfContext::copyMetrics(const PerfContext* other) noexcept {
 }
 
 void PerfContext::Reset() {
+DBUG_TRACE;
 #ifndef NPERF_CONTEXT
 #define EMIT_FIELDS(x) x = 0;
   DEF_PERF_CONTEXT_METRICS(EMIT_FIELDS)
@@ -258,6 +263,7 @@ void PerfContext::Reset() {
 }
 
 void PerfContextByLevel::Reset() {
+DBUG_TRACE;
 #ifndef NPERF_CONTEXT
 #define EMIT_FIELDS(x) x = 0;
   DEF_PERF_CONTEXT_LEVEL_METRICS(EMIT_FIELDS)
@@ -266,6 +272,7 @@ void PerfContextByLevel::Reset() {
 }
 
 std::string PerfContext::ToString(bool exclude_zero_counters) const {
+DBUG_TRACE;
 #ifdef NPERF_CONTEXT
   (void)exclude_zero_counters;
   return "";
@@ -295,6 +302,7 @@ std::string PerfContext::ToString(bool exclude_zero_counters) const {
 }
 
 void PerfContext::EnablePerLevelPerfContext() {
+  DBUG_TRACE;
   if (level_to_perf_context == nullptr) {
     level_to_perf_context = new std::map<uint32_t, PerfContextByLevel>();
   }
@@ -302,10 +310,12 @@ void PerfContext::EnablePerLevelPerfContext() {
 }
 
 void PerfContext::DisablePerLevelPerfContext() {
+  DBUG_TRACE;
   per_level_perf_context_enabled = false;
 }
 
 void PerfContext::ClearPerLevelPerfContext() {
+  DBUG_TRACE;
   if (level_to_perf_context != nullptr) {
     level_to_perf_context->clear();
     delete level_to_perf_context;

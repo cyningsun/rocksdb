@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "db/compaction/compaction.h"
 
 #include <cinttypes>
@@ -23,6 +24,7 @@
 namespace ROCKSDB_NAMESPACE {
 
 int sstableKeyCompare(const Comparator* uc, const Slice& a, const Slice& b) {
+  DBUG_TRACE;
   auto c = uc->CompareWithoutTimestamp(ExtractUserKey(a), ExtractUserKey(b));
   if (c != 0) {
     return c;
@@ -41,6 +43,7 @@ int sstableKeyCompare(const Comparator* uc, const Slice& a, const Slice& b) {
 
 int sstableKeyCompare(const Comparator* user_cmp, const InternalKey* a,
                       const InternalKey& b) {
+  DBUG_TRACE;
   if (a == nullptr) {
     return -1;
   }
@@ -49,6 +52,7 @@ int sstableKeyCompare(const Comparator* user_cmp, const InternalKey* a,
 
 int sstableKeyCompare(const Comparator* user_cmp, const InternalKey& a,
                       const InternalKey* b) {
+  DBUG_TRACE;
   if (b == nullptr) {
     return -1;
   }
@@ -56,6 +60,7 @@ int sstableKeyCompare(const Comparator* user_cmp, const InternalKey& a,
 }
 
 uint64_t TotalFileSize(const std::vector<FileMetaData*>& files) {
+  DBUG_TRACE;
   uint64_t sum = 0;
   for (size_t i = 0; i < files.size() && files[i]; i++) {
     sum += files[i]->fd.GetFileSize();
@@ -66,6 +71,7 @@ uint64_t TotalFileSize(const std::vector<FileMetaData*>& files) {
 // TODO(hx235): consider making this function part of the construction so we
 // don't forget to call it
 void Compaction::FinalizeInputInfo(Version* _input_version) {
+  DBUG_TRACE;
   input_version_ = _input_version;
   cfd_ = input_version_->cfd();
 
@@ -78,6 +84,7 @@ void Compaction::GetBoundaryKeys(
     VersionStorageInfo* vstorage,
     const std::vector<CompactionInputFiles>& inputs, Slice* smallest_user_key,
     Slice* largest_user_key, int exclude_level) {
+  DBUG_TRACE;
   bool initialized = false;
   const Comparator* ucmp = vstorage->InternalComparator()->user_comparator();
   for (size_t i = 0; i < inputs.size(); ++i) {
@@ -119,6 +126,7 @@ void Compaction::GetBoundaryInternalKeys(
     VersionStorageInfo* vstorage,
     const std::vector<CompactionInputFiles>& inputs, InternalKey* smallest_key,
     InternalKey* largest_key, int exclude_level) {
+  DBUG_TRACE;
   bool initialized = false;
   const InternalKeyComparator* icmp = vstorage->InternalComparator();
   for (size_t i = 0; i < inputs.size(); ++i) {
@@ -153,6 +161,7 @@ void Compaction::GetBoundaryInternalKeys(
 
 std::vector<CompactionInputFiles> Compaction::PopulateWithAtomicBoundaries(
     VersionStorageInfo* vstorage, std::vector<CompactionInputFiles> inputs) {
+  DBUG_TRACE;
   const Comparator* ucmp = vstorage->InternalComparator()->user_comparator();
   for (size_t i = 0; i < inputs.size(); i++) {
     if (inputs[i].level == 0 || inputs[i].files.empty()) {
@@ -201,6 +210,7 @@ std::vector<CompactionInputFiles> Compaction::PopulateWithAtomicBoundaries(
 bool Compaction::IsBottommostLevel(
     int output_level, VersionStorageInfo* vstorage,
     const std::vector<CompactionInputFiles>& inputs) {
+  DBUG_TRACE;
   int output_l0_idx;
   if (output_level == 0) {
     output_l0_idx = 0;
@@ -225,12 +235,14 @@ bool Compaction::IsBottommostLevel(
 bool Compaction::TEST_IsBottommostLevel(
     int output_level, VersionStorageInfo* vstorage,
     const std::vector<CompactionInputFiles>& inputs) {
+  DBUG_TRACE;
   return IsBottommostLevel(output_level, vstorage, inputs);
 }
 
 bool Compaction::IsFullCompaction(
     VersionStorageInfo* vstorage,
     const std::vector<CompactionInputFiles>& inputs) {
+  DBUG_TRACE;
   size_t num_files_in_compaction = 0;
   size_t total_num_files = 0;
   for (int l = 0; l < vstorage->num_levels(); l++) {
@@ -243,6 +255,7 @@ bool Compaction::IsFullCompaction(
 }
 
 Status Compaction::InitInputTableProperties() {
+  DBUG_TRACE;
   if (!input_table_properties_.empty()) {
     return Status::OK();
   }
@@ -400,6 +413,7 @@ Compaction::Compaction(
 }
 
 void Compaction::PopulatePenultimateLevelOutputRange() {
+  DBUG_TRACE;
   if (!SupportsPerKeyPlacement()) {
     return;
   }
@@ -455,15 +469,17 @@ Compaction::~Compaction() {
 }
 
 bool Compaction::SupportsPerKeyPlacement() const {
+  DBUG_TRACE;
   return penultimate_level_ != kInvalidLevel;
 }
 
-int Compaction::GetPenultimateLevel() const { return penultimate_level_; }
+int Compaction::GetPenultimateLevel() const { DBUG_TRACE; return penultimate_level_; }
 
 // smallest_key and largest_key include timestamps if user-defined timestamp is
 // enabled.
 bool Compaction::OverlapPenultimateLevelOutputRange(
     const Slice& smallest_key, const Slice& largest_key) const {
+  DBUG_TRACE;
   if (!SupportsPerKeyPlacement()) {
     return false;
   }
@@ -487,6 +503,7 @@ bool Compaction::OverlapPenultimateLevelOutputRange(
 // key includes timestamp if user-defined timestamp is enabled.
 bool Compaction::WithinPenultimateLevelOutputRange(
     const ParsedInternalKey& ikey) const {
+  DBUG_TRACE;
   if (!SupportsPerKeyPlacement()) {
     return false;
   }
@@ -504,6 +521,7 @@ bool Compaction::WithinPenultimateLevelOutputRange(
 }
 
 bool Compaction::InputCompressionMatchesOutput() const {
+  DBUG_TRACE;
   int base_level = input_vstorage_->base_level();
   bool matches =
       (GetCompressionType(input_vstorage_, mutable_cf_options_, start_level_,
@@ -517,6 +535,7 @@ bool Compaction::InputCompressionMatchesOutput() const {
 }
 
 bool Compaction::IsTrivialMove() const {
+  DBUG_TRACE;
   // Avoid a move if there is lots of overlapping grandparent data.
   // Otherwise, the move could create a parent file that will require
   // a very expensive merge later on.
@@ -597,6 +616,7 @@ bool Compaction::IsTrivialMove() const {
 }
 
 void Compaction::AddInputDeletions(VersionEdit* out_edit) {
+  DBUG_TRACE;
   for (size_t which = 0; which < num_input_levels(); which++) {
     for (size_t i = 0; i < inputs_[which].size(); i++) {
       out_edit->DeleteFile(level(which), inputs_[which][i]->fd.GetNumber());
@@ -606,6 +626,7 @@ void Compaction::AddInputDeletions(VersionEdit* out_edit) {
 
 bool Compaction::KeyNotExistsBeyondOutputLevel(
     const Slice& user_key, std::vector<size_t>* level_ptrs) const {
+  DBUG_TRACE;
   assert(input_version_ != nullptr);
   assert(level_ptrs != nullptr);
   assert(level_ptrs->size() == static_cast<size_t>(number_levels_));
@@ -645,6 +666,7 @@ bool Compaction::KeyNotExistsBeyondOutputLevel(
 bool Compaction::KeyRangeNotExistsBeyondOutputLevel(
     const Slice& begin_key, const Slice& end_key,
     std::vector<size_t>* level_ptrs) const {
+  DBUG_TRACE;
   assert(input_version_ != nullptr);
   assert(level_ptrs != nullptr);
   assert(level_ptrs->size() == static_cast<size_t>(number_levels_));
@@ -687,6 +709,7 @@ bool Compaction::KeyRangeNotExistsBeyondOutputLevel(
 
 // Mark (or clear) each file that is being compacted
 void Compaction::MarkFilesBeingCompacted(bool mark_as_compacted) {
+  DBUG_TRACE;
   for (size_t i = 0; i < num_input_levels(); i++) {
     for (size_t j = 0; j < inputs_[i].size(); j++) {
       assert(mark_as_compacted ? !inputs_[i][j]->being_compacted
@@ -701,6 +724,7 @@ void Compaction::MarkFilesBeingCompacted(bool mark_as_compacted) {
 // print: "3@0 + 2@3 + 1@4 files to L5"
 const char* Compaction::InputLevelSummary(
     InputLevelSummaryBuffer* scratch) const {
+  DBUG_TRACE;
   int len = 0;
   bool is_first = true;
   for (auto& input_level : inputs_) {
@@ -726,6 +750,7 @@ const char* Compaction::InputLevelSummary(
 }
 
 uint64_t Compaction::CalculateTotalInputSize() const {
+  DBUG_TRACE;
   uint64_t size = 0;
   for (auto& input_level : inputs_) {
     for (auto f : input_level.files) {
@@ -736,11 +761,13 @@ uint64_t Compaction::CalculateTotalInputSize() const {
 }
 
 void Compaction::ReleaseCompactionFiles(Status status) {
+  DBUG_TRACE;
   MarkFilesBeingCompacted(false);
   cfd_->compaction_picker()->ReleaseCompactionFiles(this, status);
 }
 
 void Compaction::ResetNextCompactionIndex() {
+  DBUG_TRACE;
   assert(input_version_ != nullptr);
   input_vstorage_->ResetNextCompactionIndex(start_level_);
 }
@@ -748,6 +775,7 @@ void Compaction::ResetNextCompactionIndex() {
 namespace {
 int InputSummary(const std::vector<FileMetaData*>& files, char* output,
                  int len) {
+  DBUG_TRACE;
   *output = '\0';
   int write = 0;
   for (size_t i = 0; i < files.size(); i++) {
@@ -768,6 +796,7 @@ int InputSummary(const std::vector<FileMetaData*>& files, char* output,
 }  // namespace
 
 void Compaction::Summary(char* output, int len) {
+  DBUG_TRACE;
   int write =
       snprintf(output, len, "Base version %" PRIu64 " Base level %d, inputs: [",
                input_version_->GetVersionNumber(), start_level_);
@@ -793,6 +822,7 @@ void Compaction::Summary(char* output, int len) {
 }
 
 uint64_t Compaction::OutputFilePreallocationSize() const {
+  DBUG_TRACE;
   uint64_t preallocation_size = 0;
 
   for (const auto& level_files : inputs_) {
@@ -815,6 +845,7 @@ uint64_t Compaction::OutputFilePreallocationSize() const {
 }
 
 std::unique_ptr<CompactionFilter> Compaction::CreateCompactionFilter() const {
+  DBUG_TRACE;
   if (!cfd_->ioptions()->compaction_filter_factory) {
     return nullptr;
   }
@@ -844,6 +875,7 @@ std::unique_ptr<CompactionFilter> Compaction::CreateCompactionFilter() const {
 }
 
 std::unique_ptr<SstPartitioner> Compaction::CreateSstPartitioner() const {
+  DBUG_TRACE;
   if (!immutable_options_.sst_partitioner_factory) {
     return nullptr;
   }
@@ -858,10 +890,12 @@ std::unique_ptr<SstPartitioner> Compaction::CreateSstPartitioner() const {
 }
 
 bool Compaction::IsOutputLevelEmpty() const {
+  DBUG_TRACE;
   return inputs_.back().level != output_level_ || inputs_.back().empty();
 }
 
 bool Compaction::ShouldFormSubcompactions() const {
+  DBUG_TRACE;
   if (cfd_ == nullptr) {
     return false;
   }
@@ -892,6 +926,7 @@ bool Compaction::ShouldFormSubcompactions() const {
 }
 
 bool Compaction::DoesInputReferenceBlobFiles() const {
+  DBUG_TRACE;
   assert(input_version_);
 
   const VersionStorageInfo* storage_info = input_version_->storage_info();
@@ -916,6 +951,7 @@ bool Compaction::DoesInputReferenceBlobFiles() const {
 
 uint64_t Compaction::MinInputFileOldestAncesterTime(
     const InternalKey* start, const InternalKey* end) const {
+  DBUG_TRACE;
   uint64_t min_oldest_ancester_time = std::numeric_limits<uint64_t>::max();
   const InternalKeyComparator& icmp =
       column_family_data()->internal_comparator();
@@ -938,6 +974,7 @@ uint64_t Compaction::MinInputFileOldestAncesterTime(
 }
 
 uint64_t Compaction::MinInputFileEpochNumber() const {
+  DBUG_TRACE;
   uint64_t min_epoch_number = std::numeric_limits<uint64_t>::max();
   for (const auto& inputs_per_level : inputs_) {
     for (const auto& file : inputs_per_level.files) {
@@ -951,6 +988,7 @@ int Compaction::EvaluatePenultimateLevel(
     const VersionStorageInfo* vstorage,
     const ImmutableOptions& immutable_options, const int start_level,
     const int output_level) {
+  DBUG_TRACE;
   // TODO: currently per_key_placement feature only support level and universal
   //  compaction
   if (immutable_options.compaction_style != kCompactionStyleLevel &&

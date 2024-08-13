@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include <atomic>
 #ifdef GFLAGS
 
@@ -21,11 +22,13 @@ ExpectedState::ExpectedState(size_t max_key, size_t num_column_families)
       values_(nullptr) {}
 
 void ExpectedState::ClearColumnFamily(int cf) {
+  DBUG_TRACE;
   const uint32_t del_mask = ExpectedValue::GetDelMask();
   std::fill(&Value(cf, 0 /* key */), &Value(cf + 1, 0 /* key */), del_mask);
 }
 
 void ExpectedState::Precommit(int cf, int64_t key, const ExpectedValue& value) {
+  DBUG_TRACE;
   Value(cf, key).store(value.Read());
   // To prevent low-level instruction reordering that results
   // in db write happens before setting pending state in expected value
@@ -34,6 +37,7 @@ void ExpectedState::Precommit(int cf, int64_t key, const ExpectedValue& value) {
 
 PendingExpectedValue ExpectedState::PreparePut(int cf, int64_t key,
                                                bool* prepared) {
+  DBUG_TRACE;
   assert(prepared);
   ExpectedValue expected_value = Load(cf, key);
 
@@ -62,10 +66,11 @@ PendingExpectedValue ExpectedState::PreparePut(int cf, int64_t key,
                               final_expected_value);
 }
 
-ExpectedValue ExpectedState::Get(int cf, int64_t key) { return Load(cf, key); }
+ExpectedValue ExpectedState::Get(int cf, int64_t key) { DBUG_TRACE; return Load(cf, key); }
 
 PendingExpectedValue ExpectedState::PrepareDelete(int cf, int64_t key,
                                                   bool* prepared) {
+  DBUG_TRACE;
   assert(prepared);
   ExpectedValue expected_value = Load(cf, key);
 
@@ -96,11 +101,13 @@ PendingExpectedValue ExpectedState::PrepareDelete(int cf, int64_t key,
 
 PendingExpectedValue ExpectedState::PrepareSingleDelete(int cf, int64_t key,
                                                         bool* prepared) {
+  DBUG_TRACE;
   return PrepareDelete(cf, key, prepared);
 }
 
 std::vector<PendingExpectedValue> ExpectedState::PrepareDeleteRange(
     int cf, int64_t begin_key, int64_t end_key, bool* prepared) {
+  DBUG_TRACE;
   std::vector<PendingExpectedValue> pending_expected_values;
   bool has_prepared_failed = false;
 
@@ -122,10 +129,12 @@ std::vector<PendingExpectedValue> ExpectedState::PrepareDeleteRange(
 }
 
 bool ExpectedState::Exists(int cf, int64_t key) {
+  DBUG_TRACE;
   return Load(cf, key).Exists();
 }
 
 void ExpectedState::Reset() {
+  DBUG_TRACE;
   const uint32_t del_mask = ExpectedValue::GetDelMask();
   for (size_t i = 0; i < num_column_families_; ++i) {
     for (size_t j = 0; j < max_key_; ++j) {
@@ -135,18 +144,21 @@ void ExpectedState::Reset() {
 }
 
 void ExpectedState::SyncPut(int cf, int64_t key, uint32_t value_base) {
+  DBUG_TRACE;
   ExpectedValue expected_value = Load(cf, key);
   expected_value.SyncPut(value_base);
   Value(cf, key).store(expected_value.Read());
 }
 
 void ExpectedState::SyncPendingPut(int cf, int64_t key) {
+  DBUG_TRACE;
   ExpectedValue expected_value = Load(cf, key);
   expected_value.SyncPendingPut();
   Value(cf, key).store(expected_value.Read());
 }
 
 void ExpectedState::SyncDelete(int cf, int64_t key) {
+  DBUG_TRACE;
   ExpectedValue expected_value = Load(cf, key);
   expected_value.SyncDelete();
   Value(cf, key).store(expected_value.Read());
@@ -154,6 +166,7 @@ void ExpectedState::SyncDelete(int cf, int64_t key) {
 
 void ExpectedState::SyncDeleteRange(int cf, int64_t begin_key,
                                     int64_t end_key) {
+  DBUG_TRACE;
   for (int64_t key = begin_key; key < end_key; ++key) {
     SyncDelete(cf, key);
   }
@@ -165,6 +178,7 @@ FileExpectedState::FileExpectedState(std::string expected_state_file_path,
       expected_state_file_path_(expected_state_file_path) {}
 
 Status FileExpectedState::Open(bool create) {
+  DBUG_TRACE;
   size_t expected_values_size = GetValuesLen();
 
   Env* default_env = Env::Default();
@@ -203,6 +217,7 @@ AnonExpectedState::AnonExpectedState(size_t max_key, size_t num_column_families)
 
 #ifndef NDEBUG
 Status AnonExpectedState::Open(bool create) {
+DBUG_TRACE;
 #else
 Status AnonExpectedState::Open(bool /* create */) {
 #endif
@@ -239,6 +254,7 @@ FileExpectedStateManager::FileExpectedStateManager(
 }
 
 Status FileExpectedStateManager::Open() {
+  DBUG_TRACE;
   // Before doing anything, sync directory state with ours. That is, determine
   // `saved_seqno_`, and create any necessary missing files.
   std::vector<std::string> expected_state_dir_children;
@@ -329,6 +345,7 @@ Status FileExpectedStateManager::Open() {
 }
 
 Status FileExpectedStateManager::SaveAtAndAfter(DB* db) {
+  DBUG_TRACE;
   SequenceNumber seqno = db->GetLatestSequenceNumber();
 
   std::string state_filename = std::to_string(seqno) + kStateFilenameSuffix;
@@ -398,6 +415,7 @@ Status FileExpectedStateManager::SaveAtAndAfter(DB* db) {
 }
 
 bool FileExpectedStateManager::HasHistory() {
+  DBUG_TRACE;
   return saved_seqno_ != kMaxSequenceNumber;
 }
 
@@ -418,10 +436,11 @@ class ExpectedStateTraceRecordHandler : public TraceRecord::Handler,
   ~ExpectedStateTraceRecordHandler() { assert(IsDone()); }
 
   // True if we have already reached the limit on write operations to apply.
-  bool IsDone() { return num_write_ops_ == max_write_ops_; }
+  bool IsDone() { DBUG_TRACE; return num_write_ops_ == max_write_ops_; }
 
   Status Handle(const WriteQueryTraceRecord& record,
                 std::unique_ptr<TraceRecordResult>* /* result */) override {
+    DBUG_TRACE;
     if (IsDone()) {
       return Status::OK();
     }
@@ -432,18 +451,21 @@ class ExpectedStateTraceRecordHandler : public TraceRecord::Handler,
   // Ignore reads.
   Status Handle(const GetQueryTraceRecord& /* record */,
                 std::unique_ptr<TraceRecordResult>* /* result */) override {
+    DBUG_TRACE;
     return Status::OK();
   }
 
   // Ignore reads.
   Status Handle(const IteratorSeekQueryTraceRecord& /* record */,
                 std::unique_ptr<TraceRecordResult>* /* result */) override {
+    DBUG_TRACE;
     return Status::OK();
   }
 
   // Ignore reads.
   Status Handle(const MultiGetQueryTraceRecord& /* record */,
                 std::unique_ptr<TraceRecordResult>* /* result */) override {
+    DBUG_TRACE;
     return Status::OK();
   }
 
@@ -453,6 +475,7 @@ class ExpectedStateTraceRecordHandler : public TraceRecord::Handler,
 
   Status PutCF(uint32_t column_family_id, const Slice& key_with_ts,
                const Slice& value) override {
+    DBUG_TRACE;
     Slice key =
         StripTimestampFromUserKey(key_with_ts, FLAGS_user_timestamp_size);
     uint64_t key_id;
@@ -474,6 +497,7 @@ class ExpectedStateTraceRecordHandler : public TraceRecord::Handler,
 
   Status TimedPutCF(uint32_t column_family_id, const Slice& key_with_ts,
                     const Slice& value, uint64_t write_unix_time) override {
+    DBUG_TRACE;
     Slice key =
         StripTimestampFromUserKey(key_with_ts, FLAGS_user_timestamp_size);
     uint64_t key_id;
@@ -496,6 +520,7 @@ class ExpectedStateTraceRecordHandler : public TraceRecord::Handler,
 
   Status PutEntityCF(uint32_t column_family_id, const Slice& key_with_ts,
                      const Slice& entity) override {
+    DBUG_TRACE;
     Slice key =
         StripTimestampFromUserKey(key_with_ts, FLAGS_user_timestamp_size);
 
@@ -533,6 +558,7 @@ class ExpectedStateTraceRecordHandler : public TraceRecord::Handler,
 
   Status DeleteCF(uint32_t column_family_id,
                   const Slice& key_with_ts) override {
+    DBUG_TRACE;
     Slice key =
         StripTimestampFromUserKey(key_with_ts, FLAGS_user_timestamp_size);
     uint64_t key_id;
@@ -553,6 +579,7 @@ class ExpectedStateTraceRecordHandler : public TraceRecord::Handler,
 
   Status SingleDeleteCF(uint32_t column_family_id,
                         const Slice& key_with_ts) override {
+    DBUG_TRACE;
     bool should_buffer_write = !(buffered_writes_ == nullptr);
     if (should_buffer_write) {
       Slice key =
@@ -571,6 +598,7 @@ class ExpectedStateTraceRecordHandler : public TraceRecord::Handler,
   Status DeleteRangeCF(uint32_t column_family_id,
                        const Slice& begin_key_with_ts,
                        const Slice& end_key_with_ts) override {
+    DBUG_TRACE;
     Slice begin_key =
         StripTimestampFromUserKey(begin_key_with_ts, FLAGS_user_timestamp_size);
     Slice end_key =
@@ -599,6 +627,7 @@ class ExpectedStateTraceRecordHandler : public TraceRecord::Handler,
 
   Status MergeCF(uint32_t column_family_id, const Slice& key_with_ts,
                  const Slice& value) override {
+    DBUG_TRACE;
     Slice key =
         StripTimestampFromUserKey(key_with_ts, FLAGS_user_timestamp_size);
 
@@ -612,12 +641,14 @@ class ExpectedStateTraceRecordHandler : public TraceRecord::Handler,
   }
 
   Status MarkBeginPrepare(bool = false) override {
+    DBUG_TRACE;
     assert(!buffered_writes_);
     buffered_writes_.reset(new WriteBatch());
     return Status::OK();
   }
 
   Status MarkEndPrepare(const Slice& xid) override {
+    DBUG_TRACE;
     assert(buffered_writes_);
     std::string xid_str = xid.ToString();
     assert(xid_to_buffered_writes_.find(xid_str) ==
@@ -631,6 +662,7 @@ class ExpectedStateTraceRecordHandler : public TraceRecord::Handler,
   }
 
   Status MarkCommit(const Slice& xid) override {
+    DBUG_TRACE;
     std::string xid_str = xid.ToString();
     assert(xid_to_buffered_writes_.find(xid_str) !=
            xid_to_buffered_writes_.end());
@@ -643,6 +675,7 @@ class ExpectedStateTraceRecordHandler : public TraceRecord::Handler,
   }
 
   Status MarkRollback(const Slice& xid) override {
+    DBUG_TRACE;
     std::string xid_str = xid.ToString();
     assert(xid_to_buffered_writes_.find(xid_str) !=
            xid_to_buffered_writes_.end());
@@ -664,6 +697,7 @@ class ExpectedStateTraceRecordHandler : public TraceRecord::Handler,
 }  // anonymous namespace
 
 Status FileExpectedStateManager::Restore(DB* db) {
+  DBUG_TRACE;
   assert(HasHistory());
   SequenceNumber seqno = db->GetLatestSequenceNumber();
   if (seqno < saved_seqno_) {
@@ -766,6 +800,7 @@ Status FileExpectedStateManager::Restore(DB* db) {
 }
 
 Status FileExpectedStateManager::Clean() {
+  DBUG_TRACE;
   std::vector<std::string> expected_state_dir_children;
   Status s = Env::Default()->GetChildren(expected_state_dir_path_,
                                          &expected_state_dir_children);
@@ -806,6 +841,7 @@ Status FileExpectedStateManager::Clean() {
 
 std::string FileExpectedStateManager::GetTempPathForFilename(
     const std::string& filename) {
+  DBUG_TRACE;
   assert(!expected_state_dir_path_.empty());
   std::string expected_state_dir_path_slash =
       expected_state_dir_path_.back() == '/' ? expected_state_dir_path_
@@ -816,6 +852,7 @@ std::string FileExpectedStateManager::GetTempPathForFilename(
 
 std::string FileExpectedStateManager::GetPathForFilename(
     const std::string& filename) {
+  DBUG_TRACE;
   assert(!expected_state_dir_path_.empty());
   std::string expected_state_dir_path_slash =
       expected_state_dir_path_.back() == '/' ? expected_state_dir_path_
@@ -828,6 +865,7 @@ AnonExpectedStateManager::AnonExpectedStateManager(size_t max_key,
     : ExpectedStateManager(max_key, num_column_families) {}
 
 Status AnonExpectedStateManager::Open() {
+  DBUG_TRACE;
   latest_.reset(new AnonExpectedState(max_key_, num_column_families_));
   return latest_->Open(true /* create */);
 }

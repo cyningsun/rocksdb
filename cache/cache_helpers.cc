@@ -3,11 +3,13 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "cache/cache_helpers.h"
 
 namespace ROCKSDB_NAMESPACE {
 
 void ReleaseCacheHandleCleanup(void* arg1, void* arg2) {
+  DBUG_TRACE;
   Cache* const cache = static_cast<Cache*>(arg1);
   assert(cache);
 
@@ -21,6 +23,7 @@ Status WarmInCache(Cache* cache, const Slice& key, const Slice& saved,
                    Cache::CreateContext* create_context,
                    const Cache::CacheItemHelper* helper,
                    Cache::Priority priority, size_t* out_charge) {
+  DBUG_TRACE;
   assert(helper);
   assert(helper->create_cb);
   Cache::ObjectPtr value;

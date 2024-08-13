@@ -6,6 +6,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "monitoring/persistent_stats_history.h"
 
 #include <cstring>
@@ -32,6 +33,7 @@ const uint64_t kStatsCFCompatibleFormatVersion = 1;
 
 Status DecodePersistentStatsVersionNumber(DBImpl* db, StatsVersionKeyType type,
                                           uint64_t* version_number) {
+  DBUG_TRACE;
   if (type >= StatsVersionKeyType::kKeyTypeMax) {
     return Status::InvalidArgument("Invalid stats version key type provided");
   }
@@ -59,6 +61,7 @@ Status DecodePersistentStatsVersionNumber(DBImpl* db, StatsVersionKeyType type,
 
 int EncodePersistentStatsKey(uint64_t now_seconds, const std::string& key,
                              int size, char* buf) {
+  DBUG_TRACE;
   char timestamp[kNowSecondsStringLength + 1];
   // make time stamp string equal in length to allow sorting by time
   snprintf(timestamp, sizeof(timestamp), "%010d",
@@ -68,6 +71,7 @@ int EncodePersistentStatsKey(uint64_t now_seconds, const std::string& key,
 }
 
 void OptimizeForPersistentStats(ColumnFamilyOptions* cfo) {
+  DBUG_TRACE;
   cfo->write_buffer_size = 2 << 20;
   cfo->target_file_size_base = 2 * 1048576;
   cfo->max_bytes_for_level_base = 10 * 1048576;
@@ -78,24 +82,27 @@ void OptimizeForPersistentStats(ColumnFamilyOptions* cfo) {
 
 PersistentStatsHistoryIterator::~PersistentStatsHistoryIterator() = default;
 
-bool PersistentStatsHistoryIterator::Valid() const { return valid_; }
+bool PersistentStatsHistoryIterator::Valid() const { DBUG_TRACE; return valid_; }
 
-Status PersistentStatsHistoryIterator::status() const { return status_; }
+Status PersistentStatsHistoryIterator::status() const { DBUG_TRACE; return status_; }
 
 void PersistentStatsHistoryIterator::Next() {
+  DBUG_TRACE;
   // increment start_time by 1 to avoid infinite loop
   AdvanceIteratorByTime(GetStatsTime() + 1, end_time_);
 }
 
-uint64_t PersistentStatsHistoryIterator::GetStatsTime() const { return time_; }
+uint64_t PersistentStatsHistoryIterator::GetStatsTime() const { DBUG_TRACE; return time_; }
 
 const std::map<std::string, uint64_t>&
 PersistentStatsHistoryIterator::GetStatsMap() const {
+  DBUG_TRACE;
   return stats_map_;
 }
 
 std::pair<uint64_t, std::string> parseKey(const Slice& key,
                                           uint64_t start_time) {
+  DBUG_TRACE;
   std::pair<uint64_t, std::string> result;
   std::string key_str = key.ToString();
   std::string::size_type pos = key_str.find('#');
@@ -122,6 +129,7 @@ std::pair<uint64_t, std::string> parseKey(const Slice& key,
 // if success, update time_ and stats_map_ with new_time and stats_map
 void PersistentStatsHistoryIterator::AdvanceIteratorByTime(uint64_t start_time,
                                                            uint64_t end_time) {
+  DBUG_TRACE;
   // try to find next entry in stats_history_ map
   if (db_impl_ != nullptr) {
     // TODO: plumb Env::IOActivity, Env::IOPriority

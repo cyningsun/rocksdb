@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "db/range_tombstone_fragmenter.h"
 
 #include <algorithm>
@@ -89,6 +90,7 @@ void FragmentedRangeTombstoneList::FragmentTombstones(
     std::unique_ptr<InternalIterator> unfragmented_tombstones,
     const InternalKeyComparator& icmp, bool for_compaction,
     const std::vector<SequenceNumber>& snapshots) {
+  DBUG_TRACE;
   Slice cur_start_key(nullptr, 0);
   auto cmp = ParsedInternalKeyComparator(&icmp);
 
@@ -270,6 +272,7 @@ void FragmentedRangeTombstoneList::FragmentTombstones(
 
 bool FragmentedRangeTombstoneList::ContainsRange(SequenceNumber lower,
                                                  SequenceNumber upper) {
+  DBUG_TRACE;
   std::call_once(seq_set_init_once_flag_, [this]() {
     for (auto s : tombstone_seqs_) {
       seq_set_.insert(s);
@@ -334,11 +337,13 @@ FragmentedRangeTombstoneIterator::FragmentedRangeTombstoneIterator(
 }
 
 void FragmentedRangeTombstoneIterator::SeekToFirst() {
+  DBUG_TRACE;
   pos_ = tombstones_->begin();
   seq_pos_ = tombstones_->seq_begin();
 }
 
 void FragmentedRangeTombstoneIterator::SeekToTopFirst() {
+  DBUG_TRACE;
   if (tombstones_->empty()) {
     Invalidate();
     return;
@@ -349,11 +354,13 @@ void FragmentedRangeTombstoneIterator::SeekToTopFirst() {
 }
 
 void FragmentedRangeTombstoneIterator::SeekToLast() {
+  DBUG_TRACE;
   pos_ = std::prev(tombstones_->end());
   seq_pos_ = std::prev(tombstones_->seq_end());
 }
 
 void FragmentedRangeTombstoneIterator::SeekToTopLast() {
+  DBUG_TRACE;
   if (tombstones_->empty()) {
     Invalidate();
     return;
@@ -366,6 +373,7 @@ void FragmentedRangeTombstoneIterator::SeekToTopLast() {
 // @param `target` is a user key, with timestamp if user-defined timestamp is
 // enabled.
 void FragmentedRangeTombstoneIterator::Seek(const Slice& target) {
+  DBUG_TRACE;
   if (tombstones_->empty()) {
     Invalidate();
     return;
@@ -375,6 +383,7 @@ void FragmentedRangeTombstoneIterator::Seek(const Slice& target) {
 }
 
 void FragmentedRangeTombstoneIterator::SeekForPrev(const Slice& target) {
+  DBUG_TRACE;
   if (tombstones_->empty()) {
     Invalidate();
     return;
@@ -385,6 +394,7 @@ void FragmentedRangeTombstoneIterator::SeekForPrev(const Slice& target) {
 
 void FragmentedRangeTombstoneIterator::SeekToCoveringTombstone(
     const Slice& target) {
+  DBUG_TRACE;
   pos_ = std::upper_bound(tombstones_->begin(), tombstones_->end(), target,
                           tombstone_end_cmp_);
   if (pos_ == tombstones_->end()) {
@@ -397,6 +407,7 @@ void FragmentedRangeTombstoneIterator::SeekToCoveringTombstone(
 
 void FragmentedRangeTombstoneIterator::SeekForPrevToCoveringTombstone(
     const Slice& target) {
+  DBUG_TRACE;
   if (tombstones_->empty()) {
     Invalidate();
     return;
@@ -413,6 +424,7 @@ void FragmentedRangeTombstoneIterator::SeekForPrevToCoveringTombstone(
 }
 
 void FragmentedRangeTombstoneIterator::ScanForwardToVisibleTombstone() {
+  DBUG_TRACE;
   while (pos_ != tombstones_->end() &&
          (seq_pos_ == tombstones_->seq_iter(pos_->seq_end_idx) ||
           *seq_pos_ < lower_bound_)) {
@@ -426,6 +438,7 @@ void FragmentedRangeTombstoneIterator::ScanForwardToVisibleTombstone() {
 }
 
 void FragmentedRangeTombstoneIterator::ScanBackwardToVisibleTombstone() {
+  DBUG_TRACE;
   while (pos_ != tombstones_->end() &&
          (seq_pos_ == tombstones_->seq_iter(pos_->seq_end_idx) ||
           *seq_pos_ < lower_bound_)) {
@@ -439,6 +452,7 @@ void FragmentedRangeTombstoneIterator::ScanBackwardToVisibleTombstone() {
 }
 
 void FragmentedRangeTombstoneIterator::Next() {
+  DBUG_TRACE;
   ++seq_pos_;
   if (seq_pos_ == tombstones_->seq_iter(pos_->seq_end_idx)) {
     ++pos_;
@@ -446,6 +460,7 @@ void FragmentedRangeTombstoneIterator::Next() {
 }
 
 void FragmentedRangeTombstoneIterator::TopNext() {
+  DBUG_TRACE;
   ++pos_;
   if (pos_ == tombstones_->end()) {
     return;
@@ -455,6 +470,7 @@ void FragmentedRangeTombstoneIterator::TopNext() {
 }
 
 void FragmentedRangeTombstoneIterator::Prev() {
+  DBUG_TRACE;
   if (seq_pos_ == tombstones_->seq_begin()) {
     Invalidate();
     return;
@@ -467,6 +483,7 @@ void FragmentedRangeTombstoneIterator::Prev() {
 }
 
 void FragmentedRangeTombstoneIterator::TopPrev() {
+  DBUG_TRACE;
   if (pos_ == tombstones_->begin()) {
     Invalidate();
     return;
@@ -477,11 +494,13 @@ void FragmentedRangeTombstoneIterator::TopPrev() {
 }
 
 bool FragmentedRangeTombstoneIterator::Valid() const {
+  DBUG_TRACE;
   return tombstones_ != nullptr && pos_ != tombstones_->end();
 }
 
 SequenceNumber FragmentedRangeTombstoneIterator::MaxCoveringTombstoneSeqnum(
     const Slice& target_user_key) {
+  DBUG_TRACE;
   SeekToCoveringTombstone(target_user_key);
   return ValidPos() && ucmp_->CompareWithoutTimestamp(start_key(),
                                                       target_user_key) <= 0
@@ -492,6 +511,7 @@ SequenceNumber FragmentedRangeTombstoneIterator::MaxCoveringTombstoneSeqnum(
 std::map<SequenceNumber, std::unique_ptr<FragmentedRangeTombstoneIterator>>
 FragmentedRangeTombstoneIterator::SplitBySnapshot(
     const std::vector<SequenceNumber>& snapshots) {
+  DBUG_TRACE;
   std::map<SequenceNumber, std::unique_ptr<FragmentedRangeTombstoneIterator>>
       splits;
   SequenceNumber lower = 0;

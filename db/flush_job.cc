@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "db/flush_job.h"
 
 #include <algorithm>
@@ -50,6 +51,7 @@
 namespace ROCKSDB_NAMESPACE {
 
 const char* GetFlushReasonString(FlushReason flush_reason) {
+  DBUG_TRACE;
   switch (flush_reason) {
     case FlushReason::kOthers:
       return "Other Reasons";
@@ -148,6 +150,7 @@ FlushJob::FlushJob(
 FlushJob::~FlushJob() { ThreadStatusUtil::ResetThreadStatus(); }
 
 void FlushJob::ReportStartedFlush() {
+  DBUG_TRACE;
   ThreadStatusUtil::SetEnableTracking(db_options_.enable_thread_tracking);
   ThreadStatusUtil::SetColumnFamily(cfd_);
   ThreadStatusUtil::SetThreadOperation(ThreadStatus::OP_FLUSH);
@@ -158,6 +161,7 @@ void FlushJob::ReportStartedFlush() {
 }
 
 void FlushJob::ReportFlushInputSize(const autovector<MemTable*>& mems) {
+  DBUG_TRACE;
   uint64_t input_size = 0;
   for (auto* mem : mems) {
     input_size += mem->ApproximateMemoryUsage();
@@ -167,12 +171,14 @@ void FlushJob::ReportFlushInputSize(const autovector<MemTable*>& mems) {
 }
 
 void FlushJob::RecordFlushIOStats() {
+  DBUG_TRACE;
   RecordTick(stats_, FLUSH_WRITE_BYTES, IOSTATS(bytes_written));
   ThreadStatusUtil::IncreaseThreadOperationProperty(
       ThreadStatus::FLUSH_BYTES_WRITTEN, IOSTATS(bytes_written));
   IOSTATS_RESET(bytes_written);
 }
 void FlushJob::PickMemTable() {
+  DBUG_TRACE;
   db_mutex_->AssertHeld();
   assert(!pick_memtable_called);
   pick_memtable_called = true;
@@ -223,6 +229,7 @@ void FlushJob::PickMemTable() {
 Status FlushJob::Run(LogsWithPrepTracker* prep_tracker, FileMetaData* file_meta,
                      bool* switched_to_mempurge, bool* skipped_since_bg_error,
                      ErrorHandler* error_handler) {
+  DBUG_TRACE;
   TEST_SYNC_POINT("FlushJob::Start");
   db_mutex_->AssertHeld();
   assert(pick_memtable_called);
@@ -389,12 +396,14 @@ Status FlushJob::Run(LogsWithPrepTracker* prep_tracker, FileMetaData* file_meta,
 }
 
 void FlushJob::Cancel() {
+  DBUG_TRACE;
   db_mutex_->AssertHeld();
   assert(base_ != nullptr);
   base_->Unref();
 }
 
 Status FlushJob::MemPurge() {
+  DBUG_TRACE;
   Status s;
   db_mutex_->AssertHeld();
   db_mutex_->Unlock();
@@ -676,6 +685,7 @@ Status FlushJob::MemPurge() {
 }
 
 bool FlushJob::MemPurgeDecider(double threshold) {
+  DBUG_TRACE;
   // Never trigger mempurge if threshold is not a strictly positive value.
   if (!(threshold > 0.0)) {
     return false;
@@ -848,6 +858,7 @@ bool FlushJob::MemPurgeDecider(double threshold) {
 }
 
 Status FlushJob::WriteLevel0Table() {
+  DBUG_TRACE;
   AutoThreadOperationStageUpdater stage_updater(
       ThreadStatus::STAGE_FLUSH_WRITE_L0);
   db_mutex_->AssertHeld();
@@ -1099,6 +1110,7 @@ Status FlushJob::WriteLevel0Table() {
 }
 
 Env::IOPriority FlushJob::GetRateLimiterPriority() {
+  DBUG_TRACE;
   if (versions_ && versions_->GetColumnFamilySet() &&
       versions_->GetColumnFamilySet()->write_controller()) {
     WriteController* write_controller =
@@ -1112,6 +1124,7 @@ Env::IOPriority FlushJob::GetRateLimiterPriority() {
 }
 
 std::unique_ptr<FlushJobInfo> FlushJob::GetFlushJobInfo() const {
+  DBUG_TRACE;
   db_mutex_->AssertHeld();
   std::unique_ptr<FlushJobInfo> info(new FlushJobInfo{});
   info->cf_id = cfd_->GetID();
@@ -1144,6 +1157,7 @@ std::unique_ptr<FlushJobInfo> FlushJob::GetFlushJobInfo() const {
 }
 
 void FlushJob::GetEffectiveCutoffUDTForPickedMemTables() {
+  DBUG_TRACE;
   db_mutex_->AssertHeld();
   assert(pick_memtable_called);
   const auto* ucmp = cfd_->internal_comparator().user_comparator();
@@ -1167,6 +1181,7 @@ void FlushJob::GetEffectiveCutoffUDTForPickedMemTables() {
 }
 
 void FlushJob::GetPrecludeLastLevelMinSeqno() {
+  DBUG_TRACE;
   if (cfd_->ioptions()->preclude_last_level_data_seconds == 0) {
     return;
   }
@@ -1187,6 +1202,7 @@ void FlushJob::GetPrecludeLastLevelMinSeqno() {
 }
 
 Status FlushJob::MaybeIncreaseFullHistoryTsLowToAboveCutoffUDT() {
+  DBUG_TRACE;
   db_mutex_->AssertHeld();
   const auto* ucmp = cfd_->user_comparator();
   assert(ucmp);

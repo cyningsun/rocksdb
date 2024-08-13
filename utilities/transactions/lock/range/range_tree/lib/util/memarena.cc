@@ -1,5 +1,6 @@
 /* -*- mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 // vim: ft=cpp:expandtab:ts=8:sw=4:softtabstop=4:
+#include "rocksdb/util/dbug.h"
 #ifndef OS_WIN
 #ident "$Id$"
 /*======
@@ -61,6 +62,7 @@ Copyright (c) 2006, 2015, Percona and/or its affiliates. All rights reserved.
 #include "../portability/memory.h"
 
 void memarena::create(size_t initial_size) {
+  DBUG_TRACE;
   _current_chunk = arena_chunk();
   _other_chunks = nullptr;
   _size_of_other_chunks = 0;
@@ -74,6 +76,7 @@ void memarena::create(size_t initial_size) {
 }
 
 void memarena::destroy(void) {
+  DBUG_TRACE;
   if (_current_chunk.buf) {
     toku_free(_current_chunk.buf);
   }
@@ -89,6 +92,7 @@ void memarena::destroy(void) {
 }
 
 static size_t round_to_page(size_t size) {
+  DBUG_TRACE;
   const size_t page_size = 4096;
   const size_t r = page_size + ((size - 1) & ~(page_size - 1));
   assert((r & (page_size - 1)) == 0);  // make sure it's aligned
@@ -101,6 +105,7 @@ static size_t round_to_page(size_t size) {
 static const size_t MEMARENA_MAX_CHUNK_SIZE = 64 * 1024 * 1024;
 
 void *memarena::malloc_from_arena(size_t size) {
+  DBUG_TRACE;
   if (_current_chunk.buf == nullptr ||
       _current_chunk.size < _current_chunk.used + size) {
     // The existing block isn't big enough.
@@ -139,6 +144,7 @@ void *memarena::malloc_from_arena(size_t size) {
 }
 
 void memarena::move_memory(memarena *dest) {
+  DBUG_TRACE;
   // Move memory to dest
   XREALLOC_N(dest->_n_other_chunks + _n_other_chunks + 1, dest->_other_chunks);
   dest->_size_of_other_chunks += _size_of_other_chunks + _current_chunk.size;
@@ -160,15 +166,18 @@ void memarena::move_memory(memarena *dest) {
 }
 
 size_t memarena::total_memory_size(void) const {
+  DBUG_TRACE;
   return sizeof(*this) + total_size_in_use() +
          _n_other_chunks * sizeof(*_other_chunks);
 }
 
 size_t memarena::total_size_in_use(void) const {
+  DBUG_TRACE;
   return _size_of_other_chunks + _current_chunk.used;
 }
 
 size_t memarena::total_footprint(void) const {
+  DBUG_TRACE;
   return sizeof(*this) + _footprint_of_other_chunks +
          toku_memory_footprint(_current_chunk.buf, _current_chunk.used) +
          _n_other_chunks * sizeof(*_other_chunks);
@@ -177,6 +186,7 @@ size_t memarena::total_footprint(void) const {
 ////////////////////////////////////////////////////////////////////////////////
 
 const void *memarena::chunk_iterator::current(size_t *used) const {
+  DBUG_TRACE;
   if (_chunk_idx < 0) {
     *used = _ma->_current_chunk.used;
     return _ma->_current_chunk.buf;
@@ -188,9 +198,10 @@ const void *memarena::chunk_iterator::current(size_t *used) const {
   return nullptr;
 }
 
-void memarena::chunk_iterator::next() { _chunk_idx++; }
+void memarena::chunk_iterator::next() { DBUG_TRACE; _chunk_idx++; }
 
 bool memarena::chunk_iterator::more() const {
+  DBUG_TRACE;
   if (_chunk_idx < 0) {
     return _ma->_current_chunk.buf != nullptr;
   }

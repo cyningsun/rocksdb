@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "db/version_edit_handler.h"
 
 #include <cinttypes>
@@ -23,6 +24,7 @@ namespace ROCKSDB_NAMESPACE {
 
 void VersionEditHandlerBase::Iterate(log::Reader& reader,
                                      Status* log_read_status) {
+  DBUG_TRACE;
   Slice record;
   std::string scratch;
   assert(log_read_status);
@@ -99,6 +101,7 @@ void VersionEditHandlerBase::Iterate(log::Reader& reader,
 
 Status ListColumnFamiliesHandler::ApplyVersionEdit(
     VersionEdit& edit, ColumnFamilyData** /*unused*/) {
+  DBUG_TRACE;
   Status s;
   uint32_t cf_id = edit.GetColumnFamily();
   if (edit.IsColumnFamilyAdd()) {
@@ -119,6 +122,7 @@ Status ListColumnFamiliesHandler::ApplyVersionEdit(
 
 Status FileChecksumRetriever::ApplyVersionEdit(VersionEdit& edit,
                                                ColumnFamilyData** /*unused*/) {
+  DBUG_TRACE;
   for (const auto& deleted_file : edit.GetDeletedFiles()) {
     Status s = file_checksum_list_.RemoveOneFileChecksum(deleted_file.second);
     if (!s.ok()) {
@@ -170,6 +174,7 @@ VersionEditHandler::VersionEditHandler(
 }
 
 Status VersionEditHandler::Initialize() {
+  DBUG_TRACE;
   Status s;
   if (!initialized_) {
     for (const auto& cf_desc : column_families_) {
@@ -197,6 +202,7 @@ Status VersionEditHandler::Initialize() {
 
 Status VersionEditHandler::ApplyVersionEdit(VersionEdit& edit,
                                             ColumnFamilyData** cfd) {
+  DBUG_TRACE;
   Status s;
   if (edit.IsColumnFamilyAdd()) {
     s = OnColumnFamilyAdd(edit, cfd);
@@ -218,6 +224,7 @@ Status VersionEditHandler::ApplyVersionEdit(VersionEdit& edit,
 
 Status VersionEditHandler::OnColumnFamilyAdd(VersionEdit& edit,
                                              ColumnFamilyData** cfd) {
+  DBUG_TRACE;
   bool cf_in_not_found = false;
   bool cf_in_builders = false;
   CheckColumnFamilyId(edit, &cf_in_not_found, &cf_in_builders);
@@ -256,6 +263,7 @@ Status VersionEditHandler::OnColumnFamilyAdd(VersionEdit& edit,
 
 Status VersionEditHandler::OnColumnFamilyDrop(VersionEdit& edit,
                                               ColumnFamilyData** cfd) {
+  DBUG_TRACE;
   bool cf_in_not_found = false;
   bool cf_in_builders = false;
   CheckColumnFamilyId(edit, &cf_in_not_found, &cf_in_builders);
@@ -276,11 +284,13 @@ Status VersionEditHandler::OnColumnFamilyDrop(VersionEdit& edit,
 }
 
 Status VersionEditHandler::OnWalAddition(VersionEdit& edit) {
+  DBUG_TRACE;
   assert(edit.IsWalAddition());
   return version_set_->wals_.AddWals(edit.GetWalAdditions());
 }
 
 Status VersionEditHandler::OnWalDeletion(VersionEdit& edit) {
+  DBUG_TRACE;
   assert(edit.IsWalDeletion());
   return version_set_->wals_.DeleteWalsBefore(
       edit.GetWalDeletion().GetLogNumber());
@@ -288,6 +298,7 @@ Status VersionEditHandler::OnWalDeletion(VersionEdit& edit) {
 
 Status VersionEditHandler::OnNonCfOperation(VersionEdit& edit,
                                             ColumnFamilyData** cfd) {
+  DBUG_TRACE;
   bool cf_in_not_found = false;
   bool cf_in_builders = false;
   CheckColumnFamilyId(edit, &cf_in_not_found, &cf_in_builders);
@@ -330,6 +341,7 @@ Status VersionEditHandler::OnNonCfOperation(VersionEdit& edit,
 
 // TODO maybe cache the computation result
 bool VersionEditHandler::HasMissingFiles() const {
+  DBUG_TRACE;
   bool ret = false;
   for (const auto& elem : cf_to_missing_files_) {
     const auto& missing_files = elem.second;
@@ -352,6 +364,7 @@ bool VersionEditHandler::HasMissingFiles() const {
 void VersionEditHandler::CheckColumnFamilyId(const VersionEdit& edit,
                                              bool* cf_in_not_found,
                                              bool* cf_in_builders) const {
+  DBUG_TRACE;
   assert(cf_in_not_found != nullptr);
   assert(cf_in_builders != nullptr);
   // Not found means that user didn't supply that column
@@ -373,6 +386,7 @@ void VersionEditHandler::CheckColumnFamilyId(const VersionEdit& edit,
 
 void VersionEditHandler::CheckIterationResult(const log::Reader& reader,
                                               Status* s) {
+  DBUG_TRACE;
   assert(s != nullptr);
   if (!s->ok()) {
     // Do nothing here.
@@ -492,6 +506,7 @@ void VersionEditHandler::CheckIterationResult(const log::Reader& reader,
 
 ColumnFamilyData* VersionEditHandler::CreateCfAndInit(
     const ColumnFamilyOptions& cf_options, const VersionEdit& edit) {
+  DBUG_TRACE;
   uint32_t cf_id = edit.GetColumnFamily();
   ColumnFamilyData* cfd =
       version_set_->CreateColumnFamily(cf_options, read_options_, &edit);
@@ -510,6 +525,7 @@ ColumnFamilyData* VersionEditHandler::CreateCfAndInit(
 
 ColumnFamilyData* VersionEditHandler::DestroyCfAndCleanup(
     const VersionEdit& edit) {
+  DBUG_TRACE;
   uint32_t cf_id = edit.GetColumnFamily();
   auto builder_iter = builders_.find(cf_id);
   assert(builder_iter != builders_.end());
@@ -541,6 +557,7 @@ ColumnFamilyData* VersionEditHandler::DestroyCfAndCleanup(
 Status VersionEditHandler::MaybeCreateVersion(const VersionEdit& /*edit*/,
                                               ColumnFamilyData* cfd,
                                               bool force_create_version) {
+  DBUG_TRACE;
   assert(cfd->initialized());
   Status s;
   if (force_create_version) {
@@ -568,6 +585,7 @@ Status VersionEditHandler::MaybeCreateVersion(const VersionEdit& /*edit*/,
 Status VersionEditHandler::LoadTables(ColumnFamilyData* cfd,
                                       bool prefetch_index_and_filter_in_cache,
                                       bool is_initial_load) {
+  DBUG_TRACE;
   bool skip_load_table_files = skip_load_table_files_;
   TEST_SYNC_POINT_CALLBACK(
       "VersionEditHandler::LoadTables:skip_load_table_files",
@@ -600,6 +618,7 @@ Status VersionEditHandler::LoadTables(ColumnFamilyData* cfd,
 
 Status VersionEditHandler::ExtractInfoFromVersionEdit(ColumnFamilyData* cfd,
                                                       const VersionEdit& edit) {
+  DBUG_TRACE;
   Status s;
   if (edit.HasDbId()) {
     version_set_->db_id_ = edit.GetDbId();
@@ -671,6 +690,7 @@ Status VersionEditHandler::ExtractInfoFromVersionEdit(ColumnFamilyData* cfd,
 
 Status VersionEditHandler::MaybeHandleFileBoundariesForNewFiles(
     VersionEdit& edit, const ColumnFamilyData* cfd) {
+  DBUG_TRACE;
   if (edit.GetNewFiles().empty()) {
     return Status::OK();
   }
@@ -749,6 +769,7 @@ VersionEditHandlerPointInTime::~VersionEditHandlerPointInTime() {
 }
 
 Status VersionEditHandlerPointInTime::OnAtomicGroupReplayBegin() {
+  DBUG_TRACE;
   if (in_atomic_group_) {
     return Status::Corruption("unexpected AtomicGroup start");
   }
@@ -789,6 +810,7 @@ Status VersionEditHandlerPointInTime::OnAtomicGroupReplayBegin() {
 }
 
 Status VersionEditHandlerPointInTime::OnAtomicGroupReplayEnd() {
+  DBUG_TRACE;
   if (!in_atomic_group_) {
     return Status::Corruption("unexpected AtomicGroup end");
   }
@@ -815,6 +837,7 @@ Status VersionEditHandlerPointInTime::OnAtomicGroupReplayEnd() {
 
 void VersionEditHandlerPointInTime::CheckIterationResult(
     const log::Reader& reader, Status* s) {
+  DBUG_TRACE;
   VersionEditHandler::CheckIterationResult(reader, s);
   assert(s != nullptr);
   if (s->ok()) {
@@ -847,6 +870,7 @@ void VersionEditHandlerPointInTime::CheckIterationResult(
 
 ColumnFamilyData* VersionEditHandlerPointInTime::DestroyCfAndCleanup(
     const VersionEdit& edit) {
+  DBUG_TRACE;
   ColumnFamilyData* cfd = VersionEditHandler::DestroyCfAndCleanup(edit);
   uint32_t cfid = edit.GetColumnFamily();
   if (AtomicUpdateVersionsContains(cfid)) {
@@ -865,6 +889,7 @@ ColumnFamilyData* VersionEditHandlerPointInTime::DestroyCfAndCleanup(
 
 Status VersionEditHandlerPointInTime::MaybeCreateVersion(
     const VersionEdit& edit, ColumnFamilyData* cfd, bool force_create_version) {
+  DBUG_TRACE;
   TEST_SYNC_POINT("VersionEditHandlerPointInTime::MaybeCreateVersion:Begin1");
   TEST_SYNC_POINT("VersionEditHandlerPointInTime::MaybeCreateVersion:Begin2");
   assert(cfd != nullptr);
@@ -1045,6 +1070,7 @@ Status VersionEditHandlerPointInTime::VerifyFile(ColumnFamilyData* cfd,
                                                  const std::string& fpath,
                                                  int level,
                                                  const FileMetaData& fmeta) {
+  DBUG_TRACE;
   return version_set_->VerifyFileMetadata(read_options_, cfd, fpath, level,
                                           fmeta);
 }
@@ -1052,6 +1078,7 @@ Status VersionEditHandlerPointInTime::VerifyFile(ColumnFamilyData* cfd,
 Status VersionEditHandlerPointInTime::VerifyBlobFile(
     ColumnFamilyData* cfd, uint64_t blob_file_num,
     const BlobFileAddition& blob_addition) {
+  DBUG_TRACE;
   BlobSource* blob_source = cfd->blob_source();
   assert(blob_source);
   CacheHandleGuard<BlobFileReader> blob_file_reader;
@@ -1069,19 +1096,23 @@ Status VersionEditHandlerPointInTime::VerifyBlobFile(
 Status VersionEditHandlerPointInTime::LoadTables(
     ColumnFamilyData* /*cfd*/, bool /*prefetch_index_and_filter_in_cache*/,
     bool /*is_initial_load*/) {
+  DBUG_TRACE;
   return Status::OK();
 }
 
 bool VersionEditHandlerPointInTime::AtomicUpdateVersionsCompleted() {
+  DBUG_TRACE;
   return atomic_update_versions_missing_ == 0;
 }
 
 bool VersionEditHandlerPointInTime::AtomicUpdateVersionsContains(
     uint32_t cfid) {
+  DBUG_TRACE;
   return atomic_update_versions_.find(cfid) != atomic_update_versions_.end();
 }
 
 void VersionEditHandlerPointInTime::AtomicUpdateVersionsDropCf(uint32_t cfid) {
+  DBUG_TRACE;
   assert(!AtomicUpdateVersionsCompleted());
   auto atomic_update_versions_iter = atomic_update_versions_.find(cfid);
   assert(atomic_update_versions_iter != atomic_update_versions_.end());
@@ -1094,6 +1125,7 @@ void VersionEditHandlerPointInTime::AtomicUpdateVersionsDropCf(uint32_t cfid) {
 }
 
 void VersionEditHandlerPointInTime::AtomicUpdateVersionsPut(Version* version) {
+  DBUG_TRACE;
   assert(!AtomicUpdateVersionsCompleted());
   auto atomic_update_versions_iter =
       atomic_update_versions_.find(version->cfd()->GetID());
@@ -1107,6 +1139,7 @@ void VersionEditHandlerPointInTime::AtomicUpdateVersionsPut(Version* version) {
 }
 
 void VersionEditHandlerPointInTime::AtomicUpdateVersionsApply() {
+  DBUG_TRACE;
   assert(AtomicUpdateVersionsCompleted());
   for (const auto& cfid_and_version : atomic_update_versions_) {
     uint32_t cfid = cfid_and_version.first;
@@ -1127,6 +1160,7 @@ void VersionEditHandlerPointInTime::AtomicUpdateVersionsApply() {
 }
 
 Status ManifestTailer::Initialize() {
+  DBUG_TRACE;
   if (Mode::kRecovery == mode_) {
     return VersionEditHandler::Initialize();
   }
@@ -1156,6 +1190,7 @@ Status ManifestTailer::Initialize() {
 
 Status ManifestTailer::ApplyVersionEdit(VersionEdit& edit,
                                         ColumnFamilyData** cfd) {
+  DBUG_TRACE;
   Status s = VersionEditHandler::ApplyVersionEdit(edit, cfd);
   if (s.ok()) {
     assert(cfd);
@@ -1168,6 +1203,7 @@ Status ManifestTailer::ApplyVersionEdit(VersionEdit& edit,
 
 Status ManifestTailer::OnColumnFamilyAdd(VersionEdit& edit,
                                          ColumnFamilyData** cfd) {
+  DBUG_TRACE;
   if (Mode::kRecovery == mode_) {
     return VersionEditHandler::OnColumnFamilyAdd(edit, cfd);
   }
@@ -1202,6 +1238,7 @@ Status ManifestTailer::OnColumnFamilyAdd(VersionEdit& edit,
 
 void ManifestTailer::CheckIterationResult(const log::Reader& reader,
                                           Status* s) {
+  DBUG_TRACE;
   VersionEditHandlerPointInTime::CheckIterationResult(reader, s);
   assert(s);
   if (s->ok()) {
@@ -1216,6 +1253,7 @@ void ManifestTailer::CheckIterationResult(const log::Reader& reader,
 Status ManifestTailer::VerifyFile(ColumnFamilyData* cfd,
                                   const std::string& fpath, int level,
                                   const FileMetaData& fmeta) {
+  DBUG_TRACE;
   Status s =
       VersionEditHandlerPointInTime::VerifyFile(cfd, fpath, level, fmeta);
   // TODO: Open file or create hard link to prevent the file from being
@@ -1225,6 +1263,7 @@ Status ManifestTailer::VerifyFile(ColumnFamilyData* cfd,
 
 void DumpManifestHandler::CheckIterationResult(const log::Reader& reader,
                                                Status* s) {
+  DBUG_TRACE;
   VersionEditHandler::CheckIterationResult(reader, s);
   if (!s->ok()) {
     fprintf(stdout, "%s\n", s->ToString().c_str());

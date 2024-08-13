@@ -6,6 +6,7 @@
 // Copyright (c) 2011 The LevelDB Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
+#include "rocksdb/util/dbug.h"
 #include <cinttypes>
 
 #include "db/builder.h"
@@ -32,6 +33,7 @@
 namespace ROCKSDB_NAMESPACE {
 Options SanitizeOptions(const std::string& dbname, const Options& src,
                         bool read_only, Status* logger_creation_s) {
+  DBUG_TRACE;
   auto db_options =
       SanitizeOptions(dbname, DBOptions(src), read_only, logger_creation_s);
   ImmutableDBOptions immutable_db_options(db_options);
@@ -42,6 +44,7 @@ Options SanitizeOptions(const std::string& dbname, const Options& src,
 
 DBOptions SanitizeOptions(const std::string& dbname, const DBOptions& src,
                           bool read_only, Status* logger_creation_s) {
+  DBUG_TRACE;
   DBOptions result(src);
 
   if (result.env == nullptr) {
@@ -204,6 +207,7 @@ namespace {
 Status ValidateOptionsByTable(
     const DBOptions& db_opts,
     const std::vector<ColumnFamilyDescriptor>& column_families) {
+  DBUG_TRACE;
   Status s;
   for (auto& cf : column_families) {
     s = ValidateOptions(db_opts, cf.options);
@@ -218,6 +222,7 @@ Status ValidateOptionsByTable(
 Status DBImpl::ValidateOptions(
     const DBOptions& db_options,
     const std::vector<ColumnFamilyDescriptor>& column_families) {
+  DBUG_TRACE;
   Status s;
   for (auto& cfd : column_families) {
     s = ColumnFamilyData::ValidateOptions(db_options, cfd.options);
@@ -230,6 +235,7 @@ Status DBImpl::ValidateOptions(
 }
 
 Status DBImpl::ValidateOptions(const DBOptions& db_options) {
+  DBUG_TRACE;
   if (db_options.db_paths.size() > 4) {
     return Status::NotSupported(
         "More than four DB paths are not supported yet. ");
@@ -293,6 +299,7 @@ Status DBImpl::ValidateOptions(const DBOptions& db_options) {
 }
 
 Status DBImpl::NewDB(std::vector<std::string>* new_filenames) {
+  DBUG_TRACE;
   VersionEdit new_db;
   const WriteOptions write_options(Env::IOActivity::kDBOpen);
   Status s = SetIdentityFile(write_options, env_, dbname_);
@@ -358,6 +365,7 @@ Status DBImpl::NewDB(std::vector<std::string>* new_filenames) {
 IOStatus DBImpl::CreateAndNewDirectory(
     FileSystem* fs, const std::string& dirname,
     std::unique_ptr<FSDirectory>* directory) {
+  DBUG_TRACE;
   // We call CreateDirIfMissing() as the directory may already exist (if we
   // are reopening a DB), when this happens we don't want creating the
   // directory to cause an error. However, we need to check if creating the
@@ -375,6 +383,7 @@ IOStatus DBImpl::CreateAndNewDirectory(
 IOStatus Directories::SetDirectories(FileSystem* fs, const std::string& dbname,
                                      const std::string& wal_dir,
                                      const std::vector<DbPath>& data_paths) {
+  DBUG_TRACE;
   IOStatus io_s = DBImpl::CreateAndNewDirectory(fs, dbname, &db_dir_);
   if (!io_s.ok()) {
     return io_s;
@@ -409,6 +418,7 @@ Status DBImpl::Recover(
     bool error_if_wal_file_exists, bool error_if_data_exists_in_wals,
     bool is_retry, uint64_t* recovered_seq, RecoveryContext* recovery_ctx,
     bool* can_retry) {
+  DBUG_TRACE;
   mutex_.AssertHeld();
 
   const WriteOptions write_options(Env::IOActivity::kDBOpen);
@@ -844,6 +854,7 @@ Status DBImpl::Recover(
 }
 
 Status DBImpl::PersistentStatsProcessFormatVersion() {
+  DBUG_TRACE;
   mutex_.AssertHeld();
   Status s;
   // persist version when stats CF doesn't exist
@@ -927,6 +938,7 @@ Status DBImpl::PersistentStatsProcessFormatVersion() {
 }
 
 Status DBImpl::InitPersistStatsColumnFamily() {
+  DBUG_TRACE;
   mutex_.AssertHeld();
   assert(!persist_stats_cf_handle_);
   ColumnFamilyData* persistent_stats_cfd =
@@ -956,6 +968,7 @@ Status DBImpl::InitPersistStatsColumnFamily() {
 }
 
 Status DBImpl::LogAndApplyForRecovery(const RecoveryContext& recovery_ctx) {
+  DBUG_TRACE;
   mutex_.AssertHeld();
   assert(versions_->descriptor_log_ == nullptr);
   const ReadOptions read_options(Env::IOActivity::kDBOpen);
@@ -969,6 +982,7 @@ Status DBImpl::LogAndApplyForRecovery(const RecoveryContext& recovery_ctx) {
 }
 
 void DBImpl::InvokeWalFilterIfNeededOnColumnFamilyToWalNumberMap() {
+  DBUG_TRACE;
   if (immutable_db_options_.wal_filter == nullptr) {
     return;
   }
@@ -994,6 +1008,7 @@ bool DBImpl::InvokeWalFilterIfNeededOnWalRecord(uint64_t wal_number,
                                                 Status& status,
                                                 bool& stop_replay,
                                                 WriteBatch& batch) {
+  DBUG_TRACE;
   if (immutable_db_options_.wal_filter == nullptr) {
     return true;
   }
@@ -1086,6 +1101,7 @@ Status DBImpl::RecoverLogFiles(const std::vector<uint64_t>& wal_numbers,
                                SequenceNumber* next_sequence, bool read_only,
                                bool is_retry, bool* corrupted_wal_found,
                                RecoveryContext* recovery_ctx) {
+  DBUG_TRACE;
   struct LogReporter : public log::Reader::Reporter {
     Env* env;
     Logger* info_log;
@@ -1093,6 +1109,7 @@ Status DBImpl::RecoverLogFiles(const std::vector<uint64_t>& wal_numbers,
     Status* status;  // nullptr if immutable_db_options_.paranoid_checks==false
     bool* old_log_record;
     void Corruption(size_t bytes, const Status& s) override {
+      DBUG_TRACE;
       ROCKS_LOG_WARN(info_log, "%s%s: dropping %d bytes; %s",
                      (status == nullptr ? "(ignoring error) " : ""), fname,
                      static_cast<int>(bytes), s.ToString().c_str());
@@ -1102,6 +1119,7 @@ Status DBImpl::RecoverLogFiles(const std::vector<uint64_t>& wal_numbers,
     }
 
     void OldLogRecord(size_t bytes) override {
+      DBUG_TRACE;
       if (old_log_record != nullptr) {
         *old_log_record = true;
       }
@@ -1554,6 +1572,7 @@ Status DBImpl::RecoverLogFiles(const std::vector<uint64_t>& wal_numbers,
 
 Status DBImpl::GetLogSizeAndMaybeTruncate(uint64_t wal_number, bool truncate,
                                           LogFileNumberSize* log_ptr) {
+  DBUG_TRACE;
   LogFileNumberSize log(wal_number);
   std::string fname =
       LogFileName(immutable_db_options_.GetWalDir(), wal_number);
@@ -1589,6 +1608,7 @@ Status DBImpl::GetLogSizeAndMaybeTruncate(uint64_t wal_number, bool truncate,
 }
 
 Status DBImpl::RestoreAliveLogFiles(const std::vector<uint64_t>& wal_numbers) {
+  DBUG_TRACE;
   if (wal_numbers.empty()) {
     return Status::OK();
   }
@@ -1811,6 +1831,7 @@ Status DBImpl::WriteLevel0TableForRecovery(int job_id, ColumnFamilyData* cfd,
 }
 
 Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
+  DBUG_TRACE;
   DBOptions db_options(options);
   ColumnFamilyOptions cf_options(options);
   std::vector<ColumnFamilyDescriptor> column_families;
@@ -1839,6 +1860,7 @@ Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
 Status DB::Open(const DBOptions& db_options, const std::string& dbname,
                 const std::vector<ColumnFamilyDescriptor>& column_families,
                 std::vector<ColumnFamilyHandle*>* handles, DB** dbptr) {
+  DBUG_TRACE;
   const bool kSeqPerBatch = true;
   const bool kBatchPerTxn = true;
   ThreadStatusUtil::SetEnableTracking(db_options.enable_thread_tracking);
@@ -1862,6 +1884,7 @@ Status DB::OpenAndTrimHistory(
     const std::vector<ColumnFamilyDescriptor>& column_families,
     std::vector<ColumnFamilyHandle*>* handles, DB** dbptr,
     std::string trim_ts) {
+  DBUG_TRACE;
   assert(dbptr != nullptr);
   assert(handles != nullptr);
   auto validate_options = [&db_options] {
@@ -1923,6 +1946,7 @@ IOStatus DBImpl::CreateWAL(const WriteOptions& write_options,
                            uint64_t log_file_num, uint64_t recycle_log_number,
                            size_t preallocate_block_size,
                            log::Writer** new_log) {
+  DBUG_TRACE;
   IOStatus io_s;
   std::unique_ptr<FSWritableFile> lfile;
 
@@ -1969,6 +1993,7 @@ IOStatus DBImpl::CreateWAL(const WriteOptions& write_options,
 
 void DBImpl::TrackExistingDataFiles(
     const std::vector<std::string>& existing_data_files) {
+  DBUG_TRACE;
   auto sfm = static_cast<SstFileManagerImpl*>(
       immutable_db_options_.sst_file_manager.get());
   assert(sfm);
@@ -2016,6 +2041,7 @@ Status DBImpl::Open(const DBOptions& db_options, const std::string& dbname,
                     std::vector<ColumnFamilyHandle*>* handles, DB** dbptr,
                     const bool seq_per_batch, const bool batch_per_txn,
                     const bool is_retry, bool* can_retry) {
+  DBUG_TRACE;
   const WriteOptions write_options(Env::IOActivity::kDBOpen);
   const ReadOptions read_options(Env::IOActivity::kDBOpen);
 

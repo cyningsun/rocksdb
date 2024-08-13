@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "util/hash.h"
 
 #include <string>
@@ -23,6 +24,7 @@ namespace ROCKSDB_NAMESPACE {
 uint64_t (*kGetSliceNPHash64UnseededFnPtr)(const Slice&) = &GetSliceHash64;
 
 uint32_t Hash(const char* data, size_t n, uint32_t seed) {
+  DBUG_TRACE;
   // MurmurHash1 - fast but mediocre quality
   // https://github.com/aappleby/smhasher/wiki/MurmurHash1
   //
@@ -79,15 +81,18 @@ uint32_t Hash(const char* data, size_t n, uint32_t seed) {
 // bundling hash functions specialized for particular lengths with
 // the prefix extractors.
 uint64_t Hash64(const char* data, size_t n, uint64_t seed) {
+  DBUG_TRACE;
   return XXPH3_64bits_withSeed(data, n, seed);
 }
 
 uint64_t Hash64(const char* data, size_t n) {
+  DBUG_TRACE;
   // Same as seed = 0
   return XXPH3_64bits(data, n);
 }
 
 uint64_t GetSlicePartsNPHash64(const SliceParts& data, uint64_t seed) {
+  DBUG_TRACE;
   // TODO(ajkr): use XXH3 streaming APIs to avoid the copy/allocation.
   size_t concat_len = 0;
   for (int i = 0; i < data.num_parts; ++i) {
@@ -103,17 +108,20 @@ uint64_t GetSlicePartsNPHash64(const SliceParts& data, uint64_t seed) {
 }
 
 Unsigned128 Hash128(const char* data, size_t n, uint64_t seed) {
+  DBUG_TRACE;
   auto h = XXH3_128bits_withSeed(data, n, seed);
   return (Unsigned128{h.high64} << 64) | (h.low64);
 }
 
 Unsigned128 Hash128(const char* data, size_t n) {
+  DBUG_TRACE;
   // Same as seed = 0
   auto h = XXH3_128bits(data, n);
   return (Unsigned128{h.high64} << 64) | (h.low64);
 }
 
 void Hash2x64(const char* data, size_t n, uint64_t* high64, uint64_t* low64) {
+  DBUG_TRACE;
   // Same as seed = 0
   auto h = XXH3_128bits(data, n);
   *high64 = h.high64;
@@ -122,6 +130,7 @@ void Hash2x64(const char* data, size_t n, uint64_t* high64, uint64_t* low64) {
 
 void Hash2x64(const char* data, size_t n, uint64_t seed, uint64_t* high64,
               uint64_t* low64) {
+  DBUG_TRACE;
   auto h = XXH3_128bits_withSeed(data, n, seed);
   *high64 = h.high64;
   *low64 = h.low64;
@@ -130,6 +139,7 @@ void Hash2x64(const char* data, size_t n, uint64_t seed, uint64_t* high64,
 namespace {
 
 inline uint64_t XXH3_avalanche(uint64_t h64) {
+  DBUG_TRACE;
   h64 ^= h64 >> 37;
   h64 *= 0x165667919E3779F9U;
   h64 ^= h64 >> 32;
@@ -137,6 +147,7 @@ inline uint64_t XXH3_avalanche(uint64_t h64) {
 }
 
 inline uint64_t XXH3_unavalanche(uint64_t h64) {
+  DBUG_TRACE;
   h64 ^= h64 >> 32;
   h64 *= 0x8da8ee41d6df849U;  // inverse of 0x165667919E3779F9U
   h64 ^= h64 >> 37;
@@ -147,6 +158,7 @@ inline uint64_t XXH3_unavalanche(uint64_t h64) {
 
 void BijectiveHash2x64(uint64_t in_high64, uint64_t in_low64, uint64_t seed,
                        uint64_t* out_high64, uint64_t* out_low64) {
+  DBUG_TRACE;
   // Adapted from XXH3_len_9to16_128b
   const uint64_t bitflipl = /*secret part*/ 0x59973f0033362349U - seed;
   const uint64_t bitfliph = /*secret part*/ 0xc202797692d63d58U + seed;
@@ -167,6 +179,7 @@ void BijectiveHash2x64(uint64_t in_high64, uint64_t in_low64, uint64_t seed,
 
 void BijectiveUnhash2x64(uint64_t in_high64, uint64_t in_low64, uint64_t seed,
                          uint64_t* out_high64, uint64_t* out_low64) {
+  DBUG_TRACE;
   // Inverted above (also consulting XXH3_len_9to16_128b)
   const uint64_t bitflipl = /*secret part*/ 0x59973f0033362349U - seed;
   const uint64_t bitfliph = /*secret part*/ 0xc202797692d63d58U + seed;
@@ -191,11 +204,13 @@ void BijectiveUnhash2x64(uint64_t in_high64, uint64_t in_low64, uint64_t seed,
 
 void BijectiveHash2x64(uint64_t in_high64, uint64_t in_low64,
                        uint64_t* out_high64, uint64_t* out_low64) {
+  DBUG_TRACE;
   BijectiveHash2x64(in_high64, in_low64, /*seed*/ 0, out_high64, out_low64);
 }
 
 void BijectiveUnhash2x64(uint64_t in_high64, uint64_t in_low64,
                          uint64_t* out_high64, uint64_t* out_low64) {
+  DBUG_TRACE;
   BijectiveUnhash2x64(in_high64, in_low64, /*seed*/ 0, out_high64, out_low64);
 }
 }  // namespace ROCKSDB_NAMESPACE

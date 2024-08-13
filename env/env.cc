@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/env.h"
 
 #include <thread>
@@ -31,6 +32,7 @@ namespace ROCKSDB_NAMESPACE {
 namespace {
 static int RegisterBuiltinEnvs(ObjectLibrary& library,
                                const std::string& /*arg*/) {
+  DBUG_TRACE;
   library.AddFactory<Env>(MockEnv::kClassName(), [](const std::string& /*uri*/,
                                                     std::unique_ptr<Env>* guard,
                                                     std::string* /* errmsg */) {
@@ -49,6 +51,7 @@ static int RegisterBuiltinEnvs(ObjectLibrary& library,
 }
 
 static void RegisterSystemEnvs() {
+  DBUG_TRACE;
   static std::once_flag loaded;
   std::call_once(loaded, [&]() {
     RegisterBuiltinEnvs(*(ObjectLibrary::Default().get()), "");
@@ -61,40 +64,44 @@ class LegacySystemClock : public SystemClock {
 
  public:
   explicit LegacySystemClock(Env* env) : env_(env) {}
-  const char* Name() const override { return "LegacySystemClock"; }
+  const char* Name() const override { DBUG_TRACE; return "LegacySystemClock"; }
 
   // Returns the number of micro-seconds since some fixed point in time.
   // It is often used as system time such as in GenericRateLimiter
   // and other places so a port needs to return system time in order to work.
-  uint64_t NowMicros() override { return env_->NowMicros(); }
+  uint64_t NowMicros() override { DBUG_TRACE; return env_->NowMicros(); }
 
   // Returns the number of nano-seconds since some fixed point in time. Only
   // useful for computing deltas of time in one run.
   // Default implementation simply relies on NowMicros.
   // In platform-specific implementations, NowNanos() should return time points
   // that are MONOTONIC.
-  uint64_t NowNanos() override { return env_->NowNanos(); }
+  uint64_t NowNanos() override { DBUG_TRACE; return env_->NowNanos(); }
 
-  uint64_t CPUMicros() override { return CPUNanos() / 1000; }
-  uint64_t CPUNanos() override { return env_->NowCPUNanos(); }
+  uint64_t CPUMicros() override { DBUG_TRACE; return CPUNanos() / 1000; }
+  uint64_t CPUNanos() override { DBUG_TRACE; return env_->NowCPUNanos(); }
 
   // Sleep/delay the thread for the prescribed number of micro-seconds.
   void SleepForMicroseconds(int micros) override {
+    DBUG_TRACE;
     env_->SleepForMicroseconds(micros);
   }
 
   // Get the number of seconds since the Epoch, 1970-01-01 00:00:00 (UTC).
   // Only overwrites *unix_time on success.
   Status GetCurrentTime(int64_t* unix_time) override {
+    DBUG_TRACE;
     return env_->GetCurrentTime(unix_time);
   }
   // Converts seconds-since-Jan-01-1970 to a printable string
   std::string TimeToString(uint64_t time) override {
+    DBUG_TRACE;
     return env_->TimeToString(time);
   }
 
   std::string SerializeOptions(const ConfigOptions& /*config_options*/,
                                const std::string& /*prefix*/) const override {
+    DBUG_TRACE;
     // We do not want the LegacySystemClock to appear in the serialized output.
     // This clock is an internal class for those who do not implement one and
     // would be part of the Env.  As such, do not serialize it here.
@@ -110,21 +117,26 @@ class LegacySequentialFileWrapper : public FSSequentialFile {
 
   IOStatus Read(size_t n, const IOOptions& /*options*/, Slice* result,
                 char* scratch, IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->Read(n, result, scratch));
   }
   IOStatus Skip(uint64_t n) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->Skip(n));
   }
-  bool use_direct_io() const override { return target_->use_direct_io(); }
+  bool use_direct_io() const override { DBUG_TRACE; return target_->use_direct_io(); }
   size_t GetRequiredBufferAlignment() const override {
+    DBUG_TRACE;
     return target_->GetRequiredBufferAlignment();
   }
   IOStatus InvalidateCache(size_t offset, size_t length) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->InvalidateCache(offset, length));
   }
   IOStatus PositionedRead(uint64_t offset, size_t n,
                           const IOOptions& /*options*/, Slice* result,
                           char* scratch, IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(
         target_->PositionedRead(offset, n, result, scratch));
   }
@@ -142,12 +154,14 @@ class LegacyRandomAccessFileWrapper : public FSRandomAccessFile {
   IOStatus Read(uint64_t offset, size_t n, const IOOptions& /*options*/,
                 Slice* result, char* scratch,
                 IODebugContext* /*dbg*/) const override {
+    DBUG_TRACE;
     return status_to_io_status(target_->Read(offset, n, result, scratch));
   }
 
   IOStatus MultiRead(FSReadRequest* fs_reqs, size_t num_reqs,
                      const IOOptions& /*options*/,
                      IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     std::vector<ReadRequest> reqs;
     Status status;
 
@@ -171,19 +185,24 @@ class LegacyRandomAccessFileWrapper : public FSRandomAccessFile {
 
   IOStatus Prefetch(uint64_t offset, size_t n, const IOOptions& /*options*/,
                     IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->Prefetch(offset, n));
   }
   size_t GetUniqueId(char* id, size_t max_size) const override {
+    DBUG_TRACE;
     return target_->GetUniqueId(id, max_size);
   }
   void Hint(AccessPattern pattern) override {
+    DBUG_TRACE;
     target_->Hint((RandomAccessFile::AccessPattern)pattern);
   }
-  bool use_direct_io() const override { return target_->use_direct_io(); }
+  bool use_direct_io() const override { DBUG_TRACE; return target_->use_direct_io(); }
   size_t GetRequiredBufferAlignment() const override {
+    DBUG_TRACE;
     return target_->GetRequiredBufferAlignment();
   }
   IOStatus InvalidateCache(size_t offset, size_t length) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->InvalidateCache(offset, length));
   }
 
@@ -196,34 +215,41 @@ class LegacyRandomRWFileWrapper : public FSRandomRWFile {
   explicit LegacyRandomRWFileWrapper(std::unique_ptr<RandomRWFile>&& target)
       : target_(std::move(target)) {}
 
-  bool use_direct_io() const override { return target_->use_direct_io(); }
+  bool use_direct_io() const override { DBUG_TRACE; return target_->use_direct_io(); }
   size_t GetRequiredBufferAlignment() const override {
+    DBUG_TRACE;
     return target_->GetRequiredBufferAlignment();
   }
   IOStatus Write(uint64_t offset, const Slice& data,
                  const IOOptions& /*options*/,
                  IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->Write(offset, data));
   }
   IOStatus Read(uint64_t offset, size_t n, const IOOptions& /*options*/,
                 Slice* result, char* scratch,
                 IODebugContext* /*dbg*/) const override {
+    DBUG_TRACE;
     return status_to_io_status(target_->Read(offset, n, result, scratch));
   }
   IOStatus Flush(const IOOptions& /*options*/,
                  IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->Flush());
   }
   IOStatus Sync(const IOOptions& /*options*/,
                 IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->Sync());
   }
   IOStatus Fsync(const IOOptions& /*options*/,
                  IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->Fsync());
   }
   IOStatus Close(const IOOptions& /*options*/,
                  IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->Close());
   }
 
@@ -238,95 +264,115 @@ class LegacyWritableFileWrapper : public FSWritableFile {
 
   IOStatus Append(const Slice& data, const IOOptions& /*options*/,
                   IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->Append(data));
   }
   IOStatus Append(const Slice& data, const IOOptions& /*options*/,
                   const DataVerificationInfo& /*verification_info*/,
                   IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->Append(data));
   }
   IOStatus PositionedAppend(const Slice& data, uint64_t offset,
                             const IOOptions& /*options*/,
                             IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->PositionedAppend(data, offset));
   }
   IOStatus PositionedAppend(const Slice& data, uint64_t offset,
                             const IOOptions& /*options*/,
                             const DataVerificationInfo& /*verification_info*/,
                             IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->PositionedAppend(data, offset));
   }
   IOStatus Truncate(uint64_t size, const IOOptions& /*options*/,
                     IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->Truncate(size));
   }
   IOStatus Close(const IOOptions& /*options*/,
                  IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->Close());
   }
   IOStatus Flush(const IOOptions& /*options*/,
                  IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->Flush());
   }
   IOStatus Sync(const IOOptions& /*options*/,
                 IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->Sync());
   }
   IOStatus Fsync(const IOOptions& /*options*/,
                  IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->Fsync());
   }
-  bool IsSyncThreadSafe() const override { return target_->IsSyncThreadSafe(); }
+  bool IsSyncThreadSafe() const override { DBUG_TRACE; return target_->IsSyncThreadSafe(); }
 
-  bool use_direct_io() const override { return target_->use_direct_io(); }
+  bool use_direct_io() const override { DBUG_TRACE; return target_->use_direct_io(); }
 
   size_t GetRequiredBufferAlignment() const override {
+    DBUG_TRACE;
     return target_->GetRequiredBufferAlignment();
   }
 
   void SetWriteLifeTimeHint(Env::WriteLifeTimeHint hint) override {
+    DBUG_TRACE;
     target_->SetWriteLifeTimeHint(hint);
   }
 
   Env::WriteLifeTimeHint GetWriteLifeTimeHint() override {
+    DBUG_TRACE;
     return target_->GetWriteLifeTimeHint();
   }
 
   uint64_t GetFileSize(const IOOptions& /*options*/,
                        IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return target_->GetFileSize();
   }
 
   void SetPreallocationBlockSize(size_t size) override {
+    DBUG_TRACE;
     target_->SetPreallocationBlockSize(size);
   }
 
   void GetPreallocationStatus(size_t* block_size,
                               size_t* last_allocated_block) override {
+    DBUG_TRACE;
     target_->GetPreallocationStatus(block_size, last_allocated_block);
   }
 
   size_t GetUniqueId(char* id, size_t max_size) const override {
+    DBUG_TRACE;
     return target_->GetUniqueId(id, max_size);
   }
 
   IOStatus InvalidateCache(size_t offset, size_t length) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->InvalidateCache(offset, length));
   }
 
   IOStatus RangeSync(uint64_t offset, uint64_t nbytes,
                      const IOOptions& /*options*/,
                      IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->RangeSync(offset, nbytes));
   }
 
   void PrepareWrite(size_t offset, size_t len, const IOOptions& /*options*/,
                     IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     target_->PrepareWrite(offset, len);
   }
 
   IOStatus Allocate(uint64_t offset, uint64_t len, const IOOptions& /*options*/,
                     IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->Allocate(offset, len));
   }
 
@@ -341,13 +387,16 @@ class LegacyDirectoryWrapper : public FSDirectory {
 
   IOStatus Fsync(const IOOptions& /*options*/,
                  IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->Fsync());
   }
   IOStatus Close(const IOOptions& /*options*/,
                  IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->Close());
   }
   size_t GetUniqueId(char* id, size_t max_size) const override {
+    DBUG_TRACE;
     return target_->GetUniqueId(id, max_size);
   }
 
@@ -367,16 +416,17 @@ class LegacyFileSystemWrapper : public FileSystem {
   explicit LegacyFileSystemWrapper(Env* t) : target_(t) {}
   ~LegacyFileSystemWrapper() override = default;
 
-  static const char* kClassName() { return "LegacyFileSystem"; }
-  const char* Name() const override { return kClassName(); }
+  static const char* kClassName() { DBUG_TRACE; return "LegacyFileSystem"; }
+  const char* Name() const override { DBUG_TRACE; return kClassName(); }
 
   // Return the target to which this Env forwards all calls
-  Env* target() const { return target_; }
+  Env* target() const { DBUG_TRACE; return target_; }
 
   // The following text is boilerplate that forwards all methods to target()
   IOStatus NewSequentialFile(const std::string& f, const FileOptions& file_opts,
                              std::unique_ptr<FSSequentialFile>* r,
                              IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     std::unique_ptr<SequentialFile> file;
     Status s = target_->NewSequentialFile(f, &file, file_opts);
     if (s.ok()) {
@@ -388,6 +438,7 @@ class LegacyFileSystemWrapper : public FileSystem {
                                const FileOptions& file_opts,
                                std::unique_ptr<FSRandomAccessFile>* r,
                                IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     std::unique_ptr<RandomAccessFile> file;
     Status s = target_->NewRandomAccessFile(f, &file, file_opts);
     if (s.ok()) {
@@ -398,6 +449,7 @@ class LegacyFileSystemWrapper : public FileSystem {
   IOStatus NewWritableFile(const std::string& f, const FileOptions& file_opts,
                            std::unique_ptr<FSWritableFile>* r,
                            IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     std::unique_ptr<WritableFile> file;
     Status s = target_->NewWritableFile(f, &file, file_opts);
     if (s.ok()) {
@@ -409,6 +461,7 @@ class LegacyFileSystemWrapper : public FileSystem {
                               const FileOptions& file_opts,
                               std::unique_ptr<FSWritableFile>* result,
                               IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     std::unique_ptr<WritableFile> file;
     Status s = target_->ReopenWritableFile(fname, &file, file_opts);
     if (s.ok()) {
@@ -421,6 +474,7 @@ class LegacyFileSystemWrapper : public FileSystem {
                              const FileOptions& file_opts,
                              std::unique_ptr<FSWritableFile>* r,
                              IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     std::unique_ptr<WritableFile> file;
     Status s = target_->ReuseWritableFile(fname, old_fname, &file, file_opts);
     if (s.ok()) {
@@ -432,6 +486,7 @@ class LegacyFileSystemWrapper : public FileSystem {
                            const FileOptions& file_opts,
                            std::unique_ptr<FSRandomRWFile>* result,
                            IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     std::unique_ptr<RandomRWFile> file;
     Status s = target_->NewRandomRWFile(fname, &file, file_opts);
     if (s.ok()) {
@@ -442,12 +497,14 @@ class LegacyFileSystemWrapper : public FileSystem {
   IOStatus NewMemoryMappedFileBuffer(
       const std::string& fname,
       std::unique_ptr<MemoryMappedFileBuffer>* result) override {
+    DBUG_TRACE;
     return status_to_io_status(
         target_->NewMemoryMappedFileBuffer(fname, result));
   }
   IOStatus NewDirectory(const std::string& name, const IOOptions& /*io_opts*/,
                         std::unique_ptr<FSDirectory>* result,
                         IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     std::unique_ptr<Directory> dir;
     Status s = target_->NewDirectory(name, &dir);
     if (s.ok()) {
@@ -457,43 +514,52 @@ class LegacyFileSystemWrapper : public FileSystem {
   }
   IOStatus FileExists(const std::string& f, const IOOptions& /*io_opts*/,
                       IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->FileExists(f));
   }
   IOStatus GetChildren(const std::string& dir, const IOOptions& /*io_opts*/,
                        std::vector<std::string>* r,
                        IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->GetChildren(dir, r));
   }
   IOStatus GetChildrenFileAttributes(const std::string& dir,
                                      const IOOptions& /*options*/,
                                      std::vector<FileAttributes>* result,
                                      IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->GetChildrenFileAttributes(dir, result));
   }
   IOStatus DeleteFile(const std::string& f, const IOOptions& /*options*/,
                       IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->DeleteFile(f));
   }
   IOStatus Truncate(const std::string& fname, size_t size,
                     const IOOptions& /*options*/,
                     IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->Truncate(fname, size));
   }
   IOStatus CreateDir(const std::string& d, const IOOptions& /*options*/,
                      IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->CreateDir(d));
   }
   IOStatus CreateDirIfMissing(const std::string& d,
                               const IOOptions& /*options*/,
                               IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->CreateDirIfMissing(d));
   }
   IOStatus DeleteDir(const std::string& d, const IOOptions& /*options*/,
                      IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->DeleteDir(d));
   }
   IOStatus GetFileSize(const std::string& f, const IOOptions& /*options*/,
                        uint64_t* s, IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->GetFileSize(f, s));
   }
 
@@ -501,6 +567,7 @@ class LegacyFileSystemWrapper : public FileSystem {
                                    const IOOptions& /*options*/,
                                    uint64_t* file_mtime,
                                    IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(
         target_->GetFileModificationTime(fname, file_mtime));
   }
@@ -509,86 +576,103 @@ class LegacyFileSystemWrapper : public FileSystem {
                            const IOOptions& /*options*/,
                            std::string* output_path,
                            IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->GetAbsolutePath(db_path, output_path));
   }
 
   IOStatus RenameFile(const std::string& s, const std::string& t,
                       const IOOptions& /*options*/,
                       IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->RenameFile(s, t));
   }
 
   IOStatus LinkFile(const std::string& s, const std::string& t,
                     const IOOptions& /*options*/,
                     IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->LinkFile(s, t));
   }
 
   IOStatus NumFileLinks(const std::string& fname, const IOOptions& /*options*/,
                         uint64_t* count, IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->NumFileLinks(fname, count));
   }
 
   IOStatus AreFilesSame(const std::string& first, const std::string& second,
                         const IOOptions& /*options*/, bool* res,
                         IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->AreFilesSame(first, second, res));
   }
 
   IOStatus LockFile(const std::string& f, const IOOptions& /*options*/,
                     FileLock** l, IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->LockFile(f, l));
   }
 
   IOStatus UnlockFile(FileLock* l, const IOOptions& /*options*/,
                       IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->UnlockFile(l));
   }
 
   IOStatus GetTestDirectory(const IOOptions& /*options*/, std::string* path,
                             IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->GetTestDirectory(path));
   }
   IOStatus NewLogger(const std::string& fname, const IOOptions& /*options*/,
                      std::shared_ptr<Logger>* result,
                      IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->NewLogger(fname, result));
   }
 
   void SanitizeFileOptions(FileOptions* opts) const override {
+    DBUG_TRACE;
     target_->SanitizeEnvOptions(opts);
   }
 
   FileOptions OptimizeForLogRead(
       const FileOptions& file_options) const override {
+    DBUG_TRACE;
     return target_->OptimizeForLogRead(file_options);
   }
   FileOptions OptimizeForManifestRead(
       const FileOptions& file_options) const override {
+    DBUG_TRACE;
     return target_->OptimizeForManifestRead(file_options);
   }
   FileOptions OptimizeForLogWrite(const FileOptions& file_options,
                                   const DBOptions& db_options) const override {
+    DBUG_TRACE;
     return target_->OptimizeForLogWrite(file_options, db_options);
   }
   FileOptions OptimizeForManifestWrite(
       const FileOptions& file_options) const override {
+    DBUG_TRACE;
     return target_->OptimizeForManifestWrite(file_options);
   }
   FileOptions OptimizeForCompactionTableWrite(
       const FileOptions& file_options,
       const ImmutableDBOptions& immutable_ops) const override {
+    DBUG_TRACE;
     return target_->OptimizeForCompactionTableWrite(file_options,
                                                     immutable_ops);
   }
   FileOptions OptimizeForCompactionTableRead(
       const FileOptions& file_options,
       const ImmutableDBOptions& db_options) const override {
+    DBUG_TRACE;
     return target_->OptimizeForCompactionTableRead(file_options, db_options);
   }
   FileOptions OptimizeForBlobFileRead(
       const FileOptions& file_options,
       const ImmutableDBOptions& db_options) const override {
+    DBUG_TRACE;
     return target_->OptimizeForBlobFileRead(file_options, db_options);
   }
 
@@ -597,15 +681,18 @@ class LegacyFileSystemWrapper : public FileSystem {
 #endif
   IOStatus GetFreeSpace(const std::string& path, const IOOptions& /*options*/,
                         uint64_t* diskfree, IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->GetFreeSpace(path, diskfree));
   }
   IOStatus IsDirectory(const std::string& path, const IOOptions& /*options*/,
                        bool* is_dir, IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return status_to_io_status(target_->IsDirectory(path, is_dir));
   }
 
   std::string SerializeOptions(const ConfigOptions& /*config_options*/,
                                const std::string& /*prefix*/) const override {
+    DBUG_TRACE;
     // We do not want the LegacyFileSystem to appear in the serialized output.
     // This clock is an internal class for those who do not implement one and
     // would be part of the Env.  As such, do not serialize it here.
@@ -634,11 +721,13 @@ Env::~Env() = default;
 
 Status Env::NewLogger(const std::string& fname,
                       std::shared_ptr<Logger>* result) {
+  DBUG_TRACE;
   return NewEnvLogger(fname, this, result);
 }
 
 Status Env::CreateFromString(const ConfigOptions& config_options,
                              const std::string& value, Env** result) {
+  DBUG_TRACE;
   Env* base = Env::Default();
   if (value.empty() || base->IsInstanceOf(value)) {
     *result = base;
@@ -657,6 +746,7 @@ Status Env::CreateFromString(const ConfigOptions& config_options,
 Status Env::CreateFromString(const ConfigOptions& config_options,
                              const std::string& value, Env** result,
                              std::shared_ptr<Env>* guard) {
+  DBUG_TRACE;
   assert(result);
   assert(guard != nullptr);
   std::unique_ptr<Env> uniq;
@@ -694,6 +784,7 @@ Status Env::CreateFromString(const ConfigOptions& config_options,
 Status Env::CreateFromUri(const ConfigOptions& config_options,
                           const std::string& env_uri, const std::string& fs_uri,
                           Env** result, std::shared_ptr<Env>* guard) {
+  DBUG_TRACE;
   *result = config_options.env;
   if (env_uri.empty() && fs_uri.empty()) {
     // Neither specified.  Use the default
@@ -716,6 +807,7 @@ Status Env::CreateFromUri(const ConfigOptions& config_options,
 }
 
 std::string Env::PriorityToString(Env::Priority priority) {
+  DBUG_TRACE;
   switch (priority) {
     case Env::Priority::BOTTOM:
       return "Bottom";
@@ -732,6 +824,7 @@ std::string Env::PriorityToString(Env::Priority priority) {
 }
 
 uint64_t Env::GetThreadID() const {
+  DBUG_TRACE;
   std::hash<std::thread::id> hasher;
   return hasher(std::this_thread::get_id());
 }
@@ -740,6 +833,7 @@ Status Env::ReuseWritableFile(const std::string& fname,
                               const std::string& old_fname,
                               std::unique_ptr<WritableFile>* result,
                               const EnvOptions& options) {
+  DBUG_TRACE;
   Status s = RenameFile(old_fname, fname);
   if (!s.ok()) {
     return s;
@@ -749,6 +843,7 @@ Status Env::ReuseWritableFile(const std::string& fname,
 
 Status Env::GetChildrenFileAttributes(const std::string& dir,
                                       std::vector<FileAttributes>* result) {
+  DBUG_TRACE;
   assert(result != nullptr);
   std::vector<std::string> child_fnames;
   Status s = GetChildren(dir, &child_fnames);
@@ -774,6 +869,7 @@ Status Env::GetChildrenFileAttributes(const std::string& dir,
 }
 
 Status Env::GetHostNameString(std::string* result) {
+  DBUG_TRACE;
   std::array<char, kMaxHostNameLen> hostname_buf{};
   Status s = GetHostName(hostname_buf.data(), hostname_buf.size());
   if (s.ok()) {
@@ -843,6 +939,7 @@ const InfoLogLevel Logger::kDefaultLogLevel =
 Logger::~Logger() = default;
 
 Status Logger::Close() {
+  DBUG_TRACE;
   if (!closed_) {
     closed_ = true;
     return CloseImpl();
@@ -851,23 +948,26 @@ Status Logger::Close() {
   }
 }
 
-Status Logger::CloseImpl() { return Status::NotSupported(); }
+Status Logger::CloseImpl() { DBUG_TRACE; return Status::NotSupported(); }
 
 FileLock::~FileLock() = default;
 
 void LogFlush(Logger* info_log) {
+  DBUG_TRACE;
   if (info_log) {
     info_log->Flush();
   }
 }
 
 static void Logv(Logger* info_log, const char* format, va_list ap) {
+  DBUG_TRACE;
   if (info_log && info_log->GetInfoLogLevel() <= InfoLogLevel::INFO_LEVEL) {
     info_log->Logv(InfoLogLevel::INFO_LEVEL, format, ap);
   }
 }
 
 void Log(Logger* info_log, const char* format, ...) {
+  DBUG_TRACE;
   va_list ap;
   va_start(ap, format);
   Logv(info_log, format, ap);
@@ -927,12 +1027,14 @@ void Log(const InfoLogLevel log_level, Logger* info_log, const char* format,
 }
 
 static void Headerv(Logger* info_log, const char* format, va_list ap) {
+  DBUG_TRACE;
   if (info_log) {
     info_log->LogHeader(format, ap);
   }
 }
 
 void Header(Logger* info_log, const char* format, ...) {
+  DBUG_TRACE;
   va_list ap;
   va_start(ap, format);
   Headerv(info_log, format, ap);
@@ -940,12 +1042,14 @@ void Header(Logger* info_log, const char* format, ...) {
 }
 
 static void Debugv(Logger* info_log, const char* format, va_list ap) {
+  DBUG_TRACE;
   if (info_log && info_log->GetInfoLogLevel() <= InfoLogLevel::DEBUG_LEVEL) {
     info_log->Logv(InfoLogLevel::DEBUG_LEVEL, format, ap);
   }
 }
 
 void Debug(Logger* info_log, const char* format, ...) {
+  DBUG_TRACE;
   va_list ap;
   va_start(ap, format);
   Debugv(info_log, format, ap);
@@ -953,12 +1057,14 @@ void Debug(Logger* info_log, const char* format, ...) {
 }
 
 static void Infov(Logger* info_log, const char* format, va_list ap) {
+  DBUG_TRACE;
   if (info_log && info_log->GetInfoLogLevel() <= InfoLogLevel::INFO_LEVEL) {
     info_log->Logv(InfoLogLevel::INFO_LEVEL, format, ap);
   }
 }
 
 void Info(Logger* info_log, const char* format, ...) {
+  DBUG_TRACE;
   va_list ap;
   va_start(ap, format);
   Infov(info_log, format, ap);
@@ -966,12 +1072,14 @@ void Info(Logger* info_log, const char* format, ...) {
 }
 
 static void Warnv(Logger* info_log, const char* format, va_list ap) {
+  DBUG_TRACE;
   if (info_log && info_log->GetInfoLogLevel() <= InfoLogLevel::WARN_LEVEL) {
     info_log->Logv(InfoLogLevel::WARN_LEVEL, format, ap);
   }
 }
 
 void Warn(Logger* info_log, const char* format, ...) {
+  DBUG_TRACE;
   va_list ap;
   va_start(ap, format);
   Warnv(info_log, format, ap);
@@ -979,12 +1087,14 @@ void Warn(Logger* info_log, const char* format, ...) {
 }
 
 static void Errorv(Logger* info_log, const char* format, va_list ap) {
+  DBUG_TRACE;
   if (info_log && info_log->GetInfoLogLevel() <= InfoLogLevel::ERROR_LEVEL) {
     info_log->Logv(InfoLogLevel::ERROR_LEVEL, format, ap);
   }
 }
 
 void Error(Logger* info_log, const char* format, ...) {
+  DBUG_TRACE;
   va_list ap;
   va_start(ap, format);
   Errorv(info_log, format, ap);
@@ -992,12 +1102,14 @@ void Error(Logger* info_log, const char* format, ...) {
 }
 
 static void Fatalv(Logger* info_log, const char* format, va_list ap) {
+  DBUG_TRACE;
   if (info_log && info_log->GetInfoLogLevel() <= InfoLogLevel::FATAL_LEVEL) {
     info_log->Logv(InfoLogLevel::FATAL_LEVEL, format, ap);
   }
 }
 
 void Fatal(Logger* info_log, const char* format, ...) {
+  DBUG_TRACE;
   va_list ap;
   va_start(ap, format);
   Fatalv(info_log, format, ap);
@@ -1005,11 +1117,13 @@ void Fatal(Logger* info_log, const char* format, ...) {
 }
 
 void LogFlush(const std::shared_ptr<Logger>& info_log) {
+  DBUG_TRACE;
   LogFlush(info_log.get());
 }
 
 void Log(const InfoLogLevel log_level, const std::shared_ptr<Logger>& info_log,
          const char* format, ...) {
+  DBUG_TRACE;
   va_list ap;
   va_start(ap, format);
   Logv(log_level, info_log.get(), format, ap);
@@ -1017,6 +1131,7 @@ void Log(const InfoLogLevel log_level, const std::shared_ptr<Logger>& info_log,
 }
 
 void Header(const std::shared_ptr<Logger>& info_log, const char* format, ...) {
+  DBUG_TRACE;
   va_list ap;
   va_start(ap, format);
   Headerv(info_log.get(), format, ap);
@@ -1024,6 +1139,7 @@ void Header(const std::shared_ptr<Logger>& info_log, const char* format, ...) {
 }
 
 void Debug(const std::shared_ptr<Logger>& info_log, const char* format, ...) {
+  DBUG_TRACE;
   va_list ap;
   va_start(ap, format);
   Debugv(info_log.get(), format, ap);
@@ -1031,6 +1147,7 @@ void Debug(const std::shared_ptr<Logger>& info_log, const char* format, ...) {
 }
 
 void Info(const std::shared_ptr<Logger>& info_log, const char* format, ...) {
+  DBUG_TRACE;
   va_list ap;
   va_start(ap, format);
   Infov(info_log.get(), format, ap);
@@ -1038,6 +1155,7 @@ void Info(const std::shared_ptr<Logger>& info_log, const char* format, ...) {
 }
 
 void Warn(const std::shared_ptr<Logger>& info_log, const char* format, ...) {
+  DBUG_TRACE;
   va_list ap;
   va_start(ap, format);
   Warnv(info_log.get(), format, ap);
@@ -1045,6 +1163,7 @@ void Warn(const std::shared_ptr<Logger>& info_log, const char* format, ...) {
 }
 
 void Error(const std::shared_ptr<Logger>& info_log, const char* format, ...) {
+  DBUG_TRACE;
   va_list ap;
   va_start(ap, format);
   Errorv(info_log.get(), format, ap);
@@ -1052,6 +1171,7 @@ void Error(const std::shared_ptr<Logger>& info_log, const char* format, ...) {
 }
 
 void Fatal(const std::shared_ptr<Logger>& info_log, const char* format, ...) {
+  DBUG_TRACE;
   va_list ap;
   va_start(ap, format);
   Fatalv(info_log.get(), format, ap);
@@ -1059,6 +1179,7 @@ void Fatal(const std::shared_ptr<Logger>& info_log, const char* format, ...) {
 }
 
 void Log(const std::shared_ptr<Logger>& info_log, const char* format, ...) {
+  DBUG_TRACE;
   va_list ap;
   va_start(ap, format);
   Logv(info_log.get(), format, ap);
@@ -1067,12 +1188,14 @@ void Log(const std::shared_ptr<Logger>& info_log, const char* format, ...) {
 
 Status WriteStringToFile(Env* env, const Slice& data, const std::string& fname,
                          bool should_sync, const IOOptions* io_options) {
+  DBUG_TRACE;
   const auto& fs = env->GetFileSystem();
   return WriteStringToFile(fs.get(), data, fname, should_sync,
                            io_options ? *io_options : IOOptions());
 }
 
 Status ReadFileToString(Env* env, const std::string& fname, std::string* data) {
+  DBUG_TRACE;
   const auto& fs = env->GetFileSystem();
   return ReadFileToString(fs.get(), fname, data);
 }
@@ -1080,6 +1203,7 @@ Status ReadFileToString(Env* env, const std::string& fname, std::string* data) {
 namespace {  // anonymous namespace
 
 void AssignEnvOptions(EnvOptions* env_options, const DBOptions& options) {
+  DBUG_TRACE;
   env_options->use_mmap_reads = options.allow_mmap_reads;
   env_options->use_mmap_writes = options.allow_mmap_writes;
   env_options->use_direct_reads = options.use_direct_reads;
@@ -1100,6 +1224,7 @@ void AssignEnvOptions(EnvOptions* env_options, const DBOptions& options) {
 
 EnvOptions Env::OptimizeForLogWrite(const EnvOptions& env_options,
                                     const DBOptions& db_options) const {
+  DBUG_TRACE;
   EnvOptions optimized_env_options(env_options);
   optimized_env_options.bytes_per_sync = db_options.wal_bytes_per_sync;
   optimized_env_options.writable_file_max_buffer_size =
@@ -1108,16 +1233,19 @@ EnvOptions Env::OptimizeForLogWrite(const EnvOptions& env_options,
 }
 
 EnvOptions Env::OptimizeForManifestWrite(const EnvOptions& env_options) const {
+  DBUG_TRACE;
   return env_options;
 }
 
 EnvOptions Env::OptimizeForLogRead(const EnvOptions& env_options) const {
+  DBUG_TRACE;
   EnvOptions optimized_env_options(env_options);
   optimized_env_options.use_direct_reads = false;
   return optimized_env_options;
 }
 
 EnvOptions Env::OptimizeForManifestRead(const EnvOptions& env_options) const {
+  DBUG_TRACE;
   EnvOptions optimized_env_options(env_options);
   optimized_env_options.use_direct_reads = false;
   return optimized_env_options;
@@ -1125,6 +1253,7 @@ EnvOptions Env::OptimizeForManifestRead(const EnvOptions& env_options) const {
 
 EnvOptions Env::OptimizeForCompactionTableWrite(
     const EnvOptions& env_options, const ImmutableDBOptions& db_options) const {
+  DBUG_TRACE;
   EnvOptions optimized_env_options(env_options);
   optimized_env_options.use_direct_writes =
       db_options.use_direct_io_for_flush_and_compaction;
@@ -1133,12 +1262,14 @@ EnvOptions Env::OptimizeForCompactionTableWrite(
 
 EnvOptions Env::OptimizeForCompactionTableRead(
     const EnvOptions& env_options, const ImmutableDBOptions& db_options) const {
+  DBUG_TRACE;
   EnvOptions optimized_env_options(env_options);
   optimized_env_options.use_direct_reads = db_options.use_direct_reads;
   return optimized_env_options;
 }
 EnvOptions Env::OptimizeForBlobFileRead(
     const EnvOptions& env_options, const ImmutableDBOptions& db_options) const {
+  DBUG_TRACE;
   EnvOptions optimized_env_options(env_options);
   optimized_env_options.use_direct_reads = db_options.use_direct_reads;
   return optimized_env_options;
@@ -1155,6 +1286,7 @@ EnvOptions::EnvOptions() {
 
 Status NewEnvLogger(const std::string& fname, Env* env,
                     std::shared_ptr<Logger>* result) {
+  DBUG_TRACE;
   FileOptions options;
   // TODO: Tune the buffer size.
   options.writable_file_max_buffer_size = 1024 * 1024;
@@ -1171,10 +1303,12 @@ Status NewEnvLogger(const std::string& fname, Env* env,
 }
 
 const std::shared_ptr<FileSystem>& Env::GetFileSystem() const {
+  DBUG_TRACE;
   return file_system_;
 }
 
 const std::shared_ptr<SystemClock>& Env::GetSystemClock() const {
+  DBUG_TRACE;
   return system_clock_;
 }
 namespace {
@@ -1191,6 +1325,7 @@ SystemClockWrapper::SystemClockWrapper(const std::shared_ptr<SystemClock>& t)
 }
 
 Status SystemClockWrapper::PrepareOptions(const ConfigOptions& options) {
+  DBUG_TRACE;
   if (target_ == nullptr) {
     target_ = SystemClock::Default();
   }
@@ -1199,6 +1334,7 @@ Status SystemClockWrapper::PrepareOptions(const ConfigOptions& options) {
 
 std::string SystemClockWrapper::SerializeOptions(
     const ConfigOptions& config_options, const std::string& header) const {
+  DBUG_TRACE;
   auto parent = SystemClock::SerializeOptions(config_options, "");
   if (config_options.IsShallow() || target_ == nullptr ||
       target_->IsInstanceOf(SystemClock::kDefaultName())) {
@@ -1219,6 +1355,7 @@ std::string SystemClockWrapper::SerializeOptions(
 
 static int RegisterBuiltinSystemClocks(ObjectLibrary& library,
                                        const std::string& /*arg*/) {
+  DBUG_TRACE;
   library.AddFactory<SystemClock>(
       EmulatedSystemClock::kClassName(),
       [](const std::string& /*uri*/, std::unique_ptr<SystemClock>* guard,
@@ -1233,6 +1370,7 @@ static int RegisterBuiltinSystemClocks(ObjectLibrary& library,
 Status SystemClock::CreateFromString(const ConfigOptions& config_options,
                                      const std::string& value,
                                      std::shared_ptr<SystemClock>* result) {
+  DBUG_TRACE;
   auto clock = SystemClock::Default();
   if (clock->IsInstanceOf(value)) {
     *result = clock;
@@ -1248,6 +1386,7 @@ Status SystemClock::CreateFromString(const ConfigOptions& config_options,
 
 bool SystemClock::TimedWait(port::CondVar* cv,
                             std::chrono::microseconds deadline) {
+  DBUG_TRACE;
   return cv->TimedWait(deadline.count());
 }
 }  // namespace ROCKSDB_NAMESPACE

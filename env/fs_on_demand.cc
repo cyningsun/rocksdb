@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "env/fs_on_demand.h"
 
 #include <algorithm>
@@ -23,6 +24,7 @@ namespace ROCKSDB_NAMESPACE {
 bool OnDemandFileSystem::CheckPathAndAdjust(const std::string& orig,
                                             const std::string& replace,
                                             std::string& path) {
+  DBUG_TRACE;
   size_t pos = path.find(orig);
   if (pos > 0) {
     return false;
@@ -33,6 +35,7 @@ bool OnDemandFileSystem::CheckPathAndAdjust(const std::string& orig,
 
 bool OnDemandFileSystem::LookupFileType(const std::string& name,
                                         FileType* type) {
+  DBUG_TRACE;
   std::size_t found = name.find_last_of('/');
   std::string file_name = name.substr(found);
   uint64_t number = 0;
@@ -49,6 +52,7 @@ bool OnDemandFileSystem::LookupFileType(const std::string& name,
 IOStatus OnDemandFileSystem::NewSequentialFile(
     const std::string& fname, const FileOptions& file_opts,
     std::unique_ptr<FSSequentialFile>* result, IODebugContext* dbg) {
+  DBUG_TRACE;
   FileType type;
   static std::unordered_set<FileType> valid_types(
       {kWalFile, kDescriptorFile, kCurrentFile, kIdentityFile, kOptionsFile});
@@ -84,6 +88,7 @@ IOStatus OnDemandFileSystem::NewSequentialFile(
 IOStatus OnDemandFileSystem::NewRandomAccessFile(
     const std::string& fname, const FileOptions& file_opts,
     std::unique_ptr<FSRandomAccessFile>* result, IODebugContext* dbg) {
+  DBUG_TRACE;
   FileType type;
   if (!LookupFileType(fname, &type) || type != kTableFile) {
     return IOStatus::NotSupported();
@@ -111,6 +116,7 @@ IOStatus OnDemandFileSystem::NewRandomAccessFile(
 IOStatus OnDemandFileSystem::NewWritableFile(
     const std::string& fname, const FileOptions& file_opts,
     std::unique_ptr<FSWritableFile>* result, IODebugContext* dbg) {
+  DBUG_TRACE;
   FileType type;
   if (!LookupFileType(fname, &type) || type != kInfoLogFile) {
     return IOStatus::NotSupported();
@@ -136,6 +142,7 @@ IOStatus OnDemandFileSystem::NewWritableFile(
 IOStatus OnDemandFileSystem::NewDirectory(
     const std::string& /*name*/, const IOOptions& /*io_opts*/,
     std::unique_ptr<FSDirectory>* /*result*/, IODebugContext* /*dbg*/) {
+  DBUG_TRACE;
   return IOStatus::NotSupported();
 }
 
@@ -146,6 +153,7 @@ IOStatus OnDemandFileSystem::NewDirectory(
 IOStatus OnDemandFileSystem::FileExists(const std::string& fname,
                                         const IOOptions& options,
                                         IODebugContext* dbg) {
+  DBUG_TRACE;
   IOStatus s = target()->FileExists(fname, options, dbg);
   if (!s.IsNotFound() && !s.IsPathNotFound()) {
     return s;
@@ -171,6 +179,7 @@ IOStatus OnDemandFileSystem::GetChildren(const std::string& dir,
                                          const IOOptions& options,
                                          std::vector<std::string>* result,
                                          IODebugContext* dbg) {
+  DBUG_TRACE;
   std::string rdir = dir;
   IOStatus s = target()->GetChildren(dir, options, result, dbg);
   if (!s.ok() || !CheckPathAndAdjust(local_path_, remote_path_, rdir)) {
@@ -202,6 +211,7 @@ IOStatus OnDemandFileSystem::GetChildren(const std::string& dir,
 IOStatus OnDemandFileSystem::GetChildrenFileAttributes(
     const std::string& dir, const IOOptions& options,
     std::vector<FileAttributes>* result, IODebugContext* dbg) {
+  DBUG_TRACE;
   std::string rdir = dir;
   IOStatus s = target()->GetChildrenFileAttributes(dir, options, result, dbg);
   if (!s.ok() || !CheckPathAndAdjust(local_path_, remote_path_, rdir)) {
@@ -215,6 +225,7 @@ IOStatus OnDemandFileSystem::GetChildrenFileAttributes(
   if (s.ok()) {
     struct FileAttributeSorter {
       bool operator()(const FileAttributes& lhs, const FileAttributes& rhs) {
+        DBUG_TRACE;
         return lhs.name < rhs.name;
       }
     } file_attr_sorter;
@@ -240,6 +251,7 @@ IOStatus OnDemandFileSystem::GetFileSize(const std::string& fname,
                                          const IOOptions& options,
                                          uint64_t* file_size,
                                          IODebugContext* dbg) {
+  DBUG_TRACE;
   uint64_t local_size = 0;
   IOStatus s = target()->GetFileSize(fname, options, &local_size, dbg);
   if (!s.ok() && !s.IsNotFound() && !s.IsPathNotFound()) {
@@ -273,6 +285,7 @@ IOStatus OnDemandFileSystem::GetFileSize(const std::string& fname,
 IOStatus OnDemandSequentialFile::Read(size_t n, const IOOptions& options,
                                       Slice* result, char* scratch,
                                       IODebugContext* dbg) {
+  DBUG_TRACE;
   IOStatus s;
   if (eof_) {
     // Reopen the file. With some distributed file systems, this is required
@@ -304,6 +317,7 @@ IOStatus OnDemandSequentialFile::Read(size_t n, const IOOptions& options,
 }
 
 IOStatus OnDemandSequentialFile::Skip(uint64_t n) {
+  DBUG_TRACE;
   IOStatus s = file_->Skip(n);
   if (s.ok()) {
     offset_ += n;
@@ -312,20 +326,24 @@ IOStatus OnDemandSequentialFile::Skip(uint64_t n) {
 }
 
 bool OnDemandSequentialFile::use_direct_io() const {
+  DBUG_TRACE;
   return file_->use_direct_io();
 }
 
 size_t OnDemandSequentialFile::GetRequiredBufferAlignment() const {
+  DBUG_TRACE;
   return file_->GetRequiredBufferAlignment();
 }
 
 Temperature OnDemandSequentialFile::GetTemperature() const {
+  DBUG_TRACE;
   return file_->GetTemperature();
 }
 
 std::shared_ptr<FileSystem> NewOnDemandFileSystem(
     const std::shared_ptr<FileSystem>& fs, std::string src_path,
     std::string dest_path) {
+  DBUG_TRACE;
   return std::make_shared<OnDemandFileSystem>(fs, src_path, dest_path);
 }
 }  // namespace ROCKSDB_NAMESPACE

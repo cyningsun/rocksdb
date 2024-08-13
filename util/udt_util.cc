@@ -4,6 +4,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "util/udt_util.h"
 
 #include "db/dbformat.h"
@@ -22,6 +23,7 @@ enum class RecoveryType {
 
 RecoveryType GetRecoveryType(const size_t running_ts_sz,
                              const std::optional<size_t>& recorded_ts_sz) {
+  DBUG_TRACE;
   if (running_ts_sz == 0) {
     if (!recorded_ts_sz.has_value()) {
       // A column family id not recorded is equivalent to that column family has
@@ -47,6 +49,7 @@ RecoveryType GetRecoveryType(const size_t running_ts_sz,
 bool AllRunningColumnFamiliesConsistent(
     const UnorderedMap<uint32_t, size_t>& running_ts_sz,
     const UnorderedMap<uint32_t, size_t>& record_ts_sz) {
+  DBUG_TRACE;
   for (const auto& [cf_id, ts_sz] : running_ts_sz) {
     auto record_it = record_ts_sz.find(cf_id);
     RecoveryType recovery_type =
@@ -65,6 +68,7 @@ Status CheckWriteBatchTimestampSizeConsistency(
     const UnorderedMap<uint32_t, size_t>& running_ts_sz,
     const UnorderedMap<uint32_t, size_t>& record_ts_sz,
     TimestampSizeConsistencyMode check_mode, bool* ts_need_recovery) {
+  DBUG_TRACE;
   std::vector<uint32_t> column_family_ids;
   Status status =
       CollectColumnFamilyIdsFromWriteBatch(*batch, &column_family_ids);
@@ -111,6 +115,7 @@ enum class ToggleUDT {
 
 ToggleUDT CompareComparator(const Comparator* new_comparator,
                             const std::string& old_comparator_name) {
+  DBUG_TRACE;
   static const char* kUDTSuffix = ".u64ts";
   static const Slice kSuffixSlice = kUDTSuffix;
   static const size_t kSuffixSize = 6;
@@ -148,6 +153,7 @@ TimestampRecoveryHandler::TimestampRecoveryHandler(
 
 Status TimestampRecoveryHandler::PutCF(uint32_t cf, const Slice& key,
                                        const Slice& value) {
+  DBUG_TRACE;
   std::string new_key_buf;
   Slice new_key;
   Status status =
@@ -160,6 +166,7 @@ Status TimestampRecoveryHandler::PutCF(uint32_t cf, const Slice& key,
 
 Status TimestampRecoveryHandler::PutEntityCF(uint32_t cf, const Slice& key,
                                              const Slice& entity) {
+  DBUG_TRACE;
   std::string new_key_buf;
   Slice new_key;
   Status status = TimestampRecoveryHandler::ReconcileTimestampDiscrepancy(
@@ -180,6 +187,7 @@ Status TimestampRecoveryHandler::PutEntityCF(uint32_t cf, const Slice& key,
 Status TimestampRecoveryHandler::TimedPutCF(uint32_t cf, const Slice& key,
                                             const Slice& value,
                                             uint64_t write_time) {
+  DBUG_TRACE;
   std::string new_key_buf;
   Slice new_key;
   Status status =
@@ -192,6 +200,7 @@ Status TimestampRecoveryHandler::TimedPutCF(uint32_t cf, const Slice& key,
 }
 
 Status TimestampRecoveryHandler::DeleteCF(uint32_t cf, const Slice& key) {
+  DBUG_TRACE;
   std::string new_key_buf;
   Slice new_key;
   Status status =
@@ -203,6 +212,7 @@ Status TimestampRecoveryHandler::DeleteCF(uint32_t cf, const Slice& key) {
 }
 
 Status TimestampRecoveryHandler::SingleDeleteCF(uint32_t cf, const Slice& key) {
+  DBUG_TRACE;
   std::string new_key_buf;
   Slice new_key;
   Status status =
@@ -216,6 +226,7 @@ Status TimestampRecoveryHandler::SingleDeleteCF(uint32_t cf, const Slice& key) {
 Status TimestampRecoveryHandler::DeleteRangeCF(uint32_t cf,
                                                const Slice& begin_key,
                                                const Slice& end_key) {
+  DBUG_TRACE;
   std::string new_begin_key_buf;
   Slice new_begin_key;
   std::string new_end_key_buf;
@@ -236,6 +247,7 @@ Status TimestampRecoveryHandler::DeleteRangeCF(uint32_t cf,
 
 Status TimestampRecoveryHandler::MergeCF(uint32_t cf, const Slice& key,
                                          const Slice& value) {
+  DBUG_TRACE;
   std::string new_key_buf;
   Slice new_key;
   Status status =
@@ -248,6 +260,7 @@ Status TimestampRecoveryHandler::MergeCF(uint32_t cf, const Slice& key,
 
 Status TimestampRecoveryHandler::PutBlobIndexCF(uint32_t cf, const Slice& key,
                                                 const Slice& value) {
+  DBUG_TRACE;
   std::string new_key_buf;
   Slice new_key;
   Status status =
@@ -260,6 +273,7 @@ Status TimestampRecoveryHandler::PutBlobIndexCF(uint32_t cf, const Slice& key,
 
 Status TimestampRecoveryHandler::ReconcileTimestampDiscrepancy(
     uint32_t cf, const Slice& key, std::string* new_key_buf, Slice* new_key) {
+  DBUG_TRACE;
   assert(handler_valid_);
   auto running_iter = running_ts_sz_.find(cf);
   if (running_iter == running_ts_sz_.end()) {
@@ -306,6 +320,7 @@ Status HandleWriteBatchTimestampSizeDifference(
     const UnorderedMap<uint32_t, size_t>& record_ts_sz,
     TimestampSizeConsistencyMode check_mode,
     std::unique_ptr<WriteBatch>* new_batch) {
+  DBUG_TRACE;
   // Quick path to bypass checking the WriteBatch.
   if (AllRunningColumnFamiliesConsistent(running_ts_sz, record_ts_sz)) {
     return Status::OK();
@@ -334,6 +349,7 @@ Status ValidateUserDefinedTimestampsOptions(
     const Comparator* new_comparator, const std::string& old_comparator_name,
     bool new_persist_udt, bool old_persist_udt,
     bool* mark_sst_files_has_no_udt) {
+  DBUG_TRACE;
   size_t ts_sz = new_comparator->timestamp_size();
   ToggleUDT res = CompareComparator(new_comparator, old_comparator_name);
   switch (res) {
@@ -377,6 +393,7 @@ Status ValidateUserDefinedTimestampsOptions(
 
 void GetFullHistoryTsLowFromU64CutoffTs(Slice* cutoff_ts,
                                         std::string* full_history_ts_low) {
+  DBUG_TRACE;
   uint64_t cutoff_udt_ts = 0;
   [[maybe_unused]] bool format_res = GetFixed64(cutoff_ts, &cutoff_udt_ts);
   assert(format_res);

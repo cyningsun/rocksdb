@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "test_util/transaction_test_util.h"
 
 #include <algorithm>
@@ -47,6 +48,7 @@ RandomTransactionInserter::~RandomTransactionInserter() {
 
 bool RandomTransactionInserter::TransactionDBInsert(
     TransactionDB* db, const TransactionOptions& txn_options) {
+  DBUG_TRACE;
   txn_ = db->BeginTransaction(write_options_, txn_options, txn_);
 
   std::hash<std::thread::id> hasher;
@@ -72,6 +74,7 @@ bool RandomTransactionInserter::TransactionDBInsert(
 bool RandomTransactionInserter::OptimisticTransactionDBInsert(
     OptimisticTransactionDB* db,
     const OptimisticTransactionOptions& txn_options) {
+  DBUG_TRACE;
   optimistic_txn_ =
       db->BeginTransaction(write_options_, txn_options, optimistic_txn_);
 
@@ -79,6 +82,7 @@ bool RandomTransactionInserter::OptimisticTransactionDBInsert(
 }
 
 bool RandomTransactionInserter::DBInsert(DB* db) {
+  DBUG_TRACE;
   return DoInsert(db, nullptr, false);
 }
 
@@ -86,6 +90,7 @@ Status RandomTransactionInserter::DBGet(
     DB* db, Transaction* txn, ReadOptions& read_options, uint16_t set_i,
     uint64_t ikey, bool get_for_update, uint64_t* int_value,
     std::string* full_key, bool* unexpected_error) {
+  DBUG_TRACE;
   Status s;
   // Five digits (since the largest uint16_t is 65535) plus the NUL
   // end char.
@@ -128,6 +133,7 @@ Status RandomTransactionInserter::DBGet(
 
 bool RandomTransactionInserter::DoInsert(DB* db, Transaction* txn,
                                          bool is_optimistic) {
+  DBUG_TRACE;
   Status s;
   WriteBatch batch;
 
@@ -293,6 +299,7 @@ Status RandomTransactionInserter::Verify(DB* db, uint16_t num_sets,
                                          uint64_t num_keys_per_set,
                                          bool take_snapshot, Random64* rand,
                                          uint64_t delay_ms) {
+  DBUG_TRACE;
   // delay_ms is the delay between taking a snapshot and doing the reads. It
   // emulates reads from a long-running backup job.
   assert(delay_ms == 0 || take_snapshot);
@@ -397,4 +404,3 @@ Status RandomTransactionInserter::Verify(DB* db, uint16_t num_sets,
 }
 
 }  // namespace ROCKSDB_NAMESPACE
-

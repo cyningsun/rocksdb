@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "memory/arena.h"
 
 #include <algorithm>
@@ -21,6 +22,7 @@
 namespace ROCKSDB_NAMESPACE {
 
 size_t Arena::OptimizeBlockSize(size_t block_size) {
+  DBUG_TRACE;
   // Make sure block_size is in optimal range
   block_size = std::max(Arena::kMinBlockSize, block_size);
   block_size = std::min(Arena::kMaxBlockSize, block_size);
@@ -61,6 +63,7 @@ Arena::~Arena() {
 }
 
 char* Arena::AllocateFallback(size_t bytes, bool aligned) {
+  DBUG_TRACE;
   if (bytes > kBlockSize / 4) {
     ++irregular_block_num;
     // Object is more than a quarter of our block size.  Allocate it separately
@@ -93,6 +96,7 @@ char* Arena::AllocateFallback(size_t bytes, bool aligned) {
 }
 
 char* Arena::AllocateFromHugePage(size_t bytes) {
+  DBUG_TRACE;
   MemMapping mm = MemMapping::AllocateHuge(bytes);
   auto addr = static_cast<char*>(mm.Get());
   if (addr) {
@@ -107,6 +111,7 @@ char* Arena::AllocateFromHugePage(size_t bytes) {
 
 char* Arena::AllocateAligned(size_t bytes, size_t huge_page_size,
                              Logger* logger) {
+  DBUG_TRACE;
   if (MemMapping::kHugePageSupported && hugetlb_size_ > 0 &&
       huge_page_size > 0 && bytes > 0) {
     // Allocate from a huge page TLB table.
@@ -143,6 +148,7 @@ char* Arena::AllocateAligned(size_t bytes, size_t huge_page_size,
 }
 
 char* Arena::AllocateNewBlock(size_t block_bytes) {
+  DBUG_TRACE;
   // NOTE: std::make_unique zero-initializes the block so is not appropriate
   // here
   char* block = new char[block_bytes];

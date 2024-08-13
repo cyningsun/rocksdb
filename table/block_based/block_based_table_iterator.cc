@@ -6,17 +6,20 @@
 // Copyright (c) 2011 The LevelDB Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
+#include "rocksdb/util/dbug.h"
 #include "table/block_based/block_based_table_iterator.h"
 
 namespace ROCKSDB_NAMESPACE {
 
-void BlockBasedTableIterator::SeekToFirst() { SeekImpl(nullptr, false); }
+void BlockBasedTableIterator::SeekToFirst() { DBUG_TRACE; SeekImpl(nullptr, false); }
 
 void BlockBasedTableIterator::Seek(const Slice& target) {
+  DBUG_TRACE;
   SeekImpl(&target, true);
 }
 
 void BlockBasedTableIterator::SeekSecondPass(const Slice* target) {
+  DBUG_TRACE;
   AsyncInitDataBlock(/*is_first_pass=*/false);
 
   if (target) {
@@ -35,6 +38,7 @@ void BlockBasedTableIterator::SeekSecondPass(const Slice* target) {
 
 void BlockBasedTableIterator::SeekImpl(const Slice* target,
                                        bool async_prefetch) {
+  DBUG_TRACE;
   bool is_first_pass = !async_read_in_progress_;
 
   if (!is_first_pass) {
@@ -170,6 +174,7 @@ void BlockBasedTableIterator::SeekImpl(const Slice* target,
 }
 
 void BlockBasedTableIterator::SeekForPrev(const Slice& target) {
+  DBUG_TRACE;
   direction_ = IterDirection::kBackward;
   ResetBlockCacheLookupVar();
   is_out_of_bound_ = false;
@@ -244,6 +249,7 @@ void BlockBasedTableIterator::SeekForPrev(const Slice& target) {
 }
 
 void BlockBasedTableIterator::SeekToLast() {
+  DBUG_TRACE;
   direction_ = IterDirection::kBackward;
   ResetBlockCacheLookupVar();
   is_out_of_bound_ = false;
@@ -267,6 +273,7 @@ void BlockBasedTableIterator::SeekToLast() {
 }
 
 void BlockBasedTableIterator::Next() {
+  DBUG_TRACE;
   if (is_at_first_key_from_index_ && !MaterializeCurrentBlock()) {
     return;
   }
@@ -277,6 +284,7 @@ void BlockBasedTableIterator::Next() {
 }
 
 bool BlockBasedTableIterator::NextAndGetResult(IterateResult* result) {
+  DBUG_TRACE;
   Next();
   bool is_valid = Valid();
   if (is_valid) {
@@ -288,6 +296,7 @@ bool BlockBasedTableIterator::NextAndGetResult(IterateResult* result) {
 }
 
 void BlockBasedTableIterator::Prev() {
+  DBUG_TRACE;
   if (readahead_cache_lookup_ && !IsIndexAtCurr()) {
     // In case of readahead_cache_lookup_, index_iter_ has moved forward. So we
     // need to reseek the index_iter_ to point to current block by using
@@ -333,6 +342,7 @@ void BlockBasedTableIterator::Prev() {
 }
 
 void BlockBasedTableIterator::InitDataBlock() {
+  DBUG_TRACE;
   BlockHandle data_block_handle;
   bool is_in_cache = false;
   bool use_block_cache_for_lookup = true;
@@ -410,6 +420,7 @@ void BlockBasedTableIterator::InitDataBlock() {
 }
 
 void BlockBasedTableIterator::AsyncInitDataBlock(bool is_first_pass) {
+  DBUG_TRACE;
   BlockHandle data_block_handle;
   bool is_for_compaction =
       lookup_context_.caller == TableReaderCaller::kCompaction;
@@ -503,6 +514,7 @@ void BlockBasedTableIterator::AsyncInitDataBlock(bool is_first_pass) {
 }
 
 bool BlockBasedTableIterator::MaterializeCurrentBlock() {
+  DBUG_TRACE;
   assert(is_at_first_key_from_index_);
   assert(!block_iter_points_to_real_block_);
   assert(index_iter_->Valid());
@@ -539,6 +551,7 @@ bool BlockBasedTableIterator::MaterializeCurrentBlock() {
 }
 
 void BlockBasedTableIterator::FindKeyForward() {
+  DBUG_TRACE;
   // This method's code is kept short to make it likely to be inlined.
   assert(!is_out_of_bound_);
   assert(block_iter_points_to_real_block_);
@@ -555,6 +568,7 @@ void BlockBasedTableIterator::FindKeyForward() {
 }
 
 void BlockBasedTableIterator::FindBlockForward() {
+  DBUG_TRACE;
   // TODO the while loop inherits from two-level-iterator. We don't know
   // whether a block can be empty so it can be replaced by an "if".
   do {
@@ -634,6 +648,7 @@ void BlockBasedTableIterator::FindBlockForward() {
 }
 
 void BlockBasedTableIterator::FindKeyBackward() {
+  DBUG_TRACE;
   while (!block_iter_.Valid()) {
     if (!block_iter_.status().ok()) {
       return;
@@ -655,6 +670,7 @@ void BlockBasedTableIterator::FindKeyBackward() {
 }
 
 void BlockBasedTableIterator::CheckOutOfBound() {
+  DBUG_TRACE;
   if (read_options_.iterate_upper_bound != nullptr &&
       block_upper_bound_check_ != BlockUpperBound::kUpperBoundBeyondCurBlock &&
       Valid()) {
@@ -666,6 +682,7 @@ void BlockBasedTableIterator::CheckOutOfBound() {
 }
 
 void BlockBasedTableIterator::CheckDataBlockWithinUpperBound() {
+  DBUG_TRACE;
   if (IsIndexAtCurr() && read_options_.iterate_upper_bound != nullptr &&
       block_iter_points_to_real_block_) {
     block_upper_bound_check_ = (user_comparator_.CompareWithoutTimestamp(
@@ -681,6 +698,7 @@ void BlockBasedTableIterator::InitializeStartAndEndOffsets(
     bool read_curr_block, bool& found_first_miss_block,
     uint64_t& start_updated_offset, uint64_t& end_updated_offset,
     size_t& prev_handles_size) {
+  DBUG_TRACE;
   assert(block_handles_ != nullptr);
   prev_handles_size = block_handles_->size();
   size_t footer = table_->get_rep()->footer.GetBlockTrailerSize();
@@ -768,6 +786,7 @@ void BlockBasedTableIterator::InitializeStartAndEndOffsets(
 //                   extra buffers.
 void BlockBasedTableIterator::BlockCacheLookupForReadAheadSize(
     bool read_curr_block, uint64_t& start_offset, uint64_t& end_offset) {
+  DBUG_TRACE;
   uint64_t start_updated_offset = start_offset;
 
   // readahead_cache_lookup_ can be set false, if after Seek and Next

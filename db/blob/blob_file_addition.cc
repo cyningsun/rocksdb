@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "db/blob/blob_file_addition.h"
 
 #include <ostream>
@@ -31,6 +32,7 @@ enum BlobFileAddition::CustomFieldTags : uint32_t {
 };
 
 void BlobFileAddition::EncodeTo(std::string* output) const {
+  DBUG_TRACE;
   PutVarint64(output, blob_file_number_);
   PutVarint64(output, total_blob_count_);
   PutVarint64(output, total_blob_bytes_);
@@ -100,6 +102,7 @@ Status BlobFileAddition::DecodeFrom(Slice* input) {
 }
 
 std::string BlobFileAddition::DebugString() const {
+  DBUG_TRACE;
   std::ostringstream oss;
 
   oss << *this;
@@ -108,6 +111,7 @@ std::string BlobFileAddition::DebugString() const {
 }
 
 std::string BlobFileAddition::DebugJSON() const {
+  DBUG_TRACE;
   JSONWriter jw;
 
   jw << *this;
@@ -118,6 +122,7 @@ std::string BlobFileAddition::DebugJSON() const {
 }
 
 bool operator==(const BlobFileAddition& lhs, const BlobFileAddition& rhs) {
+  DBUG_TRACE;
   return lhs.GetBlobFileNumber() == rhs.GetBlobFileNumber() &&
          lhs.GetTotalBlobCount() == rhs.GetTotalBlobCount() &&
          lhs.GetTotalBlobBytes() == rhs.GetTotalBlobBytes() &&
@@ -126,11 +131,13 @@ bool operator==(const BlobFileAddition& lhs, const BlobFileAddition& rhs) {
 }
 
 bool operator!=(const BlobFileAddition& lhs, const BlobFileAddition& rhs) {
+  DBUG_TRACE;
   return !(lhs == rhs);
 }
 
 std::ostream& operator<<(std::ostream& os,
                          const BlobFileAddition& blob_file_addition) {
+  DBUG_TRACE;
   os << "blob_file_number: " << blob_file_addition.GetBlobFileNumber()
      << " total_blob_count: " << blob_file_addition.GetTotalBlobCount()
      << " total_blob_bytes: " << blob_file_addition.GetTotalBlobBytes()
@@ -143,6 +150,7 @@ std::ostream& operator<<(std::ostream& os,
 
 JSONWriter& operator<<(JSONWriter& jw,
                        const BlobFileAddition& blob_file_addition) {
+  DBUG_TRACE;
   jw << "BlobFileNumber" << blob_file_addition.GetBlobFileNumber()
      << "TotalBlobCount" << blob_file_addition.GetTotalBlobCount()
      << "TotalBlobBytes" << blob_file_addition.GetTotalBlobBytes()

@@ -6,6 +6,7 @@
 
 #if !defined(OS_WIN)
 
+#include "rocksdb/util/dbug.h"
 #ifndef GFLAGS
 #include <cstdio>
 int main() { fprintf(stderr, "Please install gflags to run tools\n"); }
@@ -99,6 +100,7 @@ class HashTableBenchmark {
   }
 
   void RunWrite() {
+    DBUG_TRACE;
     while (!quit_) {
       size_t k = insert_key_++;
       std::string tmp(1000, k % 255);
@@ -109,6 +111,7 @@ class HashTableBenchmark {
   }
 
   void RunRead() {
+    DBUG_TRACE;
     Random64 rgen(time(nullptr));
     while (!quit_) {
       std::string s;
@@ -121,6 +124,7 @@ class HashTableBenchmark {
   }
 
   void RunErase() {
+    DBUG_TRACE;
     while (!quit_) {
       size_t k = erase_key_++;
       bool status = impl_->Erase(k);
@@ -132,6 +136,7 @@ class HashTableBenchmark {
  private:
   // Start threads for a given function
   void StartThreads(const size_t n, void (*fn)(void*)) {
+    DBUG_TRACE;
     Env* env = Env::Default();
     for (size_t i = 0; i < n; ++i) {
       env->StartThread(fn, this);
@@ -140,6 +145,7 @@ class HashTableBenchmark {
 
   // Prepop the hash table with 1M keys
   void Prepop() {
+    DBUG_TRACE;
     for (size_t i = 0; i < max_prepop_key; ++i) {
       bool status = impl_->Insert(i, std::string(1000, i % 255));
       assert(status);
@@ -154,6 +160,7 @@ class HashTableBenchmark {
   }
 
   static uint64_t NowInMillSec() {
+    DBUG_TRACE;
     port::TimeVal tv;
     port::GetTimeOfDay(&tv, /*tz=*/nullptr);
     return tv.tv_sec * 1000 + tv.tv_usec / 1000;
@@ -163,14 +170,17 @@ class HashTableBenchmark {
   //  Wrapper functions for thread entry
   //
   static void WriteMain(void* args) {
+    DBUG_TRACE;
     static_cast<HashTableBenchmark*>(args)->RunWrite();
   }
 
   static void ReadMain(void* args) {
+    DBUG_TRACE;
     static_cast<HashTableBenchmark*>(args)->RunRead();
   }
 
   static void EraseMain(void* args) {
+    DBUG_TRACE;
     static_cast<HashTableBenchmark*>(args)->RunErase();
   }
 
@@ -192,12 +202,14 @@ class HashTableBenchmark {
 class SimpleImpl : public HashTableImpl<size_t, string> {
  public:
   bool Insert(const size_t& key, const string& val) override {
+    DBUG_TRACE;
     WriteLock _(&rwlock_);
     map_.insert(make_pair(key, val));
     return true;
   }
 
   bool Erase(const size_t& key) override {
+    DBUG_TRACE;
     WriteLock _(&rwlock_);
     auto it = map_.find(key);
     if (it == map_.end()) {
@@ -208,6 +220,7 @@ class SimpleImpl : public HashTableImpl<size_t, string> {
   }
 
   bool Lookup(const size_t& key, string* val) override {
+    DBUG_TRACE;
     ReadLock _(&rwlock_);
     auto it = map_.find(key);
     if (it != map_.end()) {
@@ -228,16 +241,19 @@ class SimpleImpl : public HashTableImpl<size_t, string> {
 class GranularLockImpl : public HashTableImpl<size_t, string> {
  public:
   bool Insert(const size_t& key, const string& val) override {
+    DBUG_TRACE;
     Node n(key, val);
     return impl_.Insert(n);
   }
 
   bool Erase(const size_t& key) override {
+    DBUG_TRACE;
     Node n(key, string());
     return impl_.Erase(n, nullptr);
   }
 
   bool Lookup(const size_t& key, string* val) override {
+    DBUG_TRACE;
     Node n(key, string());
     port::RWMutex* rlock;
     bool status = impl_.Find(n, &n, &rlock);
@@ -258,12 +274,14 @@ class GranularLockImpl : public HashTableImpl<size_t, string> {
 
   struct Hash {
     uint64_t operator()(const Node& node) {
+      DBUG_TRACE;
       return std::hash<uint64_t>()(node.key_);
     }
   };
 
   struct Equal {
     bool operator()(const Node& lhs, const Node& rhs) {
+      DBUG_TRACE;
       return lhs.key_ == rhs.key_;
     }
   };
@@ -277,6 +295,7 @@ class GranularLockImpl : public HashTableImpl<size_t, string> {
 // main
 //
 int main(int argc, char** argv) {
+  DBUG_TRACE;
   GFLAGS_NAMESPACE::SetUsageMessage(std::string("\nUSAGE:\n") +
                                     std::string(argv[0]) + " [OPTIONS]...");
   GFLAGS_NAMESPACE::ParseCommandLineFlags(&argc, &argv, false);

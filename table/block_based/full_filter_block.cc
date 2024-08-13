@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "table/block_based/full_filter_block.h"
 
 #include <array>
@@ -32,10 +33,12 @@ FullFilterBlockBuilder::FullFilterBlockBuilder(
 }
 
 size_t FullFilterBlockBuilder::EstimateEntriesAdded() {
+  DBUG_TRACE;
   return filter_bits_builder_->EstimateEntriesAdded();
 }
 
 void FullFilterBlockBuilder::Add(const Slice& key_without_ts) {
+  DBUG_TRACE;
   const bool add_prefix =
       prefix_extractor_ && prefix_extractor_->InDomain(key_without_ts);
 
@@ -75,12 +78,14 @@ void FullFilterBlockBuilder::Add(const Slice& key_without_ts) {
 
 // Add key to filter if needed
 inline void FullFilterBlockBuilder::AddKey(const Slice& key) {
+  DBUG_TRACE;
   filter_bits_builder_->AddKey(key);
   any_added_ = true;
 }
 
 // Add prefix to filter if needed
 void FullFilterBlockBuilder::AddPrefix(const Slice& key) {
+  DBUG_TRACE;
   assert(prefix_extractor_ && prefix_extractor_->InDomain(key));
   Slice prefix = prefix_extractor_->Transform(key);
   if (need_last_prefix_) {
@@ -108,6 +113,7 @@ void FullFilterBlockBuilder::AddPrefix(const Slice& key) {
 }
 
 void FullFilterBlockBuilder::Reset() {
+  DBUG_TRACE;
   last_whole_key_recorded_ = false;
   last_prefix_recorded_ = false;
 }
@@ -115,6 +121,7 @@ void FullFilterBlockBuilder::Reset() {
 Status FullFilterBlockBuilder::Finish(
     const BlockHandle& /*last_partition_block_handle*/, Slice* filter,
     std::unique_ptr<const char[]>* filter_owner) {
+  DBUG_TRACE;
   Reset();
   Status s = Status::OK();
   if (any_added_) {
@@ -137,6 +144,7 @@ bool FullFilterBlockReader::KeyMayMatch(const Slice& key,
                                         GetContext* get_context,
                                         BlockCacheLookupContext* lookup_context,
                                         const ReadOptions& read_options) {
+  DBUG_TRACE;
   if (!whole_key_filtering()) {
     return true;
   }
@@ -147,6 +155,7 @@ std::unique_ptr<FilterBlockReader> FullFilterBlockReader::Create(
     const BlockBasedTable* table, const ReadOptions& ro,
     FilePrefetchBuffer* prefetch_buffer, bool use_cache, bool prefetch,
     bool pin, BlockCacheLookupContext* lookup_context) {
+  DBUG_TRACE;
   assert(table);
   assert(table->get_rep());
   assert(!pin || prefetch);
@@ -174,6 +183,7 @@ bool FullFilterBlockReader::PrefixMayMatch(
     const Slice& prefix, const Slice* const /*const_ikey_ptr*/,
     GetContext* get_context, BlockCacheLookupContext* lookup_context,
     const ReadOptions& read_options) {
+  DBUG_TRACE;
   return MayMatch(prefix, get_context, lookup_context, read_options);
 }
 
@@ -181,6 +191,7 @@ bool FullFilterBlockReader::MayMatch(const Slice& entry,
                                      GetContext* get_context,
                                      BlockCacheLookupContext* lookup_context,
                                      const ReadOptions& read_options) const {
+  DBUG_TRACE;
   CachableEntry<ParsedFullFilterBlock> filter_block;
 
   const Status s = GetOrReadFilterBlock(get_context, lookup_context,
@@ -210,6 +221,7 @@ bool FullFilterBlockReader::MayMatch(const Slice& entry,
 void FullFilterBlockReader::KeysMayMatch(
     MultiGetRange* range, BlockCacheLookupContext* lookup_context,
     const ReadOptions& read_options) {
+  DBUG_TRACE;
   if (!whole_key_filtering()) {
     // Simply return. Don't skip any key - consider all keys as likely to be
     // present
@@ -221,6 +233,7 @@ void FullFilterBlockReader::KeysMayMatch(
 void FullFilterBlockReader::PrefixesMayMatch(
     MultiGetRange* range, const SliceTransform* prefix_extractor,
     BlockCacheLookupContext* lookup_context, const ReadOptions& read_options) {
+  DBUG_TRACE;
   MayMatch(range, prefix_extractor, lookup_context, read_options);
 }
 
@@ -228,6 +241,7 @@ void FullFilterBlockReader::MayMatch(MultiGetRange* range,
                                      const SliceTransform* prefix_extractor,
                                      BlockCacheLookupContext* lookup_context,
                                      const ReadOptions& read_options) const {
+  DBUG_TRACE;
   CachableEntry<ParsedFullFilterBlock> filter_block;
 
   const Status s = GetOrReadFilterBlock(
@@ -285,6 +299,7 @@ void FullFilterBlockReader::MayMatch(MultiGetRange* range,
 }
 
 size_t FullFilterBlockReader::ApproximateMemoryUsage() const {
+  DBUG_TRACE;
   size_t usage = ApproximateFilterBlockMemoryUsage();
 #ifdef ROCKSDB_MALLOC_USABLE_SIZE
   usage += malloc_usable_size(const_cast<FullFilterBlockReader*>(this));

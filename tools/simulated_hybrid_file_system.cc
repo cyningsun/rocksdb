@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "util/stop_watch.h"
 
 #include <algorithm>
@@ -21,12 +22,14 @@ namespace {
 // From bytes to read/write, calculate service time needed by an HDD.
 // This is used to simulate latency from HDD.
 int CalculateServeTimeUs(size_t bytes) {
+  DBUG_TRACE;
   return 12200 + static_cast<int>(static_cast<double>(bytes) * 0.005215);
 }
 
 // There is a bug in rater limiter that would crash with small requests
 // Hack to get it around.
 void RateLimiterRequest(RateLimiter* rater_limiter, int64_t amount) {
+  DBUG_TRACE;
   int64_t left = amount * kDummyBytesPerUs;
   const int64_t kMaxToRequest = kDummyBytesPerUs * kUsPerSec / 1024;
   while (left > 0) {
@@ -98,6 +101,7 @@ SimulatedHybridFileSystem::~SimulatedHybridFileSystem() {
 IOStatus SimulatedHybridFileSystem::NewRandomAccessFile(
     const std::string& fname, const FileOptions& file_opts,
     std::unique_ptr<FSRandomAccessFile>* result, IODebugContext* dbg) {
+  DBUG_TRACE;
   Temperature temperature = Temperature::kUnknown;
   if (is_full_fs_warm_) {
     temperature = Temperature::kWarm;
@@ -117,6 +121,7 @@ IOStatus SimulatedHybridFileSystem::NewRandomAccessFile(
 IOStatus SimulatedHybridFileSystem::NewWritableFile(
     const std::string& fname, const FileOptions& file_opts,
     std::unique_ptr<FSWritableFile>* result, IODebugContext* dbg) {
+  DBUG_TRACE;
   if (file_opts.temperature == Temperature::kWarm) {
     const std::lock_guard<std::mutex> lock(mutex_);
     warm_file_set_.insert(fname);
@@ -132,6 +137,7 @@ IOStatus SimulatedHybridFileSystem::NewWritableFile(
 IOStatus SimulatedHybridFileSystem::DeleteFile(const std::string& fname,
                                                const IOOptions& options,
                                                IODebugContext* dbg) {
+  DBUG_TRACE;
   {
     const std::lock_guard<std::mutex> lock(mutex_);
     warm_file_set_.erase(fname);
@@ -142,6 +148,7 @@ IOStatus SimulatedHybridFileSystem::DeleteFile(const std::string& fname,
 IOStatus SimulatedHybridRaf::Read(uint64_t offset, size_t n,
                                   const IOOptions& options, Slice* result,
                                   char* scratch, IODebugContext* dbg) const {
+  DBUG_TRACE;
   if (temperature_ == Temperature::kWarm) {
     SimulateIOWait(n);
   }
@@ -151,6 +158,7 @@ IOStatus SimulatedHybridRaf::Read(uint64_t offset, size_t n,
 IOStatus SimulatedHybridRaf::MultiRead(FSReadRequest* reqs, size_t num_reqs,
                                        const IOOptions& options,
                                        IODebugContext* dbg) {
+  DBUG_TRACE;
   if (temperature_ == Temperature::kWarm) {
     for (size_t i = 0; i < num_reqs; i++) {
       SimulateIOWait(reqs[i].len);
@@ -162,6 +170,7 @@ IOStatus SimulatedHybridRaf::MultiRead(FSReadRequest* reqs, size_t num_reqs,
 IOStatus SimulatedHybridRaf::Prefetch(uint64_t offset, size_t n,
                                       const IOOptions& options,
                                       IODebugContext* dbg) {
+  DBUG_TRACE;
   if (temperature_ == Temperature::kWarm) {
     SimulateIOWait(n);
   }
@@ -169,6 +178,7 @@ IOStatus SimulatedHybridRaf::Prefetch(uint64_t offset, size_t n,
 }
 
 void SimulatedHybridRaf::SimulateIOWait(int64_t bytes) const {
+  DBUG_TRACE;
   int serve_time = CalculateServeTimeUs(bytes);
   {
     StopWatchNano stop_watch(Env::Default()->GetSystemClock().get(),
@@ -182,6 +192,7 @@ void SimulatedHybridRaf::SimulateIOWait(int64_t bytes) const {
 }
 
 void SimulatedWritableFile::SimulateIOWait(int64_t bytes) const {
+  DBUG_TRACE;
   int serve_time = CalculateServeTimeUs(bytes);
   Env::Default()->SleepForMicroseconds(serve_time);
   RateLimiterRequest(rate_limiter_.get(), serve_time);
@@ -189,6 +200,7 @@ void SimulatedWritableFile::SimulateIOWait(int64_t bytes) const {
 
 IOStatus SimulatedWritableFile::Append(const Slice& data, const IOOptions& ioo,
                                        IODebugContext* idc) {
+  DBUG_TRACE;
   if (use_direct_io()) {
     SimulateIOWait(data.size());
   } else {
@@ -200,6 +212,7 @@ IOStatus SimulatedWritableFile::Append(const Slice& data, const IOOptions& ioo,
 IOStatus SimulatedWritableFile::Append(
     const Slice& data, const IOOptions& options,
     const DataVerificationInfo& verification_info, IODebugContext* dbg) {
+  DBUG_TRACE;
   if (use_direct_io()) {
     SimulateIOWait(data.size());
   } else {
@@ -212,6 +225,7 @@ IOStatus SimulatedWritableFile::PositionedAppend(const Slice& data,
                                                  uint64_t offset,
                                                  const IOOptions& options,
                                                  IODebugContext* dbg) {
+  DBUG_TRACE;
   if (use_direct_io()) {
     SimulateIOWait(data.size());
   } else {
@@ -223,6 +237,7 @@ IOStatus SimulatedWritableFile::PositionedAppend(const Slice& data,
 IOStatus SimulatedWritableFile::PositionedAppend(
     const Slice& data, uint64_t offset, const IOOptions& options,
     const DataVerificationInfo& verification_info, IODebugContext* dbg) {
+  DBUG_TRACE;
   if (use_direct_io()) {
     SimulateIOWait(data.size());
   } else {
@@ -235,6 +250,7 @@ IOStatus SimulatedWritableFile::PositionedAppend(
 
 IOStatus SimulatedWritableFile::Sync(const IOOptions& options,
                                      IODebugContext* dbg) {
+  DBUG_TRACE;
   if (unsynced_bytes > 0) {
     SimulateIOWait(unsynced_bytes);
     unsynced_bytes = 0;

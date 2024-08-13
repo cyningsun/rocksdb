@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #ifdef GFLAGS
 #include "db_stress_tool/db_stress_common.h"
 
@@ -16,7 +17,7 @@ class BatchedOpsStressTest : public StressTest {
   BatchedOpsStressTest() = default;
   virtual ~BatchedOpsStressTest() = default;
 
-  bool IsStateTracked() const override { return false; }
+  bool IsStateTracked() const override { DBUG_TRACE; return false; }
 
   // Given a key K and value V, this puts ("0"+K, V+"0"), ("1"+K, V+"1"), ...,
   // ("9"+K, V+"9") in DB atomically i.e in a single batch.
@@ -26,6 +27,7 @@ class BatchedOpsStressTest : public StressTest {
                  const std::vector<int>& rand_column_families,
                  const std::vector<int64_t>& rand_keys,
                  char (&value)[100]) override {
+    DBUG_TRACE;
     assert(!rand_column_families.empty());
     assert(!rand_keys.empty());
 
@@ -95,6 +97,7 @@ class BatchedOpsStressTest : public StressTest {
   Status TestDelete(ThreadState* thread, WriteOptions& writeoptions,
                     const std::vector<int>& rand_column_families,
                     const std::vector<int64_t>& rand_keys) override {
+    DBUG_TRACE;
     std::string keys[10] = {"9", "7", "5", "3", "1", "8", "6", "4", "2", "0"};
 
     WriteBatch batch(0 /* reserved_bytes */, 0 /* max_bytes */,
@@ -123,6 +126,7 @@ class BatchedOpsStressTest : public StressTest {
                          WriteOptions& /* write_opts */,
                          const std::vector<int>& /* rand_column_families */,
                          const std::vector<int64_t>& /* rand_keys */) override {
+    DBUG_TRACE;
     assert(false);
     return Status::NotSupported(
         "BatchedOpsStressTest does not support "
@@ -133,6 +137,7 @@ class BatchedOpsStressTest : public StressTest {
       ThreadState* /* thread */,
       const std::vector<int>& /* rand_column_families */,
       const std::vector<int64_t>& /* rand_keys */) override {
+    DBUG_TRACE;
     assert(false);
     fprintf(stderr,
             "BatchedOpsStressTest does not support "
@@ -148,6 +153,7 @@ class BatchedOpsStressTest : public StressTest {
   Status TestGet(ThreadState* thread, const ReadOptions& readoptions,
                  const std::vector<int>& rand_column_families,
                  const std::vector<int64_t>& rand_keys) override {
+    DBUG_TRACE;
     std::string keys[10] = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"};
     Slice key_slices[10];
     std::string values[10];
@@ -210,6 +216,7 @@ class BatchedOpsStressTest : public StressTest {
       ThreadState* thread, const ReadOptions& readoptions,
       const std::vector<int>& rand_column_families,
       const std::vector<int64_t>& rand_keys) override {
+    DBUG_TRACE;
     size_t num_keys = rand_keys.size();
     std::vector<Status> ret_status(num_keys);
     std::array<std::string, 10> keys = {
@@ -671,12 +678,13 @@ class BatchedOpsStressTest : public StressTest {
     return Status::OK();
   }
 
-  void VerifyDb(ThreadState* /* thread */) const override {}
+  void VerifyDb(ThreadState* /* thread */) const override {DBUG_TRACE;}
 
-  void ContinuouslyVerifyDb(ThreadState* /* thread */) const override {}
+  void ContinuouslyVerifyDb(ThreadState* /* thread */) const override {DBUG_TRACE;}
 
   // Compare columns ignoring the last character of column values
   bool CompareColumns(const WideColumns& lhs, const WideColumns& rhs) {
+    DBUG_TRACE;
     if (lhs.size() != rhs.size()) {
       return false;
     }
@@ -700,7 +708,7 @@ class BatchedOpsStressTest : public StressTest {
   }
 };
 
-StressTest* CreateBatchedOpsStressTest() { return new BatchedOpsStressTest(); }
+StressTest* CreateBatchedOpsStressTest() { DBUG_TRACE; return new BatchedOpsStressTest(); }
 
 }  // namespace ROCKSDB_NAMESPACE
 #endif  // GFLAGS

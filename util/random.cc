@@ -4,6 +4,7 @@
 //  (found in the LICENSE.Apache file in the root directory).
 //
 
+#include "rocksdb/util/dbug.h"
 #include "util/random.h"
 
 #include <climits>
@@ -21,6 +22,7 @@
 namespace ROCKSDB_NAMESPACE {
 
 Random* Random::GetTLSInstance() {
+  DBUG_TRACE;
   STORAGE_DECL Random* tls_instance;
   STORAGE_DECL aligned_storage<Random>::type tls_instance_bytes;
 
@@ -34,6 +36,7 @@ Random* Random::GetTLSInstance() {
 }
 
 std::string Random::HumanReadableString(int len) {
+  DBUG_TRACE;
   std::string ret;
   ret.resize(len);
   for (int i = 0; i < len; ++i) {
@@ -43,6 +46,7 @@ std::string Random::HumanReadableString(int len) {
 }
 
 std::string Random::RandomString(int len) {
+  DBUG_TRACE;
   std::string ret;
   ret.resize(len);
   for (int i = 0; i < len; i++) {
@@ -52,6 +56,7 @@ std::string Random::RandomString(int len) {
 }
 
 std::string Random::RandomBinaryString(int len) {
+  DBUG_TRACE;
   std::string ret;
   ret.resize(len);
   for (int i = 0; i < len; i++) {

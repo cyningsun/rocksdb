@@ -9,6 +9,7 @@
   All code is released to the public domain. For business purposes, Murmurhash
   is under the MIT license.
 */
+#include "rocksdb/util/dbug.h"
 #include "murmurhash.h"
 
 #include "port/lang.h"
@@ -32,6 +33,7 @@ __attribute__((__no_sanitize_undefined__))
 // clang-format off
 uint64_t MurmurHash64A ( const void * key, int len, unsigned int seed )
 {
+    DBUG_TRACE;
     const uint64_t m = 0xc6a4a7935bd1e995;
     const int r = 47;
 

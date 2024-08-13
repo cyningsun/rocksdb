@@ -4,6 +4,7 @@
 //  (found in the LICENSE.Apache file in the root directory).
 
 
+#include "rocksdb/util/dbug.h"
 #include "utilities/transactions/lock/point/point_lock_manager.h"
 
 #include <algorithm>
@@ -37,6 +38,7 @@ struct LockInfo {
 
       = default;
   void operator=(const LockInfo& lock_info) {
+    DBUG_TRACE;
     exclusive = lock_info.exclusive;
     txn_ids = lock_info.txn_ids;
     expiration_time = lock_info.expiration_time;
@@ -95,6 +97,7 @@ struct LockMap {
 
 namespace {
 void UnrefLockMapsCache(void* ptr) {
+  DBUG_TRACE;
   // Called when a thread exits or a ThreadLocalPtr gets destroyed.
   auto lock_maps_cache =
       static_cast<UnorderedMap<uint32_t, std::shared_ptr<LockMap>>*>(ptr);
@@ -114,11 +117,13 @@ PointLockManager::PointLockManager(PessimisticTransactionDB* txn_db,
                          : std::make_shared<TransactionDBMutexFactoryImpl>()) {}
 
 size_t LockMap::GetStripe(const std::string& key) const {
+  DBUG_TRACE;
   assert(num_stripes_ > 0);
   return FastRange64(GetSliceNPHash64(key), num_stripes_);
 }
 
 void PointLockManager::AddColumnFamily(const ColumnFamilyHandle* cf) {
+  DBUG_TRACE;
   InstrumentedMutexLock l(&lock_map_mutex_);
 
   if (lock_maps_.find(cf->GetID()) == lock_maps_.end()) {
@@ -131,6 +136,7 @@ void PointLockManager::AddColumnFamily(const ColumnFamilyHandle* cf) {
 }
 
 void PointLockManager::RemoveColumnFamily(const ColumnFamilyHandle* cf) {
+  DBUG_TRACE;
   // Remove lock_map for this column family.  Since the lock map is stored
   // as a shared ptr, concurrent transactions can still keep using it
   // until they release their references to it.
@@ -158,6 +164,7 @@ void PointLockManager::RemoveColumnFamily(const ColumnFamilyHandle* cf) {
 //   to the returned std::shared_ptr.
 std::shared_ptr<LockMap> PointLockManager::GetLockMap(
     ColumnFamilyId column_family_id) {
+  DBUG_TRACE;
   // First check thread-local cache
   if (lock_maps_cache_->Get() == nullptr) {
     lock_maps_cache_->Reset(new LockMaps());
@@ -193,6 +200,7 @@ std::shared_ptr<LockMap> PointLockManager::GetLockMap(
 bool PointLockManager::IsLockExpired(TransactionID txn_id,
                                      const LockInfo& lock_info, Env* env,
                                      uint64_t* expire_time) {
+  DBUG_TRACE;
   if (lock_info.expiration_time == 0) {
     *expire_time = 0;
     return false;
@@ -225,6 +233,7 @@ Status PointLockManager::TryLock(PessimisticTransaction* txn,
                                  ColumnFamilyId column_family_id,
                                  const std::string& key, Env* env,
                                  bool exclusive) {
+  DBUG_TRACE;
   // Lookup lock map for this column family id
   std::shared_ptr<LockMap> lock_map_ptr = GetLockMap(column_family_id);
   LockMap* lock_map = lock_map_ptr.get();
@@ -253,6 +262,7 @@ Status PointLockManager::AcquireWithTimeout(
     PessimisticTransaction* txn, LockMap* lock_map, LockMapStripe* stripe,
     ColumnFamilyId column_family_id, const std::string& key, Env* env,
     int64_t timeout, const LockInfo& lock_info) {
+  DBUG_TRACE;
   Status result;
   uint64_t end_time = 0;
 
@@ -353,6 +363,7 @@ Status PointLockManager::AcquireWithTimeout(
 void PointLockManager::DecrementWaiters(
     const PessimisticTransaction* txn,
     const autovector<TransactionID>& wait_ids) {
+  DBUG_TRACE;
   std::lock_guard<std::mutex> lock(wait_txn_map_mutex_);
   DecrementWaitersImpl(txn, wait_ids);
 }
@@ -360,6 +371,7 @@ void PointLockManager::DecrementWaiters(
 void PointLockManager::DecrementWaitersImpl(
     const PessimisticTransaction* txn,
     const autovector<TransactionID>& wait_ids) {
+  DBUG_TRACE;
   auto id = txn->GetID();
   assert(wait_txn_map_.Contains(id));
   wait_txn_map_.Delete(id);
@@ -376,6 +388,7 @@ bool PointLockManager::IncrementWaiters(
     const PessimisticTransaction* txn,
     const autovector<TransactionID>& wait_ids, const std::string& key,
     const uint32_t& cf_id, const bool& exclusive, Env* const env) {
+  DBUG_TRACE;
   auto id = txn->GetID();
   std::vector<int> queue_parents(
       static_cast<size_t>(txn->GetDeadlockDetectDepth()));
@@ -476,6 +489,7 @@ Status PointLockManager::AcquireLocked(LockMap* lock_map, LockMapStripe* stripe,
                                        const LockInfo& txn_lock_info,
                                        uint64_t* expire_time,
                                        autovector<TransactionID>* txn_ids) {
+  DBUG_TRACE;
   assert(txn_lock_info.txn_ids.size() == 1);
 
   Status result;
@@ -540,6 +554,7 @@ Status PointLockManager::AcquireLocked(LockMap* lock_map, LockMapStripe* stripe,
 void PointLockManager::UnLockKey(PessimisticTransaction* txn,
                                  const std::string& key, LockMapStripe* stripe,
                                  LockMap* lock_map, Env* env) {
+DBUG_TRACE;
 #ifdef NDEBUG
   (void)env;
 #endif
@@ -578,6 +593,7 @@ void PointLockManager::UnLockKey(PessimisticTransaction* txn,
 void PointLockManager::UnLock(PessimisticTransaction* txn,
                               ColumnFamilyId column_family_id,
                               const std::string& key, Env* env) {
+  DBUG_TRACE;
   std::shared_ptr<LockMap> lock_map_ptr = GetLockMap(column_family_id);
   LockMap* lock_map = lock_map_ptr.get();
   if (lock_map == nullptr) {
@@ -600,6 +616,7 @@ void PointLockManager::UnLock(PessimisticTransaction* txn,
 
 void PointLockManager::UnLock(PessimisticTransaction* txn,
                               const LockTracker& tracker, Env* env) {
+  DBUG_TRACE;
   std::unique_ptr<LockTracker::ColumnFamilyIterator> cf_it(
       tracker.GetColumnFamilyIterator());
   assert(cf_it != nullptr);
@@ -647,6 +664,7 @@ void PointLockManager::UnLock(PessimisticTransaction* txn,
 }
 
 PointLockManager::PointLockStatus PointLockManager::GetPointLockStatus() {
+  DBUG_TRACE;
   PointLockStatus data;
   // Lock order here is important. The correct order is lock_map_mutex_, then
   // for every column family ID in ascending order lock every stripe in
@@ -688,14 +706,17 @@ PointLockManager::PointLockStatus PointLockManager::GetPointLockStatus() {
 }
 
 std::vector<DeadlockPath> PointLockManager::GetDeadlockInfoBuffer() {
+  DBUG_TRACE;
   return dlock_buffer_.PrepareBuffer();
 }
 
 void PointLockManager::Resize(uint32_t target_size) {
+  DBUG_TRACE;
   dlock_buffer_.Resize(target_size);
 }
 
 PointLockManager::RangeLockStatus PointLockManager::GetRangeLockStatus() {
+  DBUG_TRACE;
   return {};
 }
 
@@ -704,6 +725,7 @@ Status PointLockManager::TryLock(PessimisticTransaction* /* txn */,
                                  const Endpoint& /* start */,
                                  const Endpoint& /* end */, Env* /* env */,
                                  bool /* exclusive */) {
+  DBUG_TRACE;
   return Status::NotSupported(
       "PointLockManager does not support range locking");
 }
@@ -712,6 +734,7 @@ void PointLockManager::UnLock(PessimisticTransaction* /* txn */,
                               ColumnFamilyId /* cf_id */,
                               const Endpoint& /* start */,
                               const Endpoint& /* end */, Env* /* env */) {
+  DBUG_TRACE;
   // no-op
 }
 

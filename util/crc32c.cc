@@ -9,6 +9,7 @@
 //
 // A portable implementation of crc32c, optimized to handle
 // four bytes at a time.
+#include "rocksdb/util/dbug.h"
 #include "util/crc32c.h"
 
 #include <array>
@@ -244,11 +245,13 @@ static const uint32_t table3_[256] = {
 
 // Used to fetch a naturally-aligned 32-bit word in little endian byte-order
 static inline uint32_t LE_LOAD32(const uint8_t* p) {
+  DBUG_TRACE;
   return DecodeFixed32(reinterpret_cast<const char*>(p));
 }
 #endif  // !__SSE4_2__
 
 static inline void DefaultCRC32(uint64_t* l, uint8_t const** p) {
+DBUG_TRACE;
 #ifndef __SSE4_2__
   uint32_t c = static_cast<uint32_t>(*l ^ LE_LOAD32(*p));
   *p += 4;
@@ -360,6 +363,7 @@ uint32_t ExtendARMImpl(uint32_t crc, const char* buf, size_t size) {
 #endif
 
 std::string IsFastCrc32Supported() {
+  DBUG_TRACE;
   bool has_fast_crc = false;
   std::string fast_zero_msg;
   std::string arch;
@@ -1104,6 +1108,7 @@ uint32_t crc32c_3way(uint32_t crc, const char* buf, size_t len) {
 #endif //__SSE4_2__ && __PCLMUL__
 
 static inline Function Choose_Extend() {
+DBUG_TRACE;
 #ifdef HAVE_POWER8
   return isAltiVec() ? ExtendPPCImpl : ExtendImpl<DefaultCRC32>;
 #elif defined(HAVE_ARM64_CRC)
@@ -1130,6 +1135,7 @@ static inline Function Choose_Extend() {
 
 static Function ChosenExtend = Choose_Extend();
 uint32_t Extend(uint32_t crc, const char* buf, size_t size) {
+  DBUG_TRACE;
   return ChosenExtend(crc, buf, size);
 }
 
@@ -1203,6 +1209,7 @@ static constexpr std::array<uint32_t, 62> const crc32c_powers =
 static uint32_t Crc32AppendZeroes(
     uint32_t crc, size_t len_over_4, uint32_t polynomial,
     std::array<uint32_t, 62> const& powers_array) {
+  DBUG_TRACE;
   auto powers = powers_array.data();
   // Append by multiplying by consecutive powers of two of the zeroes
   // array
@@ -1223,11 +1230,12 @@ static uint32_t Crc32AppendZeroes(
   return crc;
 }
 
-static inline uint32_t InvertedToPure(uint32_t crc) { return ~crc; }
+static inline uint32_t InvertedToPure(uint32_t crc) { DBUG_TRACE; return ~crc; }
 
-static inline uint32_t PureToInverted(uint32_t crc) { return ~crc; }
+static inline uint32_t PureToInverted(uint32_t crc) { DBUG_TRACE; return ~crc; }
 
 static inline uint32_t PureExtend(uint32_t crc, const char* buf, size_t size) {
+  DBUG_TRACE;
   return InvertedToPure(Extend(PureToInverted(crc), buf, size));
 }
 
@@ -1276,6 +1284,7 @@ static inline uint32_t PureExtend(uint32_t crc, const char* buf, size_t size) {
 // the same logical position, we can combine them before we extend over the
 // zeros.
 uint32_t Crc32cCombine(uint32_t crc1, uint32_t crc2, size_t crc2len) {
+  DBUG_TRACE;
   uint32_t pure_crc1_with_init = InvertedToPure(crc1);
   uint32_t pure_crc2_with_init = InvertedToPure(crc2);
   uint32_t pure_crc2_init = static_cast<uint32_t>(-1);

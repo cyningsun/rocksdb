@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 //
+#include "rocksdb/util/dbug.h"
 #include "env/composite_env_wrapper.h"
 #include "rocksdb/utilities/options_type.h"
 #include "util/string_util.h"
@@ -26,20 +27,24 @@ class CompositeSequentialFileWrapper : public SequentialFile {
       : target_(std::move(target)) {}
 
   Status Read(size_t n, Slice* result, char* scratch) override {
+    DBUG_TRACE;
     IOOptions io_opts;
     IODebugContext dbg;
     return target_->Read(n, io_opts, result, scratch, &dbg);
   }
-  Status Skip(uint64_t n) override { return target_->Skip(n); }
-  bool use_direct_io() const override { return target_->use_direct_io(); }
+  Status Skip(uint64_t n) override { DBUG_TRACE; return target_->Skip(n); }
+  bool use_direct_io() const override { DBUG_TRACE; return target_->use_direct_io(); }
   size_t GetRequiredBufferAlignment() const override {
+    DBUG_TRACE;
     return target_->GetRequiredBufferAlignment();
   }
   Status InvalidateCache(size_t offset, size_t length) override {
+    DBUG_TRACE;
     return target_->InvalidateCache(offset, length);
   }
   Status PositionedRead(uint64_t offset, size_t n, Slice* result,
                         char* scratch) override {
+    DBUG_TRACE;
     IOOptions io_opts;
     IODebugContext dbg;
     return target_->PositionedRead(offset, n, io_opts, result, scratch, &dbg);
@@ -57,11 +62,13 @@ class CompositeRandomAccessFileWrapper : public RandomAccessFile {
 
   Status Read(uint64_t offset, size_t n, Slice* result,
               char* scratch) const override {
+    DBUG_TRACE;
     IOOptions io_opts;
     IODebugContext dbg;
     return target_->Read(offset, n, io_opts, result, scratch, &dbg);
   }
   Status MultiRead(ReadRequest* reqs, size_t num_reqs) override {
+    DBUG_TRACE;
     IOOptions io_opts;
     IODebugContext dbg;
     std::vector<FSReadRequest> fs_reqs;
@@ -82,21 +89,26 @@ class CompositeRandomAccessFileWrapper : public RandomAccessFile {
     return status;
   }
   Status Prefetch(uint64_t offset, size_t n) override {
+    DBUG_TRACE;
     IOOptions io_opts;
     IODebugContext dbg;
     return target_->Prefetch(offset, n, io_opts, &dbg);
   }
   size_t GetUniqueId(char* id, size_t max_size) const override {
+    DBUG_TRACE;
     return target_->GetUniqueId(id, max_size);
   }
   void Hint(AccessPattern pattern) override {
+    DBUG_TRACE;
     target_->Hint((FSRandomAccessFile::AccessPattern)pattern);
   }
-  bool use_direct_io() const override { return target_->use_direct_io(); }
+  bool use_direct_io() const override { DBUG_TRACE; return target_->use_direct_io(); }
   size_t GetRequiredBufferAlignment() const override {
+    DBUG_TRACE;
     return target_->GetRequiredBufferAlignment();
   }
   Status InvalidateCache(size_t offset, size_t length) override {
+    DBUG_TRACE;
     return target_->InvalidateCache(offset, length);
   }
 
@@ -110,17 +122,20 @@ class CompositeWritableFileWrapper : public WritableFile {
       : target_(std::move(t)) {}
 
   Status Append(const Slice& data) override {
+    DBUG_TRACE;
     IOOptions io_opts;
     IODebugContext dbg;
     return target_->Append(data, io_opts, &dbg);
   }
   Status Append(const Slice& data,
                 const DataVerificationInfo& verification_info) override {
+    DBUG_TRACE;
     IOOptions io_opts;
     IODebugContext dbg;
     return target_->Append(data, io_opts, verification_info, &dbg);
   }
   Status PositionedAppend(const Slice& data, uint64_t offset) override {
+    DBUG_TRACE;
     IOOptions io_opts;
     IODebugContext dbg;
     return target_->PositionedAppend(data, offset, io_opts, &dbg);
@@ -128,94 +143,111 @@ class CompositeWritableFileWrapper : public WritableFile {
   Status PositionedAppend(
       const Slice& data, uint64_t offset,
       const DataVerificationInfo& verification_info) override {
+    DBUG_TRACE;
     IOOptions io_opts;
     IODebugContext dbg;
     return target_->PositionedAppend(data, offset, io_opts, verification_info,
                                      &dbg);
   }
   Status Truncate(uint64_t size) override {
+    DBUG_TRACE;
     IOOptions io_opts;
     IODebugContext dbg;
     return target_->Truncate(size, io_opts, &dbg);
   }
   Status Close() override {
+    DBUG_TRACE;
     IOOptions io_opts;
     IODebugContext dbg;
     return target_->Close(io_opts, &dbg);
   }
   Status Flush() override {
+    DBUG_TRACE;
     IOOptions io_opts;
     IODebugContext dbg;
     return target_->Flush(io_opts, &dbg);
   }
   Status Sync() override {
+    DBUG_TRACE;
     IOOptions io_opts;
     IODebugContext dbg;
     return target_->Sync(io_opts, &dbg);
   }
   Status Fsync() override {
+    DBUG_TRACE;
     IOOptions io_opts;
     IODebugContext dbg;
     return target_->Fsync(io_opts, &dbg);
   }
-  bool IsSyncThreadSafe() const override { return target_->IsSyncThreadSafe(); }
+  bool IsSyncThreadSafe() const override { DBUG_TRACE; return target_->IsSyncThreadSafe(); }
 
-  bool use_direct_io() const override { return target_->use_direct_io(); }
+  bool use_direct_io() const override { DBUG_TRACE; return target_->use_direct_io(); }
 
   size_t GetRequiredBufferAlignment() const override {
+    DBUG_TRACE;
     return target_->GetRequiredBufferAlignment();
   }
 
   void SetWriteLifeTimeHint(Env::WriteLifeTimeHint hint) override {
+    DBUG_TRACE;
     target_->SetWriteLifeTimeHint(hint);
   }
 
   Env::WriteLifeTimeHint GetWriteLifeTimeHint() override {
+    DBUG_TRACE;
     return target_->GetWriteLifeTimeHint();
   }
 
   uint64_t GetFileSize() override {
+    DBUG_TRACE;
     IOOptions io_opts;
     IODebugContext dbg;
     return target_->GetFileSize(io_opts, &dbg);
   }
 
   void SetPreallocationBlockSize(size_t size) override {
+    DBUG_TRACE;
     target_->SetPreallocationBlockSize(size);
   }
 
   void GetPreallocationStatus(size_t* block_size,
                               size_t* last_allocated_block) override {
+    DBUG_TRACE;
     target_->GetPreallocationStatus(block_size, last_allocated_block);
   }
 
   size_t GetUniqueId(char* id, size_t max_size) const override {
+    DBUG_TRACE;
     return target_->GetUniqueId(id, max_size);
   }
 
   Status InvalidateCache(size_t offset, size_t length) override {
+    DBUG_TRACE;
     return target_->InvalidateCache(offset, length);
   }
 
   Status RangeSync(uint64_t offset, uint64_t nbytes) override {
+    DBUG_TRACE;
     IOOptions io_opts;
     IODebugContext dbg;
     return target_->RangeSync(offset, nbytes, io_opts, &dbg);
   }
 
   void PrepareWrite(size_t offset, size_t len) override {
+    DBUG_TRACE;
     IOOptions io_opts;
     IODebugContext dbg;
     target_->PrepareWrite(offset, len, io_opts, &dbg);
   }
 
   Status Allocate(uint64_t offset, uint64_t len) override {
+    DBUG_TRACE;
     IOOptions io_opts;
     IODebugContext dbg;
     return target_->Allocate(offset, len, io_opts, &dbg);
   }
 
-  std::unique_ptr<FSWritableFile>* target() { return &target_; }
+  std::unique_ptr<FSWritableFile>* target() { DBUG_TRACE; return &target_; }
 
  private:
   std::unique_ptr<FSWritableFile> target_;
@@ -226,37 +258,44 @@ class CompositeRandomRWFileWrapper : public RandomRWFile {
   explicit CompositeRandomRWFileWrapper(std::unique_ptr<FSRandomRWFile>& target)
       : target_(std::move(target)) {}
 
-  bool use_direct_io() const override { return target_->use_direct_io(); }
+  bool use_direct_io() const override { DBUG_TRACE; return target_->use_direct_io(); }
   size_t GetRequiredBufferAlignment() const override {
+    DBUG_TRACE;
     return target_->GetRequiredBufferAlignment();
   }
   Status Write(uint64_t offset, const Slice& data) override {
+    DBUG_TRACE;
     IOOptions io_opts;
     IODebugContext dbg;
     return target_->Write(offset, data, io_opts, &dbg);
   }
   Status Read(uint64_t offset, size_t n, Slice* result,
               char* scratch) const override {
+    DBUG_TRACE;
     IOOptions io_opts;
     IODebugContext dbg;
     return target_->Read(offset, n, io_opts, result, scratch, &dbg);
   }
   Status Flush() override {
+    DBUG_TRACE;
     IOOptions io_opts;
     IODebugContext dbg;
     return target_->Flush(io_opts, &dbg);
   }
   Status Sync() override {
+    DBUG_TRACE;
     IOOptions io_opts;
     IODebugContext dbg;
     return target_->Sync(io_opts, &dbg);
   }
   Status Fsync() override {
+    DBUG_TRACE;
     IOOptions io_opts;
     IODebugContext dbg;
     return target_->Fsync(io_opts, &dbg);
   }
   Status Close() override {
+    DBUG_TRACE;
     IOOptions io_opts;
     IODebugContext dbg;
     return target_->Close(io_opts, &dbg);
@@ -272,18 +311,21 @@ class CompositeDirectoryWrapper : public Directory {
       : target_(std::move(target)) {}
 
   Status Fsync() override {
+    DBUG_TRACE;
     IOOptions io_opts;
     IODebugContext dbg;
     return target_->FsyncWithDirOptions(io_opts, &dbg, DirFsyncOptions());
   }
 
   Status Close() override {
+    DBUG_TRACE;
     IOOptions io_opts;
     IODebugContext dbg;
     return target_->Close(io_opts, &dbg);
   }
 
   size_t GetUniqueId(char* id, size_t max_size) const override {
+    DBUG_TRACE;
     return target_->GetUniqueId(id, max_size);
   }
 
@@ -295,6 +337,7 @@ class CompositeDirectoryWrapper : public Directory {
 Status CompositeEnv::NewSequentialFile(const std::string& f,
                                        std::unique_ptr<SequentialFile>* r,
                                        const EnvOptions& options) {
+  DBUG_TRACE;
   IODebugContext dbg;
   std::unique_ptr<FSSequentialFile> file;
   Status status;
@@ -309,6 +352,7 @@ Status CompositeEnv::NewSequentialFile(const std::string& f,
 Status CompositeEnv::NewRandomAccessFile(const std::string& f,
                                          std::unique_ptr<RandomAccessFile>* r,
                                          const EnvOptions& options) {
+  DBUG_TRACE;
   IODebugContext dbg;
   std::unique_ptr<FSRandomAccessFile> file;
   Status status;
@@ -323,6 +367,7 @@ Status CompositeEnv::NewRandomAccessFile(const std::string& f,
 Status CompositeEnv::NewWritableFile(const std::string& f,
                                      std::unique_ptr<WritableFile>* r,
                                      const EnvOptions& options) {
+  DBUG_TRACE;
   IODebugContext dbg;
   std::unique_ptr<FSWritableFile> file;
   Status status;
@@ -336,6 +381,7 @@ Status CompositeEnv::NewWritableFile(const std::string& f,
 Status CompositeEnv::ReopenWritableFile(const std::string& fname,
                                         std::unique_ptr<WritableFile>* result,
                                         const EnvOptions& options) {
+  DBUG_TRACE;
   IODebugContext dbg;
   Status status;
   std::unique_ptr<FSWritableFile> file;
@@ -351,6 +397,7 @@ Status CompositeEnv::ReuseWritableFile(const std::string& fname,
                                        const std::string& old_fname,
                                        std::unique_ptr<WritableFile>* r,
                                        const EnvOptions& options) {
+  DBUG_TRACE;
   IODebugContext dbg;
   Status status;
   std::unique_ptr<FSWritableFile> file;
@@ -365,6 +412,7 @@ Status CompositeEnv::ReuseWritableFile(const std::string& fname,
 Status CompositeEnv::NewRandomRWFile(const std::string& fname,
                                      std::unique_ptr<RandomRWFile>* result,
                                      const EnvOptions& options) {
+  DBUG_TRACE;
   IODebugContext dbg;
   std::unique_ptr<FSRandomRWFile> file;
   Status status;
@@ -378,6 +426,7 @@ Status CompositeEnv::NewRandomRWFile(const std::string& fname,
 
 Status CompositeEnv::NewDirectory(const std::string& name,
                                   std::unique_ptr<Directory>* result) {
+  DBUG_TRACE;
   IOOptions io_opts;
   IODebugContext dbg;
   std::unique_ptr<FSDirectory> dir;
@@ -450,6 +499,7 @@ static std::unordered_map<std::string, OptionTypeInfo>
 }  // namespace
 
 std::unique_ptr<Env> NewCompositeEnv(const std::shared_ptr<FileSystem>& fs) {
+  DBUG_TRACE;
   return std::unique_ptr<Env>(new CompositeEnvWrapper(Env::Default(), fs));
 }
 
@@ -472,6 +522,7 @@ CompositeEnvWrapper::CompositeEnvWrapper(const std::shared_ptr<Env>& env,
 }
 
 Status CompositeEnvWrapper::PrepareOptions(const ConfigOptions& options) {
+  DBUG_TRACE;
   target_.Prepare();
   if (file_system_ == nullptr) {
     file_system_ = target_.env->GetFileSystem();
@@ -484,6 +535,7 @@ Status CompositeEnvWrapper::PrepareOptions(const ConfigOptions& options) {
 
 std::string CompositeEnvWrapper::SerializeOptions(
     const ConfigOptions& config_options, const std::string& header) const {
+  DBUG_TRACE;
   auto options = CompositeEnv::SerializeOptions(config_options, header);
   if (target_.env != nullptr && target_.env != Env::Default()) {
     options.append("target=");
@@ -507,12 +559,14 @@ EnvWrapper::EnvWrapper(const std::shared_ptr<Env>& t) : target_(t) {
 EnvWrapper::~EnvWrapper() = default;
 
 Status EnvWrapper::PrepareOptions(const ConfigOptions& options) {
+  DBUG_TRACE;
   target_.Prepare();
   return Env::PrepareOptions(options);
 }
 
 std::string EnvWrapper::SerializeOptions(const ConfigOptions& config_options,
                                          const std::string& header) const {
+  DBUG_TRACE;
   auto parent = Env::SerializeOptions(config_options, "");
   if (config_options.IsShallow() || target_.env == nullptr ||
       target_.env == Env::Default()) {

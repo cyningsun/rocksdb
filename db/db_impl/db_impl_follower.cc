@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "db/db_impl/db_impl_follower.h"
 
 #include <algorithm>
@@ -57,6 +58,7 @@ Status DBImplFollower::Recover(
     bool /*readonly*/, bool /*error_if_wal_file_exists*/,
     bool /*error_if_data_exists_in_wals*/, bool /*is_retry*/, uint64_t*,
     RecoveryContext* /*recovery_ctx*/, bool* /*can_retry*/) {
+  DBUG_TRACE;
   mutex_.AssertHeld();
 
   JobContext job_context(0);
@@ -93,6 +95,7 @@ Status DBImplFollower::Recover(
 //   1. Cleanup obsolete files afterward
 //   2. Add some error notifications and statistics
 Status DBImplFollower::TryCatchUpWithLeader() {
+  DBUG_TRACE;
   assert(versions_.get() != nullptr);
   assert(manifest_reader_.get() != nullptr);
   Status s;
@@ -190,6 +193,7 @@ Status DBImplFollower::TryCatchUpWithLeader() {
 }
 
 void DBImplFollower::PeriodicRefresh() {
+  DBUG_TRACE;
   while (!stop_requested_.load()) {
     MutexLock l(&mu_);
     int64_t wait_until =
@@ -225,6 +229,7 @@ void DBImplFollower::PeriodicRefresh() {
 }
 
 Status DBImplFollower::Close() {
+  DBUG_TRACE;
   if (catch_up_thread_) {
     stop_requested_.store(true);
     {
@@ -243,6 +248,7 @@ Status DBImplFollower::Close() {
 Status DB::OpenAsFollower(const Options& options, const std::string& dbname,
                           const std::string& leader_path,
                           std::unique_ptr<DB>* dbptr) {
+  DBUG_TRACE;
   dbptr->reset();
 
   DBOptions db_options(options);
@@ -265,6 +271,7 @@ Status DB::OpenAsFollower(
     const std::string& src_path,
     const std::vector<ColumnFamilyDescriptor>& column_families,
     std::vector<ColumnFamilyHandle*>* handles, std::unique_ptr<DB>* dbptr) {
+  DBUG_TRACE;
   dbptr->reset();
 
   FileSystem* fs = db_options.env->GetFileSystem().get();

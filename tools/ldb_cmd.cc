@@ -4,6 +4,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 //
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/utilities/ldb_cmd.h"
 
 #include <cstddef>
@@ -135,6 +136,7 @@ LDBCommand* LDBCommand::InitFromCmdLineArgs(
     int argc, char const* const* argv, const Options& options,
     const LDBOptions& ldb_options,
     const std::vector<ColumnFamilyDescriptor>* column_families) {
+  DBUG_TRACE;
   std::vector<std::string> args;
   for (int i = 1; i < argc; i++) {
     args.emplace_back(argv[i]);
@@ -146,6 +148,7 @@ LDBCommand* LDBCommand::InitFromCmdLineArgs(
 void LDBCommand::ParseSingleParam(const std::string& param,
                                   ParsedParams& parsed_params,
                                   std::vector<std::string>& cmd_tokens) {
+  DBUG_TRACE;
   const std::string OPTION_PREFIX = "--";
 
   if (param[0] == '-' && param[1] == '-') {
@@ -184,6 +187,7 @@ LDBCommand* LDBCommand::InitFromCmdLineArgs(
     const LDBOptions& ldb_options,
     const std::vector<ColumnFamilyDescriptor>* column_families,
     const std::function<LDBCommand*(const ParsedParams&)>& selector) {
+  DBUG_TRACE;
   // --x=y command line arguments are added as x->y map entries in
   // parsed_params.option_map.
   //
@@ -218,6 +222,7 @@ LDBCommand* LDBCommand::InitFromCmdLineArgs(
 }
 
 LDBCommand* LDBCommand::SelectCommand(const ParsedParams& parsed_params) {
+  DBUG_TRACE;
   if (parsed_params.cmd == GetCommand::Name()) {
     return new GetCommand(parsed_params.cmd_params, parsed_params.option_map,
                           parsed_params.flags);
@@ -357,6 +362,7 @@ LDBCommand* LDBCommand::SelectCommand(const ParsedParams& parsed_params) {
 
 /* Run the command, and return the execute result. */
 void LDBCommand::Run() {
+  DBUG_TRACE;
   if (!exec_state_.IsNotStarted()) {
     return;
   }
@@ -460,6 +466,7 @@ LDBCommand::LDBCommand(const std::map<std::string, std::string>& options,
 }
 
 void LDBCommand::OpenDB() {
+  DBUG_TRACE;
   PrepareOptions();
   if (!exec_state_.IsNotStarted()) {
     return;
@@ -560,6 +567,7 @@ void LDBCommand::OpenDB() {
 }
 
 void LDBCommand::CloseDB() {
+  DBUG_TRACE;
   if (db_ != nullptr) {
     for (auto& pair : cf_handles_) {
       delete pair.second;
@@ -572,6 +580,7 @@ void LDBCommand::CloseDB() {
 }
 
 ColumnFamilyHandle* LDBCommand::GetCfHandle() {
+  DBUG_TRACE;
   if (!cf_handles_.empty()) {
     auto it = cf_handles_.find(column_family_name_);
     if (it == cf_handles_.end()) {
@@ -586,6 +595,7 @@ ColumnFamilyHandle* LDBCommand::GetCfHandle() {
 
 std::vector<std::string> LDBCommand::BuildCmdLineOptions(
     std::vector<std::string> options) {
+  DBUG_TRACE;
   std::vector<std::string> ret = {ARG_ENV_URI,
                                   ARG_FS_URI,
                                   ARG_DB,
@@ -628,6 +638,7 @@ bool LDBCommand::ParseDoubleOption(
     const std::map<std::string, std::string>& /*options*/,
     const std::string& option, double& value,
     LDBCommandExecuteResult& exec_state) {
+  DBUG_TRACE;
   auto itr = option_map_.find(option);
   if (itr != option_map_.end()) {
 #if defined(CYGWIN)
@@ -669,6 +680,7 @@ bool LDBCommand::ParseIntOption(
     const std::map<std::string, std::string>& /*options*/,
     const std::string& option, int& value,
     LDBCommandExecuteResult& exec_state) {
+  DBUG_TRACE;
   auto itr = option_map_.find(option);
   if (itr != option_map_.end()) {
 #if defined(CYGWIN)
@@ -707,6 +719,7 @@ bool LDBCommand::ParseIntOption(
 bool LDBCommand::ParseStringOption(
     const std::map<std::string, std::string>& /*options*/,
     const std::string& option, std::string* value) {
+  DBUG_TRACE;
   auto itr = option_map_.find(option);
   if (itr != option_map_.end()) {
     *value = itr->second;
@@ -724,6 +737,7 @@ bool LDBCommand::ParseCompressionTypeOption(
     const std::map<std::string, std::string>& /*options*/,
     const std::string& option, CompressionType& value,
     LDBCommandExecuteResult& exec_state) {
+  DBUG_TRACE;
   auto itr = option_map_.find(option);
   if (itr != option_map_.end()) {
     const std::string& comp = itr->second;
@@ -763,6 +777,7 @@ bool LDBCommand::ParseCompressionTypeOption(
 Status LDBCommand::MaybePopulateReadTimestamp(ColumnFamilyHandle* cfh,
                                               ReadOptions& ropts,
                                               Slice* read_timestamp) {
+  DBUG_TRACE;
   const size_t ts_sz = cfh->GetComparator()->timestamp_size();
 
   auto iter = option_map_.find(ARG_READ_TIMESTAMP);
@@ -797,6 +812,7 @@ Status LDBCommand::MaybePopulateReadTimestamp(ColumnFamilyHandle* cfh,
 }
 
 void LDBCommand::OverrideBaseOptions() {
+  DBUG_TRACE;
   options_.create_if_missing = false;
 
   int db_write_buffer_size;
@@ -819,6 +835,7 @@ void LDBCommand::OverrideBaseOptions() {
 }
 
 void LDBCommand::OverrideBaseCFOptions(ColumnFamilyOptions* cf_opts) {
+  DBUG_TRACE;
   BlockBasedTableOptions table_options;
   bool use_table_options = false;
   int bits;
@@ -1014,6 +1031,7 @@ void LDBCommand::OverrideBaseCFOptions(ColumnFamilyOptions* cf_opts) {
 // Second, overrides the options according to the CLI arguments and the
 // specific subcommand being run.
 void LDBCommand::PrepareOptions() {
+  DBUG_TRACE;
   std::vector<ColumnFamilyDescriptor> column_families_from_options;
 
   if (!create_if_missing_ && try_load_options_) {
@@ -1106,6 +1124,7 @@ void LDBCommand::PrepareOptions() {
 bool LDBCommand::ParseKeyValue(const std::string& line, std::string* key,
                                std::string* value, bool is_key_hex,
                                bool is_value_hex) {
+  DBUG_TRACE;
   size_t pos = line.find(DELIM);
   if (pos != std::string::npos) {
     *key = line.substr(0, pos);
@@ -1130,6 +1149,7 @@ bool LDBCommand::ParseKeyValue(const std::string& line, std::string* key,
  * appropriate error msg to stderr.
  */
 bool LDBCommand::ValidateCmdLineOptions() {
+  DBUG_TRACE;
   for (auto itr = option_map_.begin(); itr != option_map_.end(); ++itr) {
     if (std::find(valid_cmd_line_options_.begin(),
                   valid_cmd_line_options_.end(),
@@ -1160,6 +1180,7 @@ bool LDBCommand::ValidateCmdLineOptions() {
 }
 
 std::string LDBCommand::HexToString(const std::string& str) {
+  DBUG_TRACE;
   std::string result;
   std::string::size_type len = str.length();
   if (len < 2 || str[0] != '0' || str[1] != 'x') {
@@ -1173,6 +1194,7 @@ std::string LDBCommand::HexToString(const std::string& str) {
 }
 
 std::string LDBCommand::StringToHex(const std::string& str) {
+  DBUG_TRACE;
   std::string result("0x");
   result.append(Slice(str).ToString(true));
   return result;
@@ -1183,6 +1205,7 @@ std::string LDBCommand::PrintKeyValue(const std::string& key,
                                       const std::string& value, bool is_key_hex,
                                       bool is_value_hex,
                                       const Comparator* ucmp) {
+  DBUG_TRACE;
   std::string result;
   result.append(is_key_hex ? StringToHex(key) : key);
   if (!timestamp.empty()) {
@@ -1198,6 +1221,7 @@ std::string LDBCommand::PrintKeyValue(const std::string& key,
                                       const std::string& timestamp,
                                       const std::string& value, bool is_hex,
                                       const Comparator* ucmp) {
+  DBUG_TRACE;
   return PrintKeyValue(key, timestamp, value, is_hex, is_hex, ucmp);
 }
 
@@ -1205,6 +1229,7 @@ std::string LDBCommand::PrintKeyValueOrWideColumns(
     const Slice& key, const Slice& timestamp, const Slice& value,
     const WideColumns& wide_columns, bool is_key_hex, bool is_value_hex,
     const Comparator* ucmp) {
+  DBUG_TRACE;
   if (wide_columns.empty() ||
       WideColumnsHelper::HasDefaultColumnOnly(wide_columns)) {
     return PrintKeyValue(key.ToString(), timestamp.ToString(), value.ToString(),
@@ -1226,6 +1251,7 @@ std::string LDBCommand::PrintKeyValueOrWideColumns(
 }
 
 std::string LDBCommand::HelpRangeCmdArgs() {
+  DBUG_TRACE;
   std::ostringstream str_stream;
   str_stream << " ";
   str_stream << "[--" << ARG_FROM << "] ";
@@ -1235,6 +1261,7 @@ std::string LDBCommand::HelpRangeCmdArgs() {
 
 bool LDBCommand::IsKeyHex(const std::map<std::string, std::string>& options,
                           const std::vector<std::string>& flags) {
+  DBUG_TRACE;
   return (IsFlagPresent(flags, ARG_HEX) || IsFlagPresent(flags, ARG_KEY_HEX) ||
           ParseBooleanOption(options, ARG_HEX, false) ||
           ParseBooleanOption(options, ARG_KEY_HEX, false));
@@ -1242,6 +1269,7 @@ bool LDBCommand::IsKeyHex(const std::map<std::string, std::string>& options,
 
 bool LDBCommand::IsValueHex(const std::map<std::string, std::string>& options,
                             const std::vector<std::string>& flags) {
+  DBUG_TRACE;
   return (IsFlagPresent(flags, ARG_HEX) ||
           IsFlagPresent(flags, ARG_VALUE_HEX) ||
           ParseBooleanOption(options, ARG_HEX, false) ||
@@ -1251,6 +1279,7 @@ bool LDBCommand::IsValueHex(const std::map<std::string, std::string>& options,
 bool LDBCommand::IsTryLoadOptions(
     const std::map<std::string, std::string>& options,
     const std::vector<std::string>& flags) {
+  DBUG_TRACE;
   if (IsFlagPresent(flags, ARG_TRY_LOAD_OPTIONS)) {
     return true;
   }
@@ -1269,6 +1298,7 @@ bool LDBCommand::IsTryLoadOptions(
 bool LDBCommand::ParseBooleanOption(
     const std::map<std::string, std::string>& options,
     const std::string& option, bool default_val) {
+  DBUG_TRACE;
   auto itr = options.find(option);
   if (itr != options.end()) {
     std::string option_val = itr->second;
@@ -1278,6 +1308,7 @@ bool LDBCommand::ParseBooleanOption(
 }
 
 bool LDBCommand::StringToBool(std::string val) {
+  DBUG_TRACE;
   std::transform(val.begin(), val.end(), val.begin(),
                  [](char ch) -> char { return (char)::tolower(ch); });
 
@@ -1322,6 +1353,7 @@ CompactorCommand::CompactorCommand(
 }
 
 void CompactorCommand::Help(std::string& ret) {
+  DBUG_TRACE;
   ret.append("  ");
   ret.append(CompactorCommand::Name());
   ret.append(HelpRangeCmdArgs());
@@ -1329,6 +1361,7 @@ void CompactorCommand::Help(std::string& ret) {
 }
 
 void CompactorCommand::DoCommand() {
+  DBUG_TRACE;
   if (!db_) {
     assert(GetExecuteState().IsFailed());
     return;
@@ -1383,6 +1416,7 @@ DBLoaderCommand::DBLoaderCommand(
 }
 
 void DBLoaderCommand::Help(std::string& ret) {
+  DBUG_TRACE;
   ret.append("  ");
   ret.append(DBLoaderCommand::Name());
   ret.append(" [--" + ARG_CREATE_IF_MISSING + "]");
@@ -1393,6 +1427,7 @@ void DBLoaderCommand::Help(std::string& ret) {
 }
 
 void DBLoaderCommand::OverrideBaseOptions() {
+  DBUG_TRACE;
   LDBCommand::OverrideBaseOptions();
   options_.create_if_missing = create_if_missing_;
   if (bulk_load_) {
@@ -1401,6 +1436,7 @@ void DBLoaderCommand::OverrideBaseOptions() {
 }
 
 void DBLoaderCommand::DoCommand() {
+  DBUG_TRACE;
   if (!db_) {
     assert(GetExecuteState().IsFailed());
     return;
@@ -1457,6 +1493,7 @@ namespace {
 void DumpManifestFile(Options options, std::string file, bool verbose, bool hex,
                       bool json,
                       const std::vector<ColumnFamilyDescriptor>& cf_descs) {
+  DBUG_TRACE;
   EnvOptions sopt;
   std::string dbname("dummy");
   std::shared_ptr<Cache> tc(NewLRUCache(options.max_open_files - 10,
@@ -1488,6 +1525,7 @@ const std::string ManifestDumpCommand::ARG_JSON = "json";
 const std::string ManifestDumpCommand::ARG_PATH = "path";
 
 void ManifestDumpCommand::Help(std::string& ret) {
+  DBUG_TRACE;
   ret.append("  ");
   ret.append(ManifestDumpCommand::Name());
   ret.append(" [--" + ARG_VERBOSE + "]");
@@ -1518,6 +1556,7 @@ ManifestDumpCommand::ManifestDumpCommand(
 }
 
 void ManifestDumpCommand::DoCommand() {
+  DBUG_TRACE;
   PrepareOptions();
   std::string manifestfile;
 
@@ -1600,6 +1639,7 @@ namespace {
 Status GetLiveFilesChecksumInfoFromVersionSet(Options options,
                                               const std::string& db_path,
                                               FileChecksumList* checksum_list) {
+  DBUG_TRACE;
   EnvOptions sopt;
   Status s;
   std::string dbname(db_path);
@@ -1639,6 +1679,7 @@ Status GetLiveFilesChecksumInfoFromVersionSet(Options options,
 const std::string FileChecksumDumpCommand::ARG_PATH = "path";
 
 void FileChecksumDumpCommand::Help(std::string& ret) {
+  DBUG_TRACE;
   ret.append("  ");
   ret.append(FileChecksumDumpCommand::Name());
   ret.append(" [--" + ARG_PATH + "=<path_to_manifest_file>]");
@@ -1662,6 +1703,7 @@ FileChecksumDumpCommand::FileChecksumDumpCommand(
 }
 
 void FileChecksumDumpCommand::DoCommand() {
+  DBUG_TRACE;
   PrepareOptions();
   // print out the checksum information in the following format:
   //  sst file number, checksum function name, checksum value
@@ -1703,6 +1745,7 @@ void FileChecksumDumpCommand::DoCommand() {
 // ----------------------------------------------------------------------------
 
 void GetPropertyCommand::Help(std::string& ret) {
+  DBUG_TRACE;
   ret.append("  ");
   ret.append(GetPropertyCommand::Name());
   ret.append(" <property_name>");
@@ -1723,6 +1766,7 @@ GetPropertyCommand::GetPropertyCommand(
 }
 
 void GetPropertyCommand::DoCommand() {
+  DBUG_TRACE;
   if (!db_) {
     assert(GetExecuteState().IsFailed());
     return;
@@ -1755,6 +1799,7 @@ void GetPropertyCommand::DoCommand() {
 // ----------------------------------------------------------------------------
 
 void ListColumnFamiliesCommand::Help(std::string& ret) {
+  DBUG_TRACE;
   ret.append("  ");
   ret.append(ListColumnFamiliesCommand::Name());
   ret.append("\n");
@@ -1767,6 +1812,7 @@ ListColumnFamiliesCommand::ListColumnFamiliesCommand(
     : LDBCommand(options, flags, false, BuildCmdLineOptions({})) {}
 
 void ListColumnFamiliesCommand::DoCommand() {
+  DBUG_TRACE;
   PrepareOptions();
   std::vector<std::string> column_families;
   Status s = DB::ListColumnFamilies(options_, db_path_, &column_families);
@@ -1788,6 +1834,7 @@ void ListColumnFamiliesCommand::DoCommand() {
 }
 
 void CreateColumnFamilyCommand::Help(std::string& ret) {
+  DBUG_TRACE;
   ret.append("  ");
   ret.append(CreateColumnFamilyCommand::Name());
   ret.append(" --db=<db_path> <new_column_family_name>");
@@ -1808,6 +1855,7 @@ CreateColumnFamilyCommand::CreateColumnFamilyCommand(
 }
 
 void CreateColumnFamilyCommand::DoCommand() {
+  DBUG_TRACE;
   if (!db_) {
     assert(GetExecuteState().IsFailed());
     return;
@@ -1825,6 +1873,7 @@ void CreateColumnFamilyCommand::DoCommand() {
 }
 
 void DropColumnFamilyCommand::Help(std::string& ret) {
+  DBUG_TRACE;
   ret.append("  ");
   ret.append(DropColumnFamilyCommand::Name());
   ret.append(" --db=<db_path> <column_family_name_to_drop>");
@@ -1845,6 +1894,7 @@ DropColumnFamilyCommand::DropColumnFamilyCommand(
 }
 
 void DropColumnFamilyCommand::DoCommand() {
+  DBUG_TRACE;
   if (!db_) {
     assert(GetExecuteState().IsFailed());
     return;
@@ -1874,6 +1924,7 @@ namespace {
 void IncBucketCounts(std::vector<uint64_t>& bucket_counts, int ttl_start,
                      int time_range, int bucket_size, int timekv,
                      int num_buckets) {
+DBUG_TRACE;
 #ifdef NDEBUG
   (void)time_range;
   (void)num_buckets;
@@ -1887,6 +1938,7 @@ void IncBucketCounts(std::vector<uint64_t>& bucket_counts, int ttl_start,
 void PrintBucketCounts(const std::vector<uint64_t>& bucket_counts,
                        int ttl_start, int ttl_end, int bucket_size,
                        int num_buckets) {
+  DBUG_TRACE;
   int time_point = ttl_start;
   for (int i = 0; i < num_buckets - 1; i++, time_point += bucket_size) {
     fprintf(stdout, "Keys in range %s to %s : %lu\n",
@@ -1955,6 +2007,7 @@ InternalDumpCommand::InternalDumpCommand(
 }
 
 void InternalDumpCommand::Help(std::string& ret) {
+  DBUG_TRACE;
   ret.append("  ");
   ret.append(InternalDumpCommand::Name());
   ret.append(HelpRangeCmdArgs());
@@ -1968,6 +2021,7 @@ void InternalDumpCommand::Help(std::string& ret) {
 }
 
 void InternalDumpCommand::DoCommand() {
+  DBUG_TRACE;
   if (!db_) {
     assert(GetExecuteState().IsFailed());
     return;
@@ -2166,6 +2220,7 @@ DBDumperCommand::DBDumperCommand(
 }
 
 void DBDumperCommand::Help(std::string& ret) {
+  DBUG_TRACE;
   ret.append("  ");
   ret.append(DBDumperCommand::Name());
   ret.append(HelpRangeCmdArgs());
@@ -2196,6 +2251,7 @@ void DBDumperCommand::Help(std::string& ret) {
  *
  */
 void DBDumperCommand::DoCommand() {
+  DBUG_TRACE;
   if (!db_) {
     assert(!path_.empty());
     std::string fileName = GetFileNameFromPath(path_);
@@ -2241,6 +2297,7 @@ void DBDumperCommand::DoCommand() {
 }
 
 void DBDumperCommand::DoDumpCommand() {
+  DBUG_TRACE;
   assert(nullptr != db_);
   assert(path_.empty());
 
@@ -2427,6 +2484,7 @@ ReduceDBLevelsCommand::ReduceDBLevelsCommand(
 
 std::vector<std::string> ReduceDBLevelsCommand::PrepareArgs(
     const std::string& db_path, int new_levels, bool print_old_level) {
+  DBUG_TRACE;
   std::vector<std::string> ret;
   ret.emplace_back("reduce_levels");
   ret.push_back("--" + ARG_DB + "=" + db_path);
@@ -2438,6 +2496,7 @@ std::vector<std::string> ReduceDBLevelsCommand::PrepareArgs(
 }
 
 void ReduceDBLevelsCommand::Help(std::string& ret) {
+  DBUG_TRACE;
   ret.append("  ");
   ret.append(ReduceDBLevelsCommand::Name());
   ret.append(" --" + ARG_NEW_LEVELS + "=<New number of levels>");
@@ -2447,6 +2506,7 @@ void ReduceDBLevelsCommand::Help(std::string& ret) {
 
 void ReduceDBLevelsCommand::OverrideBaseCFOptions(
     ColumnFamilyOptions* cf_opts) {
+  DBUG_TRACE;
   LDBCommand::OverrideBaseCFOptions(cf_opts);
   cf_opts->num_levels = old_levels_;
   cf_opts->max_bytes_for_level_multiplier_additional.resize(cf_opts->num_levels,
@@ -2457,6 +2517,7 @@ void ReduceDBLevelsCommand::OverrideBaseCFOptions(
 }
 
 Status ReduceDBLevelsCommand::GetOldNumOfLevels(Options& opt, int* levels) {
+  DBUG_TRACE;
   ImmutableDBOptions db_options(opt);
   EnvOptions soptions;
   std::shared_ptr<Cache> tc(
@@ -2493,6 +2554,7 @@ Status ReduceDBLevelsCommand::GetOldNumOfLevels(Options& opt, int* levels) {
 }
 
 void ReduceDBLevelsCommand::DoCommand() {
+  DBUG_TRACE;
   if (new_levels_ <= 1) {
     exec_state_ =
         LDBCommandExecuteResult::Failed("Invalid number of levels.\n");
@@ -2592,6 +2654,7 @@ ChangeCompactionStyleCommand::ChangeCompactionStyleCommand(
 }
 
 void ChangeCompactionStyleCommand::Help(std::string& ret) {
+  DBUG_TRACE;
   ret.append("  ");
   ret.append(ChangeCompactionStyleCommand::Name());
   ret.append(" --" + ARG_OLD_COMPACTION_STYLE + "=<Old compaction style: 0 " +
@@ -2603,6 +2666,7 @@ void ChangeCompactionStyleCommand::Help(std::string& ret) {
 
 void ChangeCompactionStyleCommand::OverrideBaseCFOptions(
     ColumnFamilyOptions* cf_opts) {
+  DBUG_TRACE;
   LDBCommand::OverrideBaseCFOptions(cf_opts);
   if (old_compaction_style_ == kCompactionStyleLevel &&
       new_compaction_style_ == kCompactionStyleUniversal) {
@@ -2617,6 +2681,7 @@ void ChangeCompactionStyleCommand::OverrideBaseCFOptions(
 }
 
 void ChangeCompactionStyleCommand::DoCommand() {
+  DBUG_TRACE;
   if (!db_) {
     assert(GetExecuteState().IsFailed());
     return;
@@ -2694,6 +2759,7 @@ namespace {
 
 struct StdErrReporter : public log::Reader::Reporter {
   void Corruption(size_t /*bytes*/, const Status& s) override {
+    DBUG_TRACE;
     std::cerr << "Corruption detected in log file " << s.ToString() << "\n";
   }
 };
@@ -2710,6 +2776,7 @@ class InMemoryHandler : public WriteBatch::Handler {
         ucmps_(ucmps) {}
 
   void commonPutMerge(uint32_t cf, const Slice& key, const Slice& value) {
+    DBUG_TRACE;
     std::string k = PrintKey(cf, key);
     if (print_values_) {
       std::string v = LDBCommand::StringToHex(value.ToString());
@@ -2721,6 +2788,7 @@ class InMemoryHandler : public WriteBatch::Handler {
   }
 
   Status PutCF(uint32_t cf, const Slice& key, const Slice& value) override {
+    DBUG_TRACE;
     row_ << "PUT(" << cf << ") : ";
     commonPutMerge(cf, key, value);
     return Status::OK();
@@ -2728,6 +2796,7 @@ class InMemoryHandler : public WriteBatch::Handler {
 
   Status PutEntityCF(uint32_t cf, const Slice& key,
                      const Slice& value) override {
+    DBUG_TRACE;
     row_ << "PUT_ENTITY(" << cf << ") : " << PrintKey(cf, key);
     if (print_values_) {
       row_ << " : ";
@@ -2743,23 +2812,27 @@ class InMemoryHandler : public WriteBatch::Handler {
   }
 
   Status MergeCF(uint32_t cf, const Slice& key, const Slice& value) override {
+    DBUG_TRACE;
     row_ << "MERGE(" << cf << ") : ";
     commonPutMerge(cf, key, value);
     return Status::OK();
   }
 
   Status MarkNoop(bool) override {
+    DBUG_TRACE;
     row_ << "NOOP ";
     return Status::OK();
   }
 
   Status DeleteCF(uint32_t cf, const Slice& key) override {
+    DBUG_TRACE;
     row_ << "DELETE(" << cf << ") : ";
     row_ << PrintKey(cf, key) << " ";
     return Status::OK();
   }
 
   Status SingleDeleteCF(uint32_t cf, const Slice& key) override {
+    DBUG_TRACE;
     row_ << "SINGLE_DELETE(" << cf << ") : ";
     row_ << PrintKey(cf, key) << " ";
     return Status::OK();
@@ -2767,6 +2840,7 @@ class InMemoryHandler : public WriteBatch::Handler {
 
   Status DeleteRangeCF(uint32_t cf, const Slice& begin_key,
                        const Slice& end_key) override {
+    DBUG_TRACE;
     row_ << "DELETE_RANGE(" << cf << ") : ";
     row_ << PrintKey(cf, begin_key) << " ";
     row_ << PrintKey(cf, end_key) << " ";
@@ -2774,24 +2848,28 @@ class InMemoryHandler : public WriteBatch::Handler {
   }
 
   Status MarkBeginPrepare(bool unprepare) override {
+    DBUG_TRACE;
     row_ << "BEGIN_PREPARE(";
     row_ << (unprepare ? "true" : "false") << ") ";
     return Status::OK();
   }
 
   Status MarkEndPrepare(const Slice& xid) override {
+    DBUG_TRACE;
     row_ << "END_PREPARE(";
     row_ << LDBCommand::StringToHex(xid.ToString()) << ") ";
     return Status::OK();
   }
 
   Status MarkRollback(const Slice& xid) override {
+    DBUG_TRACE;
     row_ << "ROLLBACK(";
     row_ << LDBCommand::StringToHex(xid.ToString()) << ") ";
     return Status::OK();
   }
 
   Status MarkCommit(const Slice& xid) override {
+    DBUG_TRACE;
     row_ << "COMMIT(";
     row_ << LDBCommand::StringToHex(xid.ToString()) << ") ";
     return Status::OK();
@@ -2799,6 +2877,7 @@ class InMemoryHandler : public WriteBatch::Handler {
 
   Status MarkCommitWithTimestamp(const Slice& xid,
                                  const Slice& commit_ts) override {
+    DBUG_TRACE;
     row_ << "COMMIT_WITH_TIMESTAMP(";
     row_ << LDBCommand::StringToHex(xid.ToString()) << ", ";
     row_ << LDBCommand::StringToHex(commit_ts.ToString()) << ") ";
@@ -2809,12 +2888,14 @@ class InMemoryHandler : public WriteBatch::Handler {
 
  protected:
   Handler::OptionState WriteAfterCommit() const override {
+    DBUG_TRACE;
     return write_after_commit_ ? Handler::OptionState::kEnabled
                                : Handler::OptionState::kDisabled;
   }
 
  private:
   std::string PrintKey(uint32_t cf, const Slice& key) {
+    DBUG_TRACE;
     auto ucmp_iter = ucmps_.find(cf);
     if (ucmp_iter == ucmps_.end()) {
       // Fallback to default print slice as hex
@@ -2846,6 +2927,7 @@ void DumpWalFile(Options options, std::string wal_file, bool print_header,
                  bool print_values, bool is_write_committed,
                  const std::map<uint32_t, const Comparator*>& ucmps,
                  LDBCommandExecuteResult* exec_state) {
+  DBUG_TRACE;
   const auto& fs = options.env->GetFileSystem();
   FileOptions soptions(options);
   std::unique_ptr<SequentialFileReader> wal_file_reader;
@@ -3036,6 +3118,7 @@ WALDumperCommand::WALDumperCommand(
 }
 
 void WALDumperCommand::Help(std::string& ret) {
+  DBUG_TRACE;
   ret.append("  ");
   ret.append(WALDumperCommand::Name());
   ret.append(" --" + ARG_WAL_FILE + "=<write_ahead_log_file_path>");
@@ -3047,6 +3130,7 @@ void WALDumperCommand::Help(std::string& ret) {
 }
 
 void WALDumperCommand::DoCommand() {
+  DBUG_TRACE;
   PrepareOptions();
   DumpWalFile(options_, wal_file_, print_header_, print_values_,
               is_write_committed_, ucmps_, &exec_state_);
@@ -3073,6 +3157,7 @@ GetCommand::GetCommand(const std::vector<std::string>& params,
 }
 
 void GetCommand::Help(std::string& ret) {
+  DBUG_TRACE;
   ret.append("  ");
   ret.append(GetCommand::Name());
   ret.append(" <key>");
@@ -3082,6 +3167,7 @@ void GetCommand::Help(std::string& ret) {
 }
 
 void GetCommand::DoCommand() {
+  DBUG_TRACE;
   if (!db_) {
     assert(GetExecuteState().IsFailed());
     return;
@@ -3131,6 +3217,7 @@ MultiGetCommand::MultiGetCommand(
 }
 
 void MultiGetCommand::Help(std::string& ret) {
+  DBUG_TRACE;
   ret.append("  ");
   ret.append(MultiGetCommand::Name());
   ret.append(" <key_1> <key_2> <key_3> ...");
@@ -3139,6 +3226,7 @@ void MultiGetCommand::Help(std::string& ret) {
 }
 
 void MultiGetCommand::DoCommand() {
+  DBUG_TRACE;
   if (!db_) {
     assert(GetExecuteState().IsFailed());
     return;
@@ -3207,6 +3295,7 @@ GetEntityCommand::GetEntityCommand(
 }
 
 void GetEntityCommand::Help(std::string& ret) {
+  DBUG_TRACE;
   ret.append("  ");
   ret.append(GetEntityCommand::Name());
   ret.append(" <key>");
@@ -3216,6 +3305,7 @@ void GetEntityCommand::Help(std::string& ret) {
 }
 
 void GetEntityCommand::DoCommand() {
+  DBUG_TRACE;
   if (!db_) {
     assert(GetExecuteState().IsFailed());
     return;
@@ -3266,6 +3356,7 @@ MultiGetEntityCommand::MultiGetEntityCommand(
 }
 
 void MultiGetEntityCommand::Help(std::string& ret) {
+  DBUG_TRACE;
   ret.append("  ");
   ret.append(MultiGetEntityCommand::Name());
   ret.append(" <key_1> <key_2> <key_3> ...");
@@ -3274,6 +3365,7 @@ void MultiGetEntityCommand::Help(std::string& ret) {
 }
 
 void MultiGetEntityCommand::DoCommand() {
+  DBUG_TRACE;
   if (!db_) {
     assert(GetExecuteState().IsFailed());
     return;
@@ -3355,6 +3447,7 @@ ApproxSizeCommand::ApproxSizeCommand(
 }
 
 void ApproxSizeCommand::Help(std::string& ret) {
+  DBUG_TRACE;
   ret.append("  ");
   ret.append(ApproxSizeCommand::Name());
   ret.append(HelpRangeCmdArgs());
@@ -3362,6 +3455,7 @@ void ApproxSizeCommand::Help(std::string& ret) {
 }
 
 void ApproxSizeCommand::DoCommand() {
+  DBUG_TRACE;
   if (!db_) {
     assert(GetExecuteState().IsFailed());
     return;
@@ -3406,6 +3500,7 @@ BatchPutCommand::BatchPutCommand(
 }
 
 void BatchPutCommand::Help(std::string& ret) {
+  DBUG_TRACE;
   ret.append("  ");
   ret.append(BatchPutCommand::Name());
   ret.append(" <key> <value> [<key> <value>] [..]");
@@ -3415,6 +3510,7 @@ void BatchPutCommand::Help(std::string& ret) {
 }
 
 void BatchPutCommand::DoCommand() {
+  DBUG_TRACE;
   if (!db_) {
     assert(GetExecuteState().IsFailed());
     return;
@@ -3447,6 +3543,7 @@ void BatchPutCommand::DoCommand() {
 }
 
 void BatchPutCommand::OverrideBaseOptions() {
+  DBUG_TRACE;
   LDBCommand::OverrideBaseOptions();
   options_.create_if_missing = create_if_missing_;
 }
@@ -3507,6 +3604,7 @@ ScanCommand::ScanCommand(const std::vector<std::string>& /*params*/,
 }
 
 void ScanCommand::Help(std::string& ret) {
+  DBUG_TRACE;
   ret.append("  ");
   ret.append(ScanCommand::Name());
   ret.append(HelpRangeCmdArgs());
@@ -3521,6 +3619,7 @@ void ScanCommand::Help(std::string& ret) {
 }
 
 void ScanCommand::DoCommand() {
+  DBUG_TRACE;
   if (!db_) {
     assert(GetExecuteState().IsFailed());
     return;
@@ -3629,12 +3728,14 @@ DeleteCommand::DeleteCommand(const std::vector<std::string>& params,
 }
 
 void DeleteCommand::Help(std::string& ret) {
+  DBUG_TRACE;
   ret.append("  ");
   ret.append(DeleteCommand::Name() + " <key>");
   ret.append("\n");
 }
 
 void DeleteCommand::DoCommand() {
+  DBUG_TRACE;
   if (!db_) {
     assert(GetExecuteState().IsFailed());
     return;
@@ -3665,12 +3766,14 @@ SingleDeleteCommand::SingleDeleteCommand(
 }
 
 void SingleDeleteCommand::Help(std::string& ret) {
+  DBUG_TRACE;
   ret.append("  ");
   ret.append(SingleDeleteCommand::Name() + " <key>");
   ret.append("\n");
 }
 
 void SingleDeleteCommand::DoCommand() {
+  DBUG_TRACE;
   if (!db_) {
     assert(GetExecuteState().IsFailed());
     return;
@@ -3703,12 +3806,14 @@ DeleteRangeCommand::DeleteRangeCommand(
 }
 
 void DeleteRangeCommand::Help(std::string& ret) {
+  DBUG_TRACE;
   ret.append("  ");
   ret.append(DeleteRangeCommand::Name() + " <begin key> <end key>");
   ret.append("\n");
 }
 
 void DeleteRangeCommand::DoCommand() {
+  DBUG_TRACE;
   if (!db_) {
     assert(GetExecuteState().IsFailed());
     return;
@@ -3747,6 +3852,7 @@ PutCommand::PutCommand(const std::vector<std::string>& params,
 }
 
 void PutCommand::Help(std::string& ret) {
+  DBUG_TRACE;
   ret.append("  ");
   ret.append(PutCommand::Name());
   ret.append(" <key> <value>");
@@ -3756,6 +3862,7 @@ void PutCommand::Help(std::string& ret) {
 }
 
 void PutCommand::DoCommand() {
+  DBUG_TRACE;
   if (!db_) {
     assert(GetExecuteState().IsFailed());
     return;
@@ -3769,6 +3876,7 @@ void PutCommand::DoCommand() {
 }
 
 void PutCommand::OverrideBaseOptions() {
+  DBUG_TRACE;
   LDBCommand::OverrideBaseOptions();
   options_.create_if_missing = create_if_missing_;
 }
@@ -3814,6 +3922,7 @@ PutEntityCommand::PutEntityCommand(
 }
 
 void PutEntityCommand::Help(std::string& ret) {
+  DBUG_TRACE;
   ret.append("  ");
   ret.append(PutEntityCommand::Name());
   ret.append(
@@ -3825,6 +3934,7 @@ void PutEntityCommand::Help(std::string& ret) {
 }
 
 void PutEntityCommand::DoCommand() {
+  DBUG_TRACE;
   if (!db_) {
     assert(GetExecuteState().IsFailed());
     return;
@@ -3844,6 +3954,7 @@ void PutEntityCommand::DoCommand() {
 }
 
 void PutEntityCommand::OverrideBaseOptions() {
+  DBUG_TRACE;
   LDBCommand::OverrideBaseOptions();
   options_.create_if_missing = create_if_missing_;
 }
@@ -3867,6 +3978,7 @@ DBQuerierCommand::DBQuerierCommand(
 }
 
 void DBQuerierCommand::Help(std::string& ret) {
+  DBUG_TRACE;
   ret.append("  ");
   ret.append(DBQuerierCommand::Name());
   ret.append(" [--" + ARG_TTL + "]");
@@ -3878,6 +3990,7 @@ void DBQuerierCommand::Help(std::string& ret) {
 }
 
 void DBQuerierCommand::DoCommand() {
+  DBUG_TRACE;
   if (!db_) {
     assert(GetExecuteState().IsFailed());
     return;
@@ -4100,12 +4213,14 @@ CheckConsistencyCommand::CheckConsistencyCommand(
     : LDBCommand(options, flags, true, BuildCmdLineOptions({})) {}
 
 void CheckConsistencyCommand::Help(std::string& ret) {
+  DBUG_TRACE;
   ret.append("  ");
   ret.append(CheckConsistencyCommand::Name());
   ret.append("\n");
 }
 
 void CheckConsistencyCommand::DoCommand() {
+  DBUG_TRACE;
   options_.paranoid_checks = true;
   options_.num_levels = 64;
   OpenDB();
@@ -4132,6 +4247,7 @@ CheckPointCommand::CheckPointCommand(
 }
 
 void CheckPointCommand::Help(std::string& ret) {
+  DBUG_TRACE;
   ret.append("  ");
   ret.append(CheckPointCommand::Name());
   ret.append(" [--" + ARG_CHECKPOINT_DIR + "] ");
@@ -4139,6 +4255,7 @@ void CheckPointCommand::Help(std::string& ret) {
 }
 
 void CheckPointCommand::DoCommand() {
+  DBUG_TRACE;
   if (!db_) {
     assert(GetExecuteState().IsFailed());
     return;
@@ -4165,6 +4282,7 @@ RepairCommand::RepairCommand(const std::vector<std::string>& /*params*/,
 }
 
 void RepairCommand::Help(std::string& ret) {
+  DBUG_TRACE;
   ret.append("  ");
   ret.append(RepairCommand::Name());
   ret.append(" [--" + ARG_VERBOSE + "]");
@@ -4172,12 +4290,14 @@ void RepairCommand::Help(std::string& ret) {
 }
 
 void RepairCommand::OverrideBaseOptions() {
+  DBUG_TRACE;
   LDBCommand::OverrideBaseOptions();
   auto level = verbose_ ? InfoLogLevel::INFO_LEVEL : InfoLogLevel::WARN_LEVEL;
   options_.info_log.reset(new StderrLogger(level));
 }
 
 void RepairCommand::DoCommand() {
+  DBUG_TRACE;
   PrepareOptions();
   Status status = RepairDB(db_path_, options_);
   if (status.ok()) {
@@ -4246,6 +4366,7 @@ BackupEngineCommand::BackupEngineCommand(
 }
 
 void BackupEngineCommand::Help(const std::string& name, std::string& ret) {
+  DBUG_TRACE;
   ret.append("  ");
   ret.append(name);
   ret.append(" [--" + ARG_BACKUP_ENV_URI + " | --" + ARG_BACKUP_FS_URI + "] ");
@@ -4263,10 +4384,12 @@ BackupCommand::BackupCommand(const std::vector<std::string>& params,
     : BackupEngineCommand(params, options, flags) {}
 
 void BackupCommand::Help(std::string& ret) {
+  DBUG_TRACE;
   BackupEngineCommand::Help(Name(), ret);
 }
 
 void BackupCommand::DoCommand() {
+  DBUG_TRACE;
   BackupEngine* backup_engine;
   Status status;
   if (!db_) {
@@ -4316,10 +4439,12 @@ RestoreCommand::RestoreCommand(
     : BackupEngineCommand(params, options, flags) {}
 
 void RestoreCommand::Help(std::string& ret) {
+  DBUG_TRACE;
   BackupEngineCommand::Help(Name(), ret);
 }
 
 void RestoreCommand::DoCommand() {
+  DBUG_TRACE;
   Env* custom_env = backup_env_guard_.get();
   if (custom_env == nullptr) {
     Status s =
@@ -4363,6 +4488,7 @@ namespace {
 void DumpSstFile(Options options, std::string filename, bool output_hex,
                  bool show_properties, bool decode_blob_index,
                  std::string from_key, std::string to_key) {
+  DBUG_TRACE;
   if (filename.length() <= 4 ||
       filename.rfind(".sst") != filename.length() - 4) {
     std::cout << "Invalid sst file name." << std::endl;
@@ -4404,6 +4530,7 @@ void DumpSstFile(Options options, std::string filename, bool output_hex,
 
 void DumpBlobFile(const std::string& filename, bool is_key_hex,
                   bool is_value_hex, bool dump_uncompressed_blobs) {
+  DBUG_TRACE;
   using ROCKSDB_NAMESPACE::blob_db::BlobDumpTool;
   BlobDumpTool tool;
   BlobDumpTool::DisplayType blob_type = is_value_hex
@@ -4426,6 +4553,7 @@ void DumpBlobFile(const std::string& filename, bool is_key_hex,
 
 Status EncodeUserProvidedTimestamp(const std::string& user_timestamp,
                                    std::string* ts_buf) {
+  DBUG_TRACE;
   uint64_t int_timestamp;
   std::istringstream iss(user_timestamp);
   if (!(iss >> int_timestamp)) {
@@ -4449,6 +4577,7 @@ DBFileDumperCommand::DBFileDumperCommand(
           IsFlagPresent(flags, ARG_DUMP_UNCOMPRESSED_BLOBS)) {}
 
 void DBFileDumperCommand::Help(std::string& ret) {
+  DBUG_TRACE;
   ret.append("  ");
   ret.append(DBFileDumperCommand::Name());
   ret.append(" [--" + ARG_DECODE_BLOB_INDEX + "] ");
@@ -4457,6 +4586,7 @@ void DBFileDumperCommand::Help(std::string& ret) {
 }
 
 void DBFileDumperCommand::DoCommand() {
+  DBUG_TRACE;
   if (!db_) {
     assert(GetExecuteState().IsFailed());
     return;
@@ -4564,6 +4694,7 @@ DBLiveFilesMetadataDumperCommand::DBLiveFilesMetadataDumperCommand(
 }
 
 void DBLiveFilesMetadataDumperCommand::Help(std::string& ret) {
+  DBUG_TRACE;
   ret.append("  ");
   ret.append(DBLiveFilesMetadataDumperCommand::Name());
   ret.append(" [--" + ARG_SORT_BY_FILENAME + "] ");
@@ -4571,6 +4702,7 @@ void DBLiveFilesMetadataDumperCommand::Help(std::string& ret) {
 }
 
 void DBLiveFilesMetadataDumperCommand::DoCommand() {
+  DBUG_TRACE;
   if (!db_) {
     assert(GetExecuteState().IsFailed());
     return;
@@ -4675,6 +4807,7 @@ void DBLiveFilesMetadataDumperCommand::DoCommand() {
 }
 
 void WriteExternalSstFilesCommand::Help(std::string& ret) {
+  DBUG_TRACE;
   ret.append("  ");
   ret.append(WriteExternalSstFilesCommand::Name());
   ret.append(" <output_sst_path>");
@@ -4701,6 +4834,7 @@ WriteExternalSstFilesCommand::WriteExternalSstFilesCommand(
 }
 
 void WriteExternalSstFilesCommand::DoCommand() {
+  DBUG_TRACE;
   if (!db_) {
     assert(GetExecuteState().IsFailed());
     return;
@@ -4752,6 +4886,7 @@ void WriteExternalSstFilesCommand::DoCommand() {
 }
 
 void WriteExternalSstFilesCommand::OverrideBaseOptions() {
+  DBUG_TRACE;
   LDBCommand::OverrideBaseOptions();
   options_.create_if_missing = create_if_missing_;
 }
@@ -4769,6 +4904,7 @@ const std::string IngestExternalSstFilesCommand::ARG_WRITE_GLOBAL_SEQNO =
     "write_global_seqno";
 
 void IngestExternalSstFilesCommand::Help(std::string& ret) {
+  DBUG_TRACE;
   ret.append("  ");
   ret.append(IngestExternalSstFilesCommand::Name());
   ret.append(" <input_sst_path>");
@@ -4840,6 +4976,7 @@ IngestExternalSstFilesCommand::IngestExternalSstFilesCommand(
 }
 
 void IngestExternalSstFilesCommand::DoCommand() {
+  DBUG_TRACE;
   if (!db_) {
     assert(GetExecuteState().IsFailed());
     return;
@@ -4866,6 +5003,7 @@ void IngestExternalSstFilesCommand::DoCommand() {
 }
 
 void IngestExternalSstFilesCommand::OverrideBaseOptions() {
+  DBUG_TRACE;
   LDBCommand::OverrideBaseOptions();
   options_.create_if_missing = create_if_missing_;
 }
@@ -4893,6 +5031,7 @@ ListFileRangeDeletesCommand::ListFileRangeDeletesCommand(
 }
 
 void ListFileRangeDeletesCommand::Help(std::string& ret) {
+  DBUG_TRACE;
   ret.append("  ");
   ret.append(ListFileRangeDeletesCommand::Name());
   ret.append(" [--" + ARG_MAX_KEYS + "=<N>]");
@@ -4900,6 +5039,7 @@ void ListFileRangeDeletesCommand::Help(std::string& ret) {
 }
 
 void ListFileRangeDeletesCommand::DoCommand() {
+  DBUG_TRACE;
   if (!db_) {
     assert(GetExecuteState().IsFailed());
     return;
@@ -4919,6 +5059,7 @@ void ListFileRangeDeletesCommand::DoCommand() {
 }
 
 void UnsafeRemoveSstFileCommand::Help(std::string& ret) {
+  DBUG_TRACE;
   ret.append("  ");
   ret.append(UnsafeRemoveSstFileCommand::Name());
   ret.append(" <SST file number>");
@@ -4947,6 +5088,7 @@ UnsafeRemoveSstFileCommand::UnsafeRemoveSstFileCommand(
 }
 
 void UnsafeRemoveSstFileCommand::DoCommand() {
+  DBUG_TRACE;
   // TODO: plumb Env::IOActivity, Env::IOPriority
   const ReadOptions read_options;
   const WriteOptions write_options;
@@ -4992,6 +5134,7 @@ const std::string UpdateManifestCommand::ARG_UPDATE_TEMPERATURES =
     "update_temperatures";
 
 void UpdateManifestCommand::Help(std::string& ret) {
+  DBUG_TRACE;
   ret.append("  ");
   ret.append(UpdateManifestCommand::Name());
   ret.append(" [--update_temperatures]");
@@ -5019,6 +5162,7 @@ UpdateManifestCommand::UpdateManifestCommand(
 }
 
 void UpdateManifestCommand::DoCommand() {
+  DBUG_TRACE;
   PrepareOptions();
 
   auto level = verbose_ ? InfoLogLevel::INFO_LEVEL : InfoLogLevel::WARN_LEVEL;

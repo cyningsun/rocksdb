@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include <cstdint>
 
 #include "table/unique_id_impl.h"
@@ -13,6 +14,7 @@
 namespace ROCKSDB_NAMESPACE {
 
 std::string EncodeSessionId(uint64_t upper, uint64_t lower) {
+  DBUG_TRACE;
   std::string db_session_id(20U, '\0');
   char *buf = db_session_id.data();
   // Preserving `lower` is slightly tricky. 36^12 is slightly more than
@@ -28,6 +30,7 @@ std::string EncodeSessionId(uint64_t upper, uint64_t lower) {
 
 Status DecodeSessionId(const std::string &db_session_id, uint64_t *upper,
                        uint64_t *lower) {
+  DBUG_TRACE;
   const size_t len = db_session_id.size();
   if (len == 0) {
     return Status::NotSupported("Missing db_session_id");
@@ -60,6 +63,7 @@ Status GetSstInternalUniqueId(const std::string &db_id,
                               const std::string &db_session_id,
                               uint64_t file_number, UniqueIdPtr out,
                               bool force) {
+  DBUG_TRACE;
   if (!force) {
     if (db_id.empty()) {
       return Status::NotSupported("Missing db_id");
@@ -129,6 +133,7 @@ constexpr uint64_t kLoOffsetForZero = 6417269962128484497U;
 }  // namespace
 
 void InternalUniqueIdToExternal(UniqueIdPtr in_out) {
+  DBUG_TRACE;
   uint64_t hi, lo;
   BijectiveHash2x64(in_out.ptr[1] + kHiOffsetForZero,
                     in_out.ptr[0] + kLoOffsetForZero, &hi, &lo);
@@ -140,6 +145,7 @@ void InternalUniqueIdToExternal(UniqueIdPtr in_out) {
 }
 
 void ExternalUniqueIdToInternal(UniqueIdPtr in_out) {
+  DBUG_TRACE;
   uint64_t lo = in_out.ptr[0];
   uint64_t hi = in_out.ptr[1];
   if (in_out.extended) {
@@ -151,6 +157,7 @@ void ExternalUniqueIdToInternal(UniqueIdPtr in_out) {
 }
 
 std::string EncodeUniqueIdBytes(UniqueIdPtr in) {
+  DBUG_TRACE;
   std::string ret(in.extended ? 24U : 16U, '\0');
   EncodeFixed64(ret.data(), in.ptr[0]);
   EncodeFixed64(&ret[8], in.ptr[1]);
@@ -161,6 +168,7 @@ std::string EncodeUniqueIdBytes(UniqueIdPtr in) {
 }
 
 Status DecodeUniqueIdBytes(const std::string &unique_id, UniqueIdPtr out) {
+  DBUG_TRACE;
   if (unique_id.size() != (out.extended ? 24 : 16)) {
     return Status::NotSupported("Not a valid unique_id");
   }
@@ -190,15 +198,18 @@ Status GetUniqueIdFromTablePropertiesHelper(const TableProperties &props,
 
 Status GetExtendedUniqueIdFromTableProperties(const TableProperties &props,
                                               std::string *out_id) {
+  DBUG_TRACE;
   return GetUniqueIdFromTablePropertiesHelper<UniqueId64x3>(props, out_id);
 }
 
 Status GetUniqueIdFromTableProperties(const TableProperties &props,
                                       std::string *out_id) {
+  DBUG_TRACE;
   return GetUniqueIdFromTablePropertiesHelper<UniqueId64x2>(props, out_id);
 }
 
 std::string UniqueIdToHumanString(const std::string &id) {
+  DBUG_TRACE;
   // Not so efficient, but that's OK
   std::string str = Slice(id).ToString(/*hex*/ true);
   for (size_t i = 16; i < str.size(); i += 17) {
@@ -208,6 +219,7 @@ std::string UniqueIdToHumanString(const std::string &id) {
 }
 
 std::string InternalUniqueIdToHumanString(UniqueIdPtr in) {
+  DBUG_TRACE;
   std::string str = "{";
   str += std::to_string(in.ptr[0]);
   str += ",";

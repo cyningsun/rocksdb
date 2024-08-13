@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 //
+#include "rocksdb/util/dbug.h"
 #include <algorithm>
 #include <memory>
 #include <set>
@@ -105,6 +106,7 @@ class VectorRep : public MemTableRep {
 };
 
 void VectorRep::Insert(KeyHandle handle) {
+  DBUG_TRACE;
   auto* key = static_cast<char*>(handle);
   WriteLock l(&rwlock_);
   assert(!immutable_);
@@ -113,16 +115,19 @@ void VectorRep::Insert(KeyHandle handle) {
 
 // Returns true iff an entry that compares equal to key is in the collection.
 bool VectorRep::Contains(const char* key) const {
+  DBUG_TRACE;
   ReadLock l(&rwlock_);
   return std::find(bucket_->begin(), bucket_->end(), key) != bucket_->end();
 }
 
 void VectorRep::MarkReadOnly() {
+  DBUG_TRACE;
   WriteLock l(&rwlock_);
   immutable_ = true;
 }
 
 size_t VectorRep::ApproximateMemoryUsage() {
+  DBUG_TRACE;
   return sizeof(bucket_) + sizeof(*bucket_) +
          bucket_->size() *
              sizeof(
@@ -149,6 +154,7 @@ VectorRep::Iterator::Iterator(class VectorRep* vrep,
       sorted_(false) {}
 
 void VectorRep::Iterator::DoSort() const {
+  DBUG_TRACE;
   // vrep is non-null means that we are working on an immutable memtable
   if (!sorted_ && vrep_ != nullptr) {
     WriteLock l(&vrep_->rwlock_);
@@ -172,6 +178,7 @@ void VectorRep::Iterator::DoSort() const {
 
 // Returns true iff the iterator is positioned at a valid node.
 bool VectorRep::Iterator::Valid() const {
+  DBUG_TRACE;
   DoSort();
   return cit_ != bucket_->end();
 }
@@ -179,6 +186,7 @@ bool VectorRep::Iterator::Valid() const {
 // Returns the key at the current position.
 // REQUIRES: Valid()
 const char* VectorRep::Iterator::key() const {
+  DBUG_TRACE;
   assert(sorted_);
   return *cit_;
 }
@@ -186,6 +194,7 @@ const char* VectorRep::Iterator::key() const {
 // Advances to the next position.
 // REQUIRES: Valid()
 void VectorRep::Iterator::Next() {
+  DBUG_TRACE;
   assert(sorted_);
   if (cit_ == bucket_->end()) {
     return;
@@ -196,6 +205,7 @@ void VectorRep::Iterator::Next() {
 // Advances to the previous position.
 // REQUIRES: Valid()
 void VectorRep::Iterator::Prev() {
+  DBUG_TRACE;
   assert(sorted_);
   if (cit_ == bucket_->begin()) {
     // If you try to go back from the first element, the iterator should be
@@ -210,6 +220,7 @@ void VectorRep::Iterator::Prev() {
 // Advance to the first entry with a key >= target
 void VectorRep::Iterator::Seek(const Slice& user_key,
                                const char* memtable_key) {
+  DBUG_TRACE;
   DoSort();
   // Do binary search to find first value not less than the target
   const char* encoded_key =
@@ -224,12 +235,14 @@ void VectorRep::Iterator::Seek(const Slice& user_key,
 // Advance to the first entry with a key <= target
 void VectorRep::Iterator::SeekForPrev(const Slice& /*user_key*/,
                                       const char* /*memtable_key*/) {
+  DBUG_TRACE;
   assert(false);
 }
 
 // Position at the first entry in collection.
 // Final state of iterator is Valid() iff collection is not empty.
 void VectorRep::Iterator::SeekToFirst() {
+  DBUG_TRACE;
   DoSort();
   cit_ = bucket_->begin();
 }
@@ -237,6 +250,7 @@ void VectorRep::Iterator::SeekToFirst() {
 // Position at the last entry in collection.
 // Final state of iterator is Valid() iff collection is not empty.
 void VectorRep::Iterator::SeekToLast() {
+  DBUG_TRACE;
   DoSort();
   cit_ = bucket_->end();
   if (bucket_->size() != 0) {
@@ -246,6 +260,7 @@ void VectorRep::Iterator::SeekToLast() {
 
 void VectorRep::Get(const LookupKey& k, void* callback_args,
                     bool (*callback_func)(void* arg, const char* entry)) {
+  DBUG_TRACE;
   rwlock_.ReadLock();
   VectorRep* vector_rep;
   std::shared_ptr<Bucket> bucket;
@@ -264,6 +279,7 @@ void VectorRep::Get(const LookupKey& k, void* callback_args,
 }
 
 MemTableRep::Iterator* VectorRep::GetIterator(Arena* arena) {
+  DBUG_TRACE;
   char* mem = nullptr;
   if (arena != nullptr) {
     mem = arena->AllocateAligned(sizeof(Iterator));
@@ -302,6 +318,7 @@ VectorRepFactory::VectorRepFactory(size_t count) : count_(count) {
 MemTableRep* VectorRepFactory::CreateMemTableRep(
     const MemTableRep::KeyComparator& compare, Allocator* allocator,
     const SliceTransform*, Logger* /*logger*/) {
+  DBUG_TRACE;
   return new VectorRep(compare, allocator, count_);
 }
 }  // namespace ROCKSDB_NAMESPACE

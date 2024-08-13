@@ -4,6 +4,7 @@
 //  (found in the LICENSE.Apache file in the root directory).
 
 
+#include "rocksdb/util/dbug.h"
 #include "utilities/compaction_filters/remove_emptyvalue_compactionfilter.h"
 
 #include <string>
@@ -17,6 +18,7 @@ bool RemoveEmptyValueCompactionFilter::Filter(int /*level*/,
                                               const Slice& existing_value,
                                               std::string* /*new_value*/,
                                               bool* /*value_changed*/) const {
+  DBUG_TRACE;
   // remove kv pairs that have empty values
   return existing_value.empty();
 }

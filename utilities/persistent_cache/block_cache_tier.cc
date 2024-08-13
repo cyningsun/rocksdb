@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "utilities/persistent_cache/block_cache_tier.h"
 
 #include <utility>
@@ -20,6 +21,7 @@ namespace ROCKSDB_NAMESPACE {
 // BlockCacheImpl
 //
 Status BlockCacheTier::Open() {
+  DBUG_TRACE;
   Status status;
 
   WriteLock _(&lock_);
@@ -75,6 +77,7 @@ Status BlockCacheTier::Open() {
 }
 
 bool IsCacheFile(const std::string& file) {
+  DBUG_TRACE;
   // check if the file has .rc suffix
   // Unfortunately regex support across compilers is not even, so we use simple
   // string parsing
@@ -88,6 +91,7 @@ bool IsCacheFile(const std::string& file) {
 }
 
 Status BlockCacheTier::CleanupCacheFolder(const std::string& folder) {
+  DBUG_TRACE;
   std::vector<std::string> files;
   Status status = opt_.env->GetChildren(folder, &files);
   if (!status.ok()) {
@@ -115,6 +119,7 @@ Status BlockCacheTier::CleanupCacheFolder(const std::string& folder) {
 }
 
 Status BlockCacheTier::Close() {
+  DBUG_TRACE;
   // stop the insert thread
   if (opt_.pipeline_writes && insert_th_.joinable()) {
     InsertOp op(/*quit=*/true);
@@ -138,6 +143,7 @@ void Add(std::map<std::string, double>* stats, const std::string& key,
 }
 
 PersistentCache::StatsType BlockCacheTier::Stats() {
+  DBUG_TRACE;
   std::map<std::string, double> stats;
   Add(&stats, "persistentcache.blockcachetier.bytes_piplined",
       stats_.bytes_pipelined_.Average());
@@ -170,6 +176,7 @@ PersistentCache::StatsType BlockCacheTier::Stats() {
 
 Status BlockCacheTier::Insert(const Slice& key, const char* data,
                               const size_t size) {
+  DBUG_TRACE;
   // update stats
   stats_.bytes_pipelined_.Add(size);
 
@@ -185,6 +192,7 @@ Status BlockCacheTier::Insert(const Slice& key, const char* data,
 }
 
 void BlockCacheTier::InsertMain() {
+  DBUG_TRACE;
   while (true) {
     InsertOp op(insert_ops_.Pop());
 
@@ -214,6 +222,7 @@ void BlockCacheTier::InsertMain() {
 }
 
 Status BlockCacheTier::InsertImpl(const Slice& key, const Slice& data) {
+  DBUG_TRACE;
   // pre-condition
   assert(key.size());
   assert(data.size());
@@ -262,6 +271,7 @@ Status BlockCacheTier::InsertImpl(const Slice& key, const Slice& data) {
 
 Status BlockCacheTier::Lookup(const Slice& key, std::unique_ptr<char[]>* val,
                               size_t* size) {
+  DBUG_TRACE;
   StopWatchNano timer(opt_.clock, /*auto_start=*/true);
 
   LBA lba;
@@ -311,6 +321,7 @@ Status BlockCacheTier::Lookup(const Slice& key, std::unique_ptr<char[]>* val,
 }
 
 bool BlockCacheTier::Erase(const Slice& key) {
+  DBUG_TRACE;
   WriteLock _(&lock_);
   BlockInfo* info = metadata_.Remove(key);
   assert(info);
@@ -319,6 +330,7 @@ bool BlockCacheTier::Erase(const Slice& key) {
 }
 
 Status BlockCacheTier::NewCacheFile() {
+  DBUG_TRACE;
   lock_.AssertHeld();
 
   TEST_SYNC_POINT_CALLBACK("BlockCacheTier::NewCacheFile:DeleteDir",
@@ -350,6 +362,7 @@ Status BlockCacheTier::NewCacheFile() {
 }
 
 bool BlockCacheTier::Reserve(const size_t size) {
+  DBUG_TRACE;
   WriteLock _(&lock_);
   assert(size_ <= opt_.cache_size);
 
@@ -391,6 +404,7 @@ Status NewPersistentCache(Env* const env, const std::string& path,
                           const std::shared_ptr<Logger>& log,
                           const bool optimized_for_nvm,
                           std::shared_ptr<PersistentCache>* cache) {
+  DBUG_TRACE;
   if (!cache) {
     return Status::IOError("invalid argument cache");
   }
@@ -417,4 +431,3 @@ Status NewPersistentCache(Env* const env, const std::string& path,
 }
 
 }  // namespace ROCKSDB_NAMESPACE
-

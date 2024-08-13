@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/utilities/sim_cache.h"
 
 #include <atomic>
@@ -33,6 +34,7 @@ class CacheActivityLogger {
 
   Status StartLogging(const std::string& activity_log_file, Env* env,
                       uint64_t max_logging_size = 0) {
+    DBUG_TRACE;
     assert(activity_log_file != "");
     assert(env != nullptr);
 
@@ -58,12 +60,14 @@ class CacheActivityLogger {
   }
 
   void StopLogging() {
+    DBUG_TRACE;
     MutexLock l(&mutex_);
 
     StopLoggingInternal();
   }
 
   void ReportLookup(const Slice& key) {
+    DBUG_TRACE;
     if (activity_logging_enabled_.load() == false) {
       return;
     }
@@ -85,6 +89,7 @@ class CacheActivityLogger {
   }
 
   void ReportAdd(const Slice& key, size_t size) {
+    DBUG_TRACE;
     if (activity_logging_enabled_.load() == false) {
       return;
     }
@@ -106,12 +111,14 @@ class CacheActivityLogger {
   }
 
   Status& bg_status() {
+    DBUG_TRACE;
     MutexLock l(&mutex_);
     return bg_status_;
   }
 
  private:
   bool MaxLoggingSizeReached() {
+    DBUG_TRACE;
     mutex_.AssertHeld();
 
     return (max_logging_size_ > 0 &&
@@ -119,6 +126,7 @@ class CacheActivityLogger {
   }
 
   void StopLoggingInternal() {
+    DBUG_TRACE;
     mutex_.AssertHeld();
 
     if (!activity_logging_enabled_) {
@@ -159,11 +167,12 @@ class SimCacheImpl : public SimCache {
 
   ~SimCacheImpl() override = default;
 
-  const char* Name() const override { return "SimCache"; }
+  const char* Name() const override { DBUG_TRACE; return "SimCache"; }
 
-  void SetCapacity(size_t capacity) override { target_->SetCapacity(capacity); }
+  void SetCapacity(size_t capacity) override { DBUG_TRACE; target_->SetCapacity(capacity); }
 
   void SetStrictCapacityLimit(bool strict_capacity_limit) override {
+    DBUG_TRACE;
     target_->SetStrictCapacityLimit(strict_capacity_limit);
   }
 
@@ -171,6 +180,7 @@ class SimCacheImpl : public SimCache {
                 const CacheItemHelper* helper, size_t charge, Handle** handle,
                 Priority priority, const Slice& compressed = {},
                 CompressionType type = kNoCompression) override {
+    DBUG_TRACE;
     // The handle and value passed in are for real cache, so we pass nullptr
     // to key_only_cache_ for both instead. Also, the deleter function pointer
     // will be called by user to perform some external operation which should
@@ -199,6 +209,7 @@ class SimCacheImpl : public SimCache {
                  CreateContext* create_context,
                  Priority priority = Priority::LOW,
                  Statistics* stats = nullptr) override {
+    DBUG_TRACE;
     HandleLookup(key, stats);
     if (!target_) {
       return nullptr;
@@ -207,53 +218,62 @@ class SimCacheImpl : public SimCache {
   }
 
   void StartAsyncLookup(AsyncLookupHandle& async_handle) override {
+    DBUG_TRACE;
     HandleLookup(async_handle.key, async_handle.stats);
     if (target_) {
       target_->StartAsyncLookup(async_handle);
     }
   }
 
-  bool Ref(Handle* handle) override { return target_->Ref(handle); }
+  bool Ref(Handle* handle) override { DBUG_TRACE; return target_->Ref(handle); }
 
   using Cache::Release;
   bool Release(Handle* handle, bool erase_if_last_ref = false) override {
+    DBUG_TRACE;
     return target_->Release(handle, erase_if_last_ref);
   }
 
   void Erase(const Slice& key) override {
+    DBUG_TRACE;
     target_->Erase(key);
     key_only_cache_->Erase(key);
   }
 
   Cache::ObjectPtr Value(Handle* handle) override {
+    DBUG_TRACE;
     return target_->Value(handle);
   }
 
-  uint64_t NewId() override { return target_->NewId(); }
+  uint64_t NewId() override { DBUG_TRACE; return target_->NewId(); }
 
-  size_t GetCapacity() const override { return target_->GetCapacity(); }
+  size_t GetCapacity() const override { DBUG_TRACE; return target_->GetCapacity(); }
 
   bool HasStrictCapacityLimit() const override {
+    DBUG_TRACE;
     return target_->HasStrictCapacityLimit();
   }
 
-  size_t GetUsage() const override { return target_->GetUsage(); }
+  size_t GetUsage() const override { DBUG_TRACE; return target_->GetUsage(); }
 
   size_t GetUsage(Handle* handle) const override {
+    DBUG_TRACE;
     return target_->GetUsage(handle);
   }
 
   size_t GetCharge(Handle* handle) const override {
+    DBUG_TRACE;
     return target_->GetCharge(handle);
   }
 
   const CacheItemHelper* GetCacheItemHelper(Handle* handle) const override {
+    DBUG_TRACE;
     return target_->GetCacheItemHelper(handle);
   }
 
-  size_t GetPinnedUsage() const override { return target_->GetPinnedUsage(); }
+  size_t GetPinnedUsage() const override { DBUG_TRACE; return target_->GetPinnedUsage(); }
 
   void DisownData() override {
+    DBUG_TRACE;
     target_->DisownData();
     key_only_cache_->DisownData();
   }
@@ -262,31 +282,38 @@ class SimCacheImpl : public SimCache {
       const std::function<void(const Slice& key, ObjectPtr value, size_t charge,
                                const CacheItemHelper* helper)>& callback,
       const ApplyToAllEntriesOptions& opts) override {
+    DBUG_TRACE;
     target_->ApplyToAllEntries(callback, opts);
   }
 
   void EraseUnRefEntries() override {
+    DBUG_TRACE;
     target_->EraseUnRefEntries();
     key_only_cache_->EraseUnRefEntries();
   }
 
   size_t GetSimCapacity() const override {
+    DBUG_TRACE;
     return key_only_cache_->GetCapacity();
   }
-  size_t GetSimUsage() const override { return key_only_cache_->GetUsage(); }
+  size_t GetSimUsage() const override { DBUG_TRACE; return key_only_cache_->GetUsage(); }
   void SetSimCapacity(size_t capacity) override {
+    DBUG_TRACE;
     key_only_cache_->SetCapacity(capacity);
   }
 
   uint64_t get_miss_counter() const override {
+    DBUG_TRACE;
     return miss_times_.load(std::memory_order_relaxed);
   }
 
   uint64_t get_hit_counter() const override {
+    DBUG_TRACE;
     return hit_times_.load(std::memory_order_relaxed);
   }
 
   void reset_counter() override {
+    DBUG_TRACE;
     miss_times_.store(0, std::memory_order_relaxed);
     hit_times_.store(0, std::memory_order_relaxed);
     SetTickerCount(stats_, SIM_BLOCK_CACHE_HIT, 0);
@@ -294,6 +321,7 @@ class SimCacheImpl : public SimCache {
   }
 
   std::string ToString() const override {
+    DBUG_TRACE;
     std::ostringstream oss;
     oss << "SimCache MISSes:  " << get_miss_counter() << std::endl;
     oss << "SimCache HITs:    " << get_hit_counter() << std::endl;
@@ -305,6 +333,7 @@ class SimCacheImpl : public SimCache {
   }
 
   std::string GetPrintableOptions() const override {
+    DBUG_TRACE;
     std::ostringstream oss;
     oss << "    cache_options:" << std::endl;
     oss << target_->GetPrintableOptions();
@@ -315,13 +344,15 @@ class SimCacheImpl : public SimCache {
 
   Status StartActivityLogging(const std::string& activity_log_file, Env* env,
                               uint64_t max_logging_size = 0) override {
+    DBUG_TRACE;
     return cache_activity_logger_.StartLogging(activity_log_file, env,
                                                max_logging_size);
   }
 
-  void StopActivityLogging() override { cache_activity_logger_.StopLogging(); }
+  void StopActivityLogging() override { DBUG_TRACE; cache_activity_logger_.StopLogging(); }
 
   Status GetActivityLoggingStatus() override {
+    DBUG_TRACE;
     return cache_activity_logger_.bg_status();
   }
 
@@ -333,11 +364,13 @@ class SimCacheImpl : public SimCache {
   CacheActivityLogger cache_activity_logger_;
 
   void inc_miss_counter() {
+    DBUG_TRACE;
     miss_times_.fetch_add(1, std::memory_order_relaxed);
   }
-  void inc_hit_counter() { hit_times_.fetch_add(1, std::memory_order_relaxed); }
+  void inc_hit_counter() { DBUG_TRACE; hit_times_.fetch_add(1, std::memory_order_relaxed); }
 
   void HandleLookup(const Slice& key, Statistics* stats) {
+    DBUG_TRACE;
     Handle* h = key_only_cache_->Lookup(key);
     if (h != nullptr) {
       key_only_cache_->Release(h);
@@ -356,6 +389,7 @@ class SimCacheImpl : public SimCache {
 // For instrumentation purpose, use NewSimCache instead
 std::shared_ptr<SimCache> NewSimCache(std::shared_ptr<Cache> cache,
                                       size_t sim_capacity, int num_shard_bits) {
+  DBUG_TRACE;
   LRUCacheOptions co;
   co.capacity = sim_capacity;
   co.num_shard_bits = num_shard_bits;
@@ -366,6 +400,7 @@ std::shared_ptr<SimCache> NewSimCache(std::shared_ptr<Cache> cache,
 std::shared_ptr<SimCache> NewSimCache(std::shared_ptr<Cache> sim_cache,
                                       std::shared_ptr<Cache> cache,
                                       int num_shard_bits) {
+  DBUG_TRACE;
   if (num_shard_bits >= 20) {
     return nullptr;  // the cache cannot be sharded into too many fine pieces
   }

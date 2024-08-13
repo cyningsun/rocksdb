@@ -4,6 +4,7 @@
 //  (found in the LICENSE.Apache file in the root directory).
 
 
+#include "rocksdb/util/dbug.h"
 #include "utilities/trace/replayer_impl.h"
 
 #include <cmath>
@@ -34,6 +35,7 @@ ReplayerImpl::~ReplayerImpl() {
 }
 
 Status ReplayerImpl::Prepare() {
+  DBUG_TRACE;
   Trace header;
   int db_version;
   Status s = ReadHeader(&header);
@@ -51,6 +53,7 @@ Status ReplayerImpl::Prepare() {
 }
 
 Status ReplayerImpl::Next(std::unique_ptr<TraceRecord>* record) {
+  DBUG_TRACE;
   if (!prepared_) {
     return Status::Incomplete("Not prepared!");
   }
@@ -74,6 +77,7 @@ Status ReplayerImpl::Next(std::unique_ptr<TraceRecord>* record) {
 
 Status ReplayerImpl::Execute(const std::unique_ptr<TraceRecord>& record,
                              std::unique_ptr<TraceRecordResult>* result) {
+  DBUG_TRACE;
   return record->Accept(exec_handler_.get(), result);
 }
 
@@ -81,6 +85,7 @@ Status ReplayerImpl::Replay(
     const ReplayOptions& options,
     const std::function<void(Status, std::unique_ptr<TraceRecordResult>&&)>&
         result_callback) {
+  DBUG_TRACE;
   if (options.fast_forward <= 0.0) {
     return Status::InvalidArgument("Wrong fast forward speed!");
   }
@@ -247,9 +252,10 @@ Status ReplayerImpl::Replay(
   return s;
 }
 
-uint64_t ReplayerImpl::GetHeaderTimestamp() const { return header_ts_; }
+uint64_t ReplayerImpl::GetHeaderTimestamp() const { DBUG_TRACE; return header_ts_; }
 
 Status ReplayerImpl::ReadHeader(Trace* header) {
+  DBUG_TRACE;
   assert(header != nullptr);
   Status s = trace_reader_->Reset();
   if (!s.ok()) {
@@ -266,6 +272,7 @@ Status ReplayerImpl::ReadHeader(Trace* header) {
 }
 
 Status ReplayerImpl::ReadTrace(Trace* trace) {
+  DBUG_TRACE;
   assert(trace != nullptr);
   std::string encoded_trace;
   // We don't know if TraceReader is implemented thread-safe, so we protect the
@@ -282,6 +289,7 @@ Status ReplayerImpl::ReadTrace(Trace* trace) {
 }
 
 void ReplayerImpl::BackgroundWork(void* arg) {
+  DBUG_TRACE;
   std::unique_ptr<ReplayerWorkerArg> ra(static_cast<ReplayerWorkerArg*>(arg));
   assert(ra != nullptr);
 

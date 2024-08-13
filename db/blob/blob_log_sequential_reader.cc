@@ -4,6 +4,7 @@
 //  (found in the LICENSE.Apache file in the root directory).
 //
 
+#include "rocksdb/util/dbug.h"
 #include "db/blob/blob_log_sequential_reader.h"
 
 #include "file/random_access_file_reader.h"
@@ -24,6 +25,7 @@ BlobLogSequentialReader::~BlobLogSequentialReader() = default;
 
 Status BlobLogSequentialReader::ReadSlice(uint64_t size, Slice* slice,
                                           char* buf) {
+  DBUG_TRACE;
   assert(slice);
   assert(file_);
 
@@ -43,6 +45,7 @@ Status BlobLogSequentialReader::ReadSlice(uint64_t size, Slice* slice,
 }
 
 Status BlobLogSequentialReader::ReadHeader(BlobLogHeader* header) {
+  DBUG_TRACE;
   assert(header);
   assert(next_byte_ == 0);
 
@@ -64,6 +67,7 @@ Status BlobLogSequentialReader::ReadHeader(BlobLogHeader* header) {
 Status BlobLogSequentialReader::ReadRecord(BlobLogRecord* record,
                                            ReadLevel level,
                                            uint64_t* blob_offset) {
+  DBUG_TRACE;
   assert(record);
   static_assert(BlobLogRecord::kHeaderSize <= sizeof(header_buf_),
                 "Buffer is smaller than BlobLogRecord::kHeaderSize");
@@ -114,6 +118,7 @@ Status BlobLogSequentialReader::ReadRecord(BlobLogRecord* record,
 }
 
 Status BlobLogSequentialReader::ReadFooter(BlobLogFooter* footer) {
+  DBUG_TRACE;
   assert(footer);
   static_assert(BlobLogFooter::kSize <= sizeof(header_buf_),
                 "Buffer is smaller than BlobLogFooter::kSize");

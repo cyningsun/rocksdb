@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors
 
+#include "rocksdb/util/dbug.h"
 #include "port/lang.h"
 #if !defined(OS_WIN)
 
@@ -99,6 +100,7 @@ static const std::string kSharedLibExt = ".so";
 namespace {
 
 ThreadStatusUpdater* CreateThreadStatusUpdater() {
+  DBUG_TRACE;
   return new ThreadStatusUpdater();
 }
 
@@ -131,17 +133,19 @@ class PosixDynamicLibrary : public DynamicLibrary {
 
 class PosixClock : public SystemClock {
  public:
-  static const char* kClassName() { return "PosixClock"; }
-  const char* Name() const override { return kDefaultName(); }
-  const char* NickName() const override { return kClassName(); }
+  static const char* kClassName() { DBUG_TRACE; return "PosixClock"; }
+  const char* Name() const override { DBUG_TRACE; return kDefaultName(); }
+  const char* NickName() const override { DBUG_TRACE; return kClassName(); }
 
   uint64_t NowMicros() override {
+    DBUG_TRACE;
     port::TimeVal tv;
     port::GetTimeOfDay(&tv, nullptr);
     return static_cast<uint64_t>(tv.tv_sec) * 1000000 + tv.tv_usec;
   }
 
   uint64_t NowNanos() override {
+DBUG_TRACE;
 #if defined(OS_LINUX) || defined(OS_FREEBSD) || defined(OS_GNU_KFREEBSD) || \
     defined(OS_AIX)
     struct timespec ts;
@@ -164,6 +168,7 @@ class PosixClock : public SystemClock {
   }
 
   uint64_t CPUMicros() override {
+DBUG_TRACE;
 #if defined(OS_LINUX) || defined(OS_FREEBSD) || defined(OS_GNU_KFREEBSD) || \
     defined(OS_AIX) || (defined(__MACH__) && defined(__MAC_10_12))
     struct timespec ts;
@@ -174,6 +179,7 @@ class PosixClock : public SystemClock {
   }
 
   uint64_t CPUNanos() override {
+DBUG_TRACE;
 #if defined(OS_LINUX) || defined(OS_FREEBSD) || defined(OS_GNU_KFREEBSD) || \
     defined(OS_AIX) || (defined(__MACH__) && defined(__MAC_10_12))
     struct timespec ts;
@@ -183,9 +189,10 @@ class PosixClock : public SystemClock {
     return 0;
   }
 
-  void SleepForMicroseconds(int micros) override { usleep(micros); }
+  void SleepForMicroseconds(int micros) override { DBUG_TRACE; usleep(micros); }
 
   Status GetCurrentTime(int64_t* unix_time) override {
+    DBUG_TRACE;
     time_t ret = time(nullptr);
     if (ret == (time_t)-1) {
       return IOError("GetCurrentTime", "", errno);
@@ -195,6 +202,7 @@ class PosixClock : public SystemClock {
   }
 
   std::string TimeToString(uint64_t secondsSince1970) override {
+    DBUG_TRACE;
     const time_t seconds = (time_t)secondsSince1970;
     struct tm t;
     int maxsize = 64;
@@ -211,9 +219,9 @@ class PosixClock : public SystemClock {
 
 class PosixEnv : public CompositeEnv {
  public:
-  static const char* kClassName() { return "PosixEnv"; }
-  const char* Name() const override { return kClassName(); }
-  const char* NickName() const override { return kDefaultName(); }
+  static const char* kClassName() { DBUG_TRACE; return "PosixEnv"; }
+  const char* Name() const override { DBUG_TRACE; return kClassName(); }
+  const char* NickName() const override { DBUG_TRACE; return kDefaultName(); }
 
   struct JoinThreadsOnExit {
     explicit JoinThreadsOnExit(PosixEnv& _deflt) : deflt(_deflt) {}
@@ -234,6 +242,7 @@ class PosixEnv : public CompositeEnv {
   };
 
   void SetFD_CLOEXEC(int fd, const EnvOptions* options) {
+    DBUG_TRACE;
     if ((options == nullptr || options->set_fd_cloexec) && fd > 0) {
       fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC);
     }
@@ -311,11 +320,13 @@ class PosixEnv : public CompositeEnv {
   int ReleaseThreads(int threads_to_be_released, Priority pri) override;
 
   Status GetThreadList(std::vector<ThreadStatus>* thread_list) override {
+    DBUG_TRACE;
     assert(thread_status_updater_);
     return thread_status_updater_->GetThreadList(thread_list);
   }
 
   uint64_t GetThreadID() const override {
+    DBUG_TRACE;
     uint64_t thread_id = 0;
 #if defined(_GNU_SOURCE) && defined(__GLIBC_PREREQ)
 #if __GLIBC_PREREQ(2, 30)
@@ -332,6 +343,7 @@ class PosixEnv : public CompositeEnv {
   }
 
   Status GetHostName(char* name, uint64_t len) override {
+    DBUG_TRACE;
     const size_t max_len = static_cast<size_t>(len);
     int ret = gethostname(name, max_len);
     if (ret < 0) {
@@ -348,34 +360,40 @@ class PosixEnv : public CompositeEnv {
   }
 
   ThreadStatusUpdater* GetThreadStatusUpdater() const override {
+    DBUG_TRACE;
     return Env::GetThreadStatusUpdater();
   }
 
-  std::string GenerateUniqueId() override { return Env::GenerateUniqueId(); }
+  std::string GenerateUniqueId() override { DBUG_TRACE; return Env::GenerateUniqueId(); }
 
   // Allow increasing the number of worker threads.
   void SetBackgroundThreads(int num, Priority pri) override {
+    DBUG_TRACE;
     assert(pri >= Priority::BOTTOM && pri <= Priority::HIGH);
     thread_pools_[pri].SetBackgroundThreads(num);
   }
 
   int GetBackgroundThreads(Priority pri) override {
+    DBUG_TRACE;
     assert(pri >= Priority::BOTTOM && pri <= Priority::HIGH);
     return thread_pools_[pri].GetBackgroundThreads();
   }
 
   Status SetAllowNonOwnerAccess(bool allow_non_owner_access) override {
+    DBUG_TRACE;
     allow_non_owner_access_ = allow_non_owner_access;
     return Status::OK();
   }
 
   // Allow increasing the number of worker threads.
   void IncBackgroundThreadsIfNeeded(int num, Priority pri) override {
+    DBUG_TRACE;
     assert(pri >= Priority::BOTTOM && pri <= Priority::HIGH);
     thread_pools_[pri].IncBackgroundThreadsIfNeeded(num);
   }
 
   void LowerThreadPoolIOPriority(Priority pool) override {
+    DBUG_TRACE;
     assert(pool >= Priority::BOTTOM && pool <= Priority::HIGH);
 #ifdef OS_LINUX
     thread_pools_[pool].LowerIOPriority();
@@ -385,11 +403,13 @@ class PosixEnv : public CompositeEnv {
   }
 
   void LowerThreadPoolCPUPriority(Priority pool) override {
+    DBUG_TRACE;
     assert(pool >= Priority::BOTTOM && pool <= Priority::HIGH);
     thread_pools_[pool].LowerCPUPriority(CpuPriority::kLow);
   }
 
   Status LowerThreadPoolCPUPriority(Priority pool, CpuPriority pri) override {
+    DBUG_TRACE;
     assert(pool >= Priority::BOTTOM && pool <= Priority::HIGH);
     thread_pools_[pool].LowerCPUPriority(pri);
     return Status::OK();
@@ -436,25 +456,30 @@ PosixEnv::PosixEnv()
 
 void PosixEnv::Schedule(void (*function)(void* arg1), void* arg, Priority pri,
                         void* tag, void (*unschedFunction)(void* arg)) {
+  DBUG_TRACE;
   assert(pri >= Priority::BOTTOM && pri <= Priority::HIGH);
   thread_pools_[pri].Schedule(function, arg, tag, unschedFunction);
 }
 
 int PosixEnv::UnSchedule(void* arg, Priority pri) {
+  DBUG_TRACE;
   return thread_pools_[pri].UnSchedule(arg);
 }
 
 unsigned int PosixEnv::GetThreadPoolQueueLen(Priority pri) const {
+  DBUG_TRACE;
   assert(pri >= Priority::BOTTOM && pri <= Priority::HIGH);
   return thread_pools_[pri].GetQueueLen();
 }
 
 int PosixEnv::ReserveThreads(int threads_to_reserved, Priority pri) {
+  DBUG_TRACE;
   assert(pri >= Priority::BOTTOM && pri <= Priority::HIGH);
   return thread_pools_[pri].ReserveThreads(threads_to_reserved);
 }
 
 int PosixEnv::ReleaseThreads(int threads_to_released, Priority pri) {
+  DBUG_TRACE;
   assert(pri >= Priority::BOTTOM && pri <= Priority::HIGH);
   return thread_pools_[pri].ReleaseThreads(threads_to_released);
 }
@@ -465,6 +490,7 @@ struct StartThreadState {
 };
 
 static void* StartThreadWrapper(void* arg) {
+  DBUG_TRACE;
   StartThreadState* state = static_cast<StartThreadState*>(arg);
   state->user_function(state->arg);
   delete state;
@@ -472,6 +498,7 @@ static void* StartThreadWrapper(void* arg) {
 }
 
 void PosixEnv::StartThread(void (*function)(void* arg), void* arg) {
+  DBUG_TRACE;
   pthread_t t;
   StartThreadState* state = new StartThreadState;
   state->user_function = function;
@@ -484,6 +511,7 @@ void PosixEnv::StartThread(void (*function)(void* arg), void* arg) {
 }
 
 void PosixEnv::WaitForJoin() {
+  DBUG_TRACE;
   for (const auto tid : threads_to_join_) {
     pthread_join(tid, nullptr);
   }
@@ -496,6 +524,7 @@ void PosixEnv::WaitForJoin() {
 // Default Posix Env
 //
 Env* Env::Default() {
+  DBUG_TRACE;
   // The following function call initializes the singletons of ThreadLocalPtr
   // right before the static default_env.  This guarantees default_env will
   // always being destructed before the ThreadLocalPtr singletons get
@@ -521,6 +550,7 @@ Env* Env::Default() {
 // Default Posix SystemClock
 //
 const std::shared_ptr<SystemClock>& SystemClock::Default() {
+  DBUG_TRACE;
   STATIC_AVOID_DESTRUCTION(std::shared_ptr<SystemClock>, instance)
   (std::make_shared<PosixClock>());
   return instance;

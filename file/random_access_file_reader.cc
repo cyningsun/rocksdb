@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "file/random_access_file_reader.h"
 
 #include <algorithm>
@@ -24,6 +25,7 @@
 namespace ROCKSDB_NAMESPACE {
 inline Histograms GetFileReadHistograms(Statistics* stats,
                                         Env::IOActivity io_activity) {
+  DBUG_TRACE;
   switch (io_activity) {
     case Env::IOActivity::kFlush:
       return Histograms::FILE_READ_FLUSH_MICROS;
@@ -55,6 +57,7 @@ inline Histograms GetFileReadHistograms(Statistics* stats,
 }
 inline void RecordIOStats(Statistics* stats, Temperature file_temperature,
                           bool is_last_level, size_t size) {
+  DBUG_TRACE;
   IOSTATS_ADD(bytes_read, size);
   // record for last/non-last level
   if (is_last_level) {
@@ -96,6 +99,7 @@ IOStatus RandomAccessFileReader::Create(
     const std::shared_ptr<FileSystem>& fs, const std::string& fname,
     const FileOptions& file_opts,
     std::unique_ptr<RandomAccessFileReader>* reader, IODebugContext* dbg) {
+  DBUG_TRACE;
   std::unique_ptr<FSRandomAccessFile> file;
   IOStatus io_s = fs->NewRandomAccessFile(fname, file_opts, &file, dbg);
   if (io_s.ok()) {
@@ -107,6 +111,7 @@ IOStatus RandomAccessFileReader::Create(
 IOStatus RandomAccessFileReader::Read(const IOOptions& opts, uint64_t offset,
                                       size_t n, Slice* result, char* scratch,
                                       AlignedBuf* aligned_buf) const {
+  DBUG_TRACE;
   (void)aligned_buf;
   const Env::IOPriority rate_limiter_priority = opts.rate_limiter_priority;
 
@@ -283,10 +288,12 @@ IOStatus RandomAccessFileReader::Read(const IOOptions& opts, uint64_t offset,
 }
 
 size_t End(const FSReadRequest& r) {
+  DBUG_TRACE;
   return static_cast<size_t>(r.offset) + r.len;
 }
 
 FSReadRequest Align(const FSReadRequest& r, size_t alignment) {
+  DBUG_TRACE;
   FSReadRequest req;
   req.offset = static_cast<uint64_t>(
       TruncateToPageBoundary(alignment, static_cast<size_t>(r.offset)));
@@ -296,6 +303,7 @@ FSReadRequest Align(const FSReadRequest& r, size_t alignment) {
 }
 
 bool TryMerge(FSReadRequest* dest, const FSReadRequest& src) {
+  DBUG_TRACE;
   size_t dest_offset = static_cast<size_t>(dest->offset);
   size_t src_offset = static_cast<size_t>(src.offset);
   size_t dest_end = End(*dest);
@@ -312,6 +320,7 @@ IOStatus RandomAccessFileReader::MultiRead(const IOOptions& opts,
                                            FSReadRequest* read_reqs,
                                            size_t num_reqs,
                                            AlignedBuf* aligned_buf) const {
+  DBUG_TRACE;
   (void)aligned_buf;  // suppress warning of unused variable in LITE mode
   assert(num_reqs > 0);
 
@@ -476,6 +485,7 @@ IOStatus RandomAccessFileReader::MultiRead(const IOOptions& opts,
 
 IOStatus RandomAccessFileReader::PrepareIOOptions(const ReadOptions& ro,
                                                   IOOptions& opts) const {
+  DBUG_TRACE;
   if (clock_ != nullptr) {
     return PrepareIOFromReadOptions(ro, clock_, opts);
   } else {
@@ -487,6 +497,7 @@ IOStatus RandomAccessFileReader::ReadAsync(
     FSReadRequest& req, const IOOptions& opts,
     std::function<void(FSReadRequest&, void*)> cb, void* cb_arg,
     void** io_handle, IOHandleDeleter* del_fn, AlignedBuf* aligned_buf) {
+  DBUG_TRACE;
   IOStatus s;
   // Create a callback and populate info.
   auto read_async_callback =
@@ -558,6 +569,7 @@ IOStatus RandomAccessFileReader::ReadAsync(
 
 void RandomAccessFileReader::ReadAsyncCallback(FSReadRequest& req,
                                                void* cb_arg) {
+  DBUG_TRACE;
   ReadAsyncInfo* read_async_info = static_cast<ReadAsyncInfo*>(cb_arg);
   assert(read_async_info);
   assert(read_async_info->cb_);

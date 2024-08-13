@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "db/db_impl/compacted_db_impl.h"
 
 #include "db/db_impl/db_impl.h"
@@ -24,6 +25,7 @@ CompactedDBImpl::CompactedDBImpl(const DBOptions& options,
 CompactedDBImpl::~CompactedDBImpl() = default;
 
 size_t CompactedDBImpl::FindFile(const Slice& key) {
+  DBUG_TRACE;
   size_t right = files_.num_files - 1;
   auto cmp = [&](const FdWithKeyRange& f, const Slice& k) -> bool {
     return user_comparator_->Compare(ExtractUserKey(f.largest_key), k) < 0;
@@ -36,6 +38,7 @@ size_t CompactedDBImpl::FindFile(const Slice& key) {
 Status CompactedDBImpl::Get(const ReadOptions& _read_options,
                             ColumnFamilyHandle*, const Slice& key,
                             PinnableSlice* value, std::string* timestamp) {
+  DBUG_TRACE;
   if (_read_options.io_activity != Env::IOActivity::kUnknown &&
       _read_options.io_activity != Env::IOActivity::kGet) {
     return Status::InvalidArgument(
@@ -108,6 +111,7 @@ void CompactedDBImpl::MultiGet(const ReadOptions& _read_options,
                                const Slice* keys, PinnableSlice* values,
                                std::string* timestamps, Status* statuses,
                                const bool /*sorted_input*/) {
+  DBUG_TRACE;
   assert(user_comparator_);
   Status s;
   if (_read_options.io_activity != Env::IOActivity::kUnknown &&
@@ -198,6 +202,7 @@ void CompactedDBImpl::MultiGet(const ReadOptions& _read_options,
 }
 
 Status CompactedDBImpl::Init(const Options& options) {
+  DBUG_TRACE;
   SuperVersionContext sv_context(/* create_superversion */ true);
   mutex_.Lock();
   ColumnFamilyDescriptor cf(kDefaultColumnFamilyName,
@@ -249,6 +254,7 @@ Status CompactedDBImpl::Init(const Options& options) {
 
 Status CompactedDBImpl::Open(const Options& options, const std::string& dbname,
                              DB** dbptr) {
+  DBUG_TRACE;
   *dbptr = nullptr;
 
   if (options.max_open_files != -1) {

@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "db/blob/blob_file_reader.h"
 
 #include <cassert>
@@ -31,6 +32,7 @@ Status BlobFileReader::Create(
     HistogramImpl* blob_file_read_hist, uint64_t blob_file_number,
     const std::shared_ptr<IOTracer>& io_tracer,
     std::unique_ptr<BlobFileReader>* blob_file_reader) {
+  DBUG_TRACE;
   assert(blob_file_reader);
   assert(!*blob_file_reader);
 
@@ -392,6 +394,7 @@ void BlobFileReader::MultiGetBlob(
     autovector<std::pair<BlobReadRequest*, std::unique_ptr<BlobContents>>>&
         blob_reqs,
     uint64_t* bytes_read) const {
+  DBUG_TRACE;
   const size_t num_blobs = blob_reqs.size();
   assert(num_blobs > 0);
   assert(num_blobs <= MultiGetContext::MAX_BATCH_SIZE);
@@ -536,6 +539,7 @@ void BlobFileReader::MultiGetBlob(
 
 Status BlobFileReader::VerifyBlob(const Slice& record_slice,
                                   const Slice& user_key, uint64_t value_size) {
+  DBUG_TRACE;
   PERF_TIMER_GUARD(blob_checksum_time);
 
   BlobLogRecord record;

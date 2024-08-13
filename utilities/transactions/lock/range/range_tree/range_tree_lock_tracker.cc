@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #ifndef OS_WIN
 
 #include "utilities/transactions/lock/range/range_tree/range_tree_lock_tracker.h"
@@ -12,6 +13,7 @@
 namespace ROCKSDB_NAMESPACE {
 
 RangeLockList *RangeTreeLockTracker::getOrCreateList() {
+  DBUG_TRACE;
   if (range_list_) {
     return range_list_.get();
   }
@@ -22,6 +24,7 @@ RangeLockList *RangeTreeLockTracker::getOrCreateList() {
 }
 
 void RangeTreeLockTracker::Track(const PointLockRequest &lock_req) {
+  DBUG_TRACE;
   DBT key_dbt;
   std::string key;
   serialize_endpoint(Endpoint(lock_req.key, false), &key);
@@ -31,6 +34,7 @@ void RangeTreeLockTracker::Track(const PointLockRequest &lock_req) {
 }
 
 void RangeTreeLockTracker::Track(const RangeLockRequest &lock_req) {
+  DBUG_TRACE;
   DBT start_dbt, end_dbt;
   std::string start_key, end_key;
 
@@ -46,6 +50,7 @@ void RangeTreeLockTracker::Track(const RangeLockRequest &lock_req) {
 
 PointLockStatus RangeTreeLockTracker::GetPointLockStatus(
     ColumnFamilyId /*cf_id*/, const std::string & /*key*/) const {
+  DBUG_TRACE;
   // This function is not expected to be called as RangeTreeLockTracker::
   // IsPointLockSupported() returns false. Return the status which indicates
   // the point is not locked.
@@ -56,10 +61,11 @@ PointLockStatus RangeTreeLockTracker::GetPointLockStatus(
   return p;
 }
 
-void RangeTreeLockTracker::Clear() { range_list_.reset(); }
+void RangeTreeLockTracker::Clear() { DBUG_TRACE; range_list_.reset(); }
 
 void RangeLockList::Append(ColumnFamilyId cf_id, const DBT *left_key,
                            const DBT *right_key) {
+  DBUG_TRACE;
   MutexLock l(&mutex_);
   // Only the transaction owner thread calls this function.
   // The same thread does the lock release, so we can be certain nobody is
@@ -77,6 +83,7 @@ void RangeLockList::Append(ColumnFamilyId cf_id, const DBT *left_key,
 void RangeLockList::ReleaseLocks(RangeTreeLockManager *mgr,
                                  PessimisticTransaction *txn,
                                  bool all_trx_locks) {
+  DBUG_TRACE;
   {
     MutexLock l(&mutex_);
     // The lt->release_locks() call below will walk range_list->buffer_. We
@@ -130,6 +137,7 @@ void RangeLockList::ReleaseLocks(RangeTreeLockManager *mgr,
 
 void RangeLockList::ReplaceLocks(const toku::locktree *lt,
                                  const toku::range_buffer &buffer) {
+  DBUG_TRACE;
   MutexLock l(&mutex_);
   if (releasing_locks_.load()) {
     // Do nothing. The transaction is releasing its locks, so it will not care

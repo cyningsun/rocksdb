@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "db/merge_helper.h"
 
 #include <string>
@@ -113,6 +114,7 @@ Status MergeHelper::TimedFullMergeImpl(
     SystemClock* clock, bool update_num_ops_stats,
     MergeOperator::OpFailureScope* op_failure_scope, std::string* result,
     Slice* result_operand, ValueType* result_type) {
+  DBUG_TRACE;
   assert(result);
   assert(result_type);
 
@@ -175,6 +177,7 @@ Status MergeHelper::TimedFullMergeImpl(
     SystemClock* clock, bool update_num_ops_stats,
     MergeOperator::OpFailureScope* op_failure_scope, std::string* result_value,
     PinnableWideColumns* result_entity) {
+  DBUG_TRACE;
   assert(result_value || result_entity);
   assert(!result_value || !result_entity);
 
@@ -262,6 +265,7 @@ Status MergeHelper::MergeUntil(InternalIterator* iter,
                                const std::string* const full_history_ts_low,
                                PrefetchBufferCollection* prefetch_buffers,
                                CompactionIterationStats* c_iter_stats) {
+  DBUG_TRACE;
   // Get a copy of the internal key, before it's invalidated by iter->Next()
   // Also maintain the list of merge operands seen.
   assert(HasOperator());
@@ -653,6 +657,7 @@ MergeOutputIterator::MergeOutputIterator(const MergeHelper* merge_helper)
 }
 
 void MergeOutputIterator::SeekToFirst() {
+  DBUG_TRACE;
   const auto& keys = merge_helper_->keys();
   const auto& values = merge_helper_->values();
   assert(keys.size() == values.size());
@@ -661,12 +666,14 @@ void MergeOutputIterator::SeekToFirst() {
 }
 
 void MergeOutputIterator::Next() {
+  DBUG_TRACE;
   ++it_keys_;
   ++it_values_;
 }
 
 CompactionFilter::Decision MergeHelper::FilterMerge(const Slice& user_key,
                                                     const Slice& value_slice) {
+  DBUG_TRACE;
   if (compaction_filter_ == nullptr) {
     return CompactionFilter::Decision::kKeep;
   }

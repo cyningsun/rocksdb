@@ -7,6 +7,7 @@
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 //
 
+#include "rocksdb/util/dbug.h"
 #include "util/compression_context_cache.h"
 
 #include <atomic>
@@ -39,6 +40,7 @@ struct ZSTDCachedData {
   ZSTDCachedData& operator=(const ZSTDCachedData&) = delete;
 
   ZSTDUncompressCachedData GetUncompressData(int64_t idx) {
+    DBUG_TRACE;
     ZSTDUncompressCachedData result;
     void* expected = &uncomp_cached_data_;
     if (zstd_uncomp_sentinel_.compare_exchange_strong(expected,
@@ -55,6 +57,7 @@ struct ZSTDCachedData {
   // This is executed only when we successfully obtained
   // in the first place
   void ReturnUncompressData() {
+    DBUG_TRACE;
     if (zstd_uncomp_sentinel_.exchange(&uncomp_cached_data_) != SentinelValue) {
       // Means we are returning while not having it acquired.
       assert(false);
@@ -69,11 +72,13 @@ class CompressionContextCache::Rep {
  public:
   Rep() = default;
   ZSTDUncompressCachedData GetZSTDUncompressData() {
+    DBUG_TRACE;
     auto p = per_core_uncompr_.AccessElementAndIndex();
     int64_t idx = static_cast<int64_t>(p.second);
     return p.first->GetUncompressData(idx);
   }
   void ReturnZSTDUncompressData(int64_t idx) {
+    DBUG_TRACE;
     assert(idx >= 0);
     auto* cn = per_core_uncompr_.AccessAtCore(static_cast<size_t>(idx));
     cn->ReturnUncompressData();
@@ -86,18 +91,21 @@ class CompressionContextCache::Rep {
 CompressionContextCache::CompressionContextCache() : rep_(new Rep()) {}
 
 CompressionContextCache* CompressionContextCache::Instance() {
+  DBUG_TRACE;
   static CompressionContextCache instance;
   return &instance;
 }
 
-void CompressionContextCache::InitSingleton() { Instance(); }
+void CompressionContextCache::InitSingleton() { DBUG_TRACE; Instance(); }
 
 ZSTDUncompressCachedData
 CompressionContextCache::GetCachedZSTDUncompressData() {
+  DBUG_TRACE;
   return rep_->GetZSTDUncompressData();
 }
 
 void CompressionContextCache::ReturnCachedZSTDUncompressData(int64_t idx) {
+  DBUG_TRACE;
   rep_->ReturnZSTDUncompressData(idx);
 }
 

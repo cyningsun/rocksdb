@@ -9,6 +9,7 @@
 
 #if !defined(OS_WIN)
 
+#include "rocksdb/util/dbug.h"
 #include <dirent.h>
 #ifndef ROCKSDB_NO_DYNAMIC_EXTENSION
 #include <dlfcn.h>
@@ -81,6 +82,7 @@ namespace ROCKSDB_NAMESPACE {
 namespace {
 
 inline mode_t GetDBFileMode(bool allow_non_owner_access) {
+  DBUG_TRACE;
   return allow_non_owner_access ? 0644 : 0600;
 }
 
@@ -94,6 +96,7 @@ static std::map<std::string, LockHoldingInfo> locked_files;
 static port::Mutex mutex_locked_files;
 
 static int LockOrUnlock(int fd, bool lock) {
+  DBUG_TRACE;
   errno = 0;
   struct flock f;
   memset(&f, 0, sizeof(f));
@@ -112,6 +115,7 @@ class PosixFileLock : public FileLock {
   std::string filename;
 
   void Clear() {
+    DBUG_TRACE;
     fd_ = -1;
     filename.clear();
   }
@@ -123,6 +127,7 @@ class PosixFileLock : public FileLock {
 };
 
 int cloexec_flags(int flags, const EnvOptions* options) {
+  DBUG_TRACE;
   // If the system supports opening the file with cloexec enabled,
   // do so, as this avoids a race condition if a db is opened around
   // the same time that a child process is forked
@@ -140,12 +145,13 @@ class PosixFileSystem : public FileSystem {
  public:
   PosixFileSystem();
 
-  static const char* kClassName() { return "PosixFileSystem"; }
-  const char* Name() const override { return kClassName(); }
-  const char* NickName() const override { return kDefaultName(); }
+  static const char* kClassName() { DBUG_TRACE; return "PosixFileSystem"; }
+  const char* Name() const override { DBUG_TRACE; return kClassName(); }
+  const char* NickName() const override { DBUG_TRACE; return kDefaultName(); }
 
   ~PosixFileSystem() override = default;
   bool IsInstanceOf(const std::string& name) const override {
+    DBUG_TRACE;
     if (name == "posix") {
       return true;
     } else {
@@ -154,6 +160,7 @@ class PosixFileSystem : public FileSystem {
   }
 
   void SetFD_CLOEXEC(int fd, const EnvOptions* options) {
+    DBUG_TRACE;
     if ((options == nullptr || options->set_fd_cloexec) && fd > 0) {
       fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC);
     }
@@ -163,6 +170,7 @@ class PosixFileSystem : public FileSystem {
                              const FileOptions& options,
                              std::unique_ptr<FSSequentialFile>* result,
                              IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     result->reset();
     int fd = -1;
     int flags = cloexec_flags(O_RDONLY, &options);
@@ -214,6 +222,7 @@ class PosixFileSystem : public FileSystem {
                                const FileOptions& options,
                                std::unique_ptr<FSRandomAccessFile>* result,
                                IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     result->reset();
     IOStatus s = IOStatus::OK();
     int fd;
@@ -280,6 +289,7 @@ class PosixFileSystem : public FileSystem {
                                     const FileOptions& options, bool reopen,
                                     std::unique_ptr<FSWritableFile>* result,
                                     IODebugContext* /*dbg*/) {
+    DBUG_TRACE;
     result->reset();
     IOStatus s;
     int fd = -1;
@@ -359,6 +369,7 @@ class PosixFileSystem : public FileSystem {
   IOStatus NewWritableFile(const std::string& fname, const FileOptions& options,
                            std::unique_ptr<FSWritableFile>* result,
                            IODebugContext* dbg) override {
+    DBUG_TRACE;
     return OpenWritableFile(fname, options, false, result, dbg);
   }
 
@@ -366,6 +377,7 @@ class PosixFileSystem : public FileSystem {
                               const FileOptions& options,
                               std::unique_ptr<FSWritableFile>* result,
                               IODebugContext* dbg) override {
+    DBUG_TRACE;
     return OpenWritableFile(fname, options, true, result, dbg);
   }
 
@@ -374,6 +386,7 @@ class PosixFileSystem : public FileSystem {
                              const FileOptions& options,
                              std::unique_ptr<FSWritableFile>* result,
                              IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     result->reset();
     IOStatus s;
     int fd = -1;
@@ -454,6 +467,7 @@ class PosixFileSystem : public FileSystem {
   IOStatus NewRandomRWFile(const std::string& fname, const FileOptions& options,
                            std::unique_ptr<FSRandomRWFile>* result,
                            IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     int fd = -1;
     int flags = cloexec_flags(O_RDWR, &options);
 
@@ -478,6 +492,7 @@ class PosixFileSystem : public FileSystem {
   IOStatus NewMemoryMappedFileBuffer(
       const std::string& fname,
       std::unique_ptr<MemoryMappedFileBuffer>* result) override {
+    DBUG_TRACE;
     int fd = -1;
     IOStatus status;
     int flags = cloexec_flags(O_RDWR, nullptr);
@@ -522,6 +537,7 @@ class PosixFileSystem : public FileSystem {
   IOStatus NewDirectory(const std::string& name, const IOOptions& /*opts*/,
                         std::unique_ptr<FSDirectory>* result,
                         IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     result->reset();
     int fd;
     int flags = cloexec_flags(0, nullptr);
@@ -539,6 +555,7 @@ class PosixFileSystem : public FileSystem {
 
   IOStatus FileExists(const std::string& fname, const IOOptions& /*opts*/,
                       IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     int result = access(fname.c_str(), F_OK);
 
     if (result == 0) {
@@ -563,6 +580,7 @@ class PosixFileSystem : public FileSystem {
   IOStatus GetChildren(const std::string& dir, const IOOptions& opts,
                        std::vector<std::string>* result,
                        IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     result->clear();
 
     DIR* d = opendir(dir.c_str());
@@ -619,6 +637,7 @@ class PosixFileSystem : public FileSystem {
 
   IOStatus DeleteFile(const std::string& fname, const IOOptions& /*opts*/,
                       IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     IOStatus result;
     if (unlink(fname.c_str()) != 0) {
       result = IOError("while unlink() file", fname, errno);
@@ -628,6 +647,7 @@ class PosixFileSystem : public FileSystem {
 
   IOStatus CreateDir(const std::string& name, const IOOptions& /*opts*/,
                      IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     if (mkdir(name.c_str(), 0755) != 0) {
       return IOError("While mkdir", name, errno);
     }
@@ -637,6 +657,7 @@ class PosixFileSystem : public FileSystem {
   IOStatus CreateDirIfMissing(const std::string& name,
                               const IOOptions& /*opts*/,
                               IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     if (mkdir(name.c_str(), 0755) != 0) {
       if (errno != EEXIST) {
         return IOError("While mkdir if missing", name, errno);
@@ -652,6 +673,7 @@ class PosixFileSystem : public FileSystem {
 
   IOStatus DeleteDir(const std::string& name, const IOOptions& /*opts*/,
                      IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     if (rmdir(name.c_str()) != 0) {
       return IOError("file rmdir", name, errno);
     }
@@ -660,6 +682,7 @@ class PosixFileSystem : public FileSystem {
 
   IOStatus GetFileSize(const std::string& fname, const IOOptions& /*opts*/,
                        uint64_t* size, IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     struct stat sbuf;
     if (stat(fname.c_str(), &sbuf) != 0) {
       *size = 0;
@@ -674,6 +697,7 @@ class PosixFileSystem : public FileSystem {
                                    const IOOptions& /*opts*/,
                                    uint64_t* file_mtime,
                                    IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     struct stat s;
     if (stat(fname.c_str(), &s) != 0) {
       return IOError("while stat a file for modification time", fname, errno);
@@ -685,6 +709,7 @@ class PosixFileSystem : public FileSystem {
   IOStatus RenameFile(const std::string& src, const std::string& target,
                       const IOOptions& /*opts*/,
                       IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     if (rename(src.c_str(), target.c_str()) != 0) {
       return IOError("While renaming a file to " + target, src, errno);
     }
@@ -694,6 +719,7 @@ class PosixFileSystem : public FileSystem {
   IOStatus LinkFile(const std::string& src, const std::string& target,
                     const IOOptions& /*opts*/,
                     IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     if (link(src.c_str(), target.c_str()) != 0) {
       if (errno == EXDEV || errno == ENOTSUP) {
         return IOStatus::NotSupported(errno == EXDEV
@@ -707,6 +733,7 @@ class PosixFileSystem : public FileSystem {
 
   IOStatus NumFileLinks(const std::string& fname, const IOOptions& /*opts*/,
                         uint64_t* count, IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     struct stat s;
     if (stat(fname.c_str(), &s) != 0) {
       return IOError("while stat a file for num file links", fname, errno);
@@ -718,6 +745,7 @@ class PosixFileSystem : public FileSystem {
   IOStatus AreFilesSame(const std::string& first, const std::string& second,
                         const IOOptions& /*opts*/, bool* res,
                         IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     struct stat statbuf[2];
     if (stat(first.c_str(), &statbuf[0]) != 0) {
       return IOError("stat file", first, errno);
@@ -738,6 +766,7 @@ class PosixFileSystem : public FileSystem {
 
   IOStatus LockFile(const std::string& fname, const IOOptions& /*opts*/,
                     FileLock** lock, IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     *lock = nullptr;
 
     LockHoldingInfo lhi;
@@ -806,6 +835,7 @@ class PosixFileSystem : public FileSystem {
 
   IOStatus UnlockFile(FileLock* lock, const IOOptions& /*opts*/,
                       IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     PosixFileLock* my_lock = static_cast<PosixFileLock*>(lock);
     IOStatus result;
     mutex_locked_files.Lock();
@@ -827,6 +857,7 @@ class PosixFileSystem : public FileSystem {
   IOStatus GetAbsolutePath(const std::string& db_path,
                            const IOOptions& /*opts*/, std::string* output_path,
                            IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     if (!db_path.empty() && db_path[0] == '/') {
       *output_path = db_path;
       return IOStatus::OK();
@@ -844,6 +875,7 @@ class PosixFileSystem : public FileSystem {
 
   IOStatus GetTestDirectory(const IOOptions& /*opts*/, std::string* result,
                             IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     const char* env = getenv("TEST_TMPDIR");
     if (env && env[0] != '\0') {
       *result = env;
@@ -863,6 +895,7 @@ class PosixFileSystem : public FileSystem {
   IOStatus GetFreeSpace(const std::string& fname, const IOOptions& /*opts*/,
                         uint64_t* free_space,
                         IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     struct statvfs sbuf;
 
     if (statvfs(fname.c_str(), &sbuf) < 0) {
@@ -885,6 +918,7 @@ class PosixFileSystem : public FileSystem {
 
   IOStatus IsDirectory(const std::string& path, const IOOptions& /*opts*/,
                        bool* is_dir, IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     // First open
     int fd = -1;
     int flags = cloexec_flags(O_RDONLY, nullptr);
@@ -909,6 +943,7 @@ class PosixFileSystem : public FileSystem {
 
   FileOptions OptimizeForLogWrite(const FileOptions& file_options,
                                   const DBOptions& db_options) const override {
+    DBUG_TRACE;
     FileOptions optimized = file_options;
     optimized.use_mmap_writes = false;
     optimized.use_direct_writes = false;
@@ -924,6 +959,7 @@ class PosixFileSystem : public FileSystem {
 
   FileOptions OptimizeForManifestWrite(
       const FileOptions& file_options) const override {
+    DBUG_TRACE;
     FileOptions optimized = file_options;
     optimized.use_mmap_writes = false;
     optimized.use_direct_writes = false;
@@ -932,9 +968,11 @@ class PosixFileSystem : public FileSystem {
   }
 #ifdef OS_LINUX
   Status RegisterDbPaths(const std::vector<std::string>& paths) override {
+    DBUG_TRACE;
     return logical_block_size_cache_.RefAndCacheLogicalBlockSize(paths);
   }
   Status UnregisterDbPaths(const std::vector<std::string>& paths) override {
+    DBUG_TRACE;
     logical_block_size_cache_.UnrefAndTryRemoveCachedLogicalBlockSize(paths);
     return Status::OK();
   }
@@ -944,6 +982,7 @@ class PosixFileSystem : public FileSystem {
 
   // Returns true iff the named directory exists and is a directory.
   virtual bool DirExists(const std::string& dname) {
+    DBUG_TRACE;
     struct stat statbuf;
     if (stat(dname.c_str(), &statbuf) == 0) {
       return S_ISDIR(statbuf.st_mode);
@@ -952,6 +991,7 @@ class PosixFileSystem : public FileSystem {
   }
 
   bool SupportsFastAllocate(int fd) {
+DBUG_TRACE;
 #ifdef ROCKSDB_FALLOCATE_PRESENT
     struct statfs s;
     if (fstatfs(fd, &s)) {
@@ -974,6 +1014,7 @@ class PosixFileSystem : public FileSystem {
   }
 
   void MaybeForceDisableMmap(int fd) {
+    DBUG_TRACE;
     static std::once_flag s_check_disk_for_mmap_once;
     assert(this == FileSystem::Default().get());
     std::call_once(
@@ -1006,6 +1047,7 @@ class PosixFileSystem : public FileSystem {
   // to Poll API fails as it expects IOHandle to be populated.
   IOStatus Poll(std::vector<void*>& io_handles,
                 size_t /*min_completions*/) override {
+DBUG_TRACE;
 #if defined(ROCKSDB_IOURING_PRESENT)
     // io_uring_queue_init.
     struct io_uring* iu = nullptr;
@@ -1078,6 +1120,7 @@ class PosixFileSystem : public FileSystem {
   }
 
   IOStatus AbortIO(std::vector<void*>& io_handles) override {
+DBUG_TRACE;
 #if defined(ROCKSDB_IOURING_PRESENT)
     // io_uring_queue_init.
     struct io_uring* iu = nullptr;
@@ -1183,6 +1226,7 @@ class PosixFileSystem : public FileSystem {
   }
 
   void SupportedOps(int64_t& supported_ops) override {
+    DBUG_TRACE;
     supported_ops = 0;
 #if defined(ROCKSDB_IOURING_PRESENT)
     if (IsIOUringEnabled()) {
@@ -1222,6 +1266,7 @@ LogicalBlockSizeCache PosixFileSystem::logical_block_size_cache_;
 #endif
 
 size_t PosixFileSystem::GetLogicalBlockSize(const std::string& fname, int fd) {
+DBUG_TRACE;
 #ifdef OS_LINUX
   return logical_block_size_cache_.GetLogicalBlockSize(fname, fd);
 #else
@@ -1232,6 +1277,7 @@ size_t PosixFileSystem::GetLogicalBlockSize(const std::string& fname, int fd) {
 
 size_t PosixFileSystem::GetLogicalBlockSizeForReadIfNeeded(
     const EnvOptions& options, const std::string& fname, int fd) {
+  DBUG_TRACE;
   return options.use_direct_reads
              ? PosixFileSystem::GetLogicalBlockSize(fname, fd)
              : kDefaultPageSize;
@@ -1239,6 +1285,7 @@ size_t PosixFileSystem::GetLogicalBlockSizeForReadIfNeeded(
 
 size_t PosixFileSystem::GetLogicalBlockSizeForWriteIfNeeded(
     const EnvOptions& options, const std::string& fname, int fd) {
+  DBUG_TRACE;
   return options.use_direct_writes
              ? PosixFileSystem::GetLogicalBlockSize(fname, fd)
              : kDefaultPageSize;
@@ -1266,6 +1313,7 @@ PosixFileSystem::PosixFileSystem()
 // Default Posix FileSystem
 //
 std::shared_ptr<FileSystem> FileSystem::Default() {
+  DBUG_TRACE;
   STATIC_AVOID_DESTRUCTION(std::shared_ptr<FileSystem>, instance)
   (std::make_shared<PosixFileSystem>());
   return instance;

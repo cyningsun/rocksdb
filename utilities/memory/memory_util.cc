@@ -4,6 +4,7 @@
 //  (found in the LICENSE.Apache file in the root directory).
 
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/utilities/memory_util.h"
 
 #include "db/db_impl/db_impl.h"
@@ -14,6 +15,7 @@ Status MemoryUtil::GetApproximateMemoryUsageByType(
     const std::vector<DB*>& dbs,
     const std::unordered_set<const Cache*> cache_set,
     std::map<MemoryUtil::UsageType, uint64_t>* usage_by_type) {
+  DBUG_TRACE;
   usage_by_type->clear();
 
   // MemTable

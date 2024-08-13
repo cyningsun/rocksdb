@@ -3,6 +3,7 @@
 //  This source code is licensed under both the GPLv2 (found in the
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
+#include "rocksdb/util/dbug.h"
 #include "table/compaction_merging_iterator.h"
 
 namespace ROCKSDB_NAMESPACE {
@@ -41,6 +42,7 @@ class CompactionMergingIterator : public InternalIterator {
   }
 
   void considerStatus(const Status& s) {
+    DBUG_TRACE;
     if (!s.ok() && status_.ok()) {
       status_ = s;
     }
@@ -55,9 +57,9 @@ class CompactionMergingIterator : public InternalIterator {
     status_.PermitUncheckedError();
   }
 
-  bool Valid() const override { return current_ != nullptr && status_.ok(); }
+  bool Valid() const override { DBUG_TRACE; return current_ != nullptr && status_.ok(); }
 
-  Status status() const override { return status_; }
+  Status status() const override { DBUG_TRACE; return status_; }
 
   void SeekToFirst() override;
 
@@ -66,11 +68,13 @@ class CompactionMergingIterator : public InternalIterator {
   void Next() override;
 
   Slice key() const override {
+    DBUG_TRACE;
     assert(Valid());
     return current_->key();
   }
 
   Slice value() const override {
+    DBUG_TRACE;
     assert(Valid());
     if (LIKELY(current_->type == HeapItem::ITERATOR)) {
       return current_->iter.value();
@@ -83,12 +87,14 @@ class CompactionMergingIterator : public InternalIterator {
   // from current child iterator. Potentially as long as one of child iterator
   // report out of bound is not possible, we know current key is within bound.
   bool MayBeOutOfLowerBound() override {
+    DBUG_TRACE;
     assert(Valid());
     return current_->type == HeapItem::DELETE_RANGE_START ||
            current_->iter.MayBeOutOfLowerBound();
   }
 
   IterBoundCheck UpperBoundCheckResult() override {
+    DBUG_TRACE;
     assert(Valid());
     return current_->type == HeapItem::DELETE_RANGE_START
                ? IterBoundCheck::kUnknown
@@ -96,6 +102,7 @@ class CompactionMergingIterator : public InternalIterator {
   }
 
   void SetPinnedItersMgr(PinnedIteratorsManager* pinned_iters_mgr) override {
+    DBUG_TRACE;
     pinned_iters_mgr_ = pinned_iters_mgr;
     for (auto& child : children_) {
       child.iter.SetPinnedItersMgr(pinned_iters_mgr);
@@ -103,33 +110,38 @@ class CompactionMergingIterator : public InternalIterator {
   }
 
   bool IsDeleteRangeSentinelKey() const override {
+    DBUG_TRACE;
     assert(Valid());
     return current_->type == HeapItem::DELETE_RANGE_START;
   }
 
   // Compaction uses the above subset of InternalIterator interface.
-  void SeekToLast() override { assert(false); }
+  void SeekToLast() override { DBUG_TRACE; assert(false); }
 
-  void SeekForPrev(const Slice&) override { assert(false); }
+  void SeekForPrev(const Slice&) override { DBUG_TRACE; assert(false); }
 
-  void Prev() override { assert(false); }
+  void Prev() override { DBUG_TRACE; assert(false); }
 
   bool NextAndGetResult(IterateResult*) override {
+    DBUG_TRACE;
     assert(false);
     return false;
   }
 
   bool IsKeyPinned() const override {
+    DBUG_TRACE;
     assert(false);
     return false;
   }
 
   bool IsValuePinned() const override {
+    DBUG_TRACE;
     assert(false);
     return false;
   }
 
   bool PrepareValue() override {
+    DBUG_TRACE;
     assert(false);
     return false;
   }
@@ -150,11 +162,13 @@ class CompactionMergingIterator : public InternalIterator {
     }
 
     void SetTombstoneForCompaction(const ParsedInternalKey&& pik) {
+      DBUG_TRACE;
       tombstone_str.clear();
       AppendInternalKey(&tombstone_str, pik);
     }
 
     [[nodiscard]] Slice key() const {
+      DBUG_TRACE;
       return type == ITERATOR ? iter.key() : tombstone_str;
     }
   };
@@ -166,6 +180,7 @@ class CompactionMergingIterator : public InternalIterator {
         : comparator_(comparator) {}
 
     bool operator()(HeapItem* a, HeapItem* b) const {
+      DBUG_TRACE;
       int r = comparator_->Compare(a->key(), b->key());
       // For each file, we assume all range tombstone start keys come before
       // its file boundary sentinel key (file's meta.largest key).
@@ -213,10 +228,12 @@ class CompactionMergingIterator : public InternalIterator {
   void AddToMinHeapOrCheckStatus(HeapItem*);
 
   HeapItem* CurrentForward() const {
+    DBUG_TRACE;
     return !minHeap_.empty() ? minHeap_.top() : nullptr;
   }
 
   void InsertRangeTombstoneAtLevel(size_t level) {
+    DBUG_TRACE;
     if (range_tombstone_iters_[level]->Valid()) {
       pinned_heap_item_[level].SetTombstoneForCompaction(
           range_tombstone_iters_[level]->start_key());
@@ -226,6 +243,7 @@ class CompactionMergingIterator : public InternalIterator {
 };
 
 void CompactionMergingIterator::SeekToFirst() {
+  DBUG_TRACE;
   minHeap_.clear();
   status_ = Status::OK();
   for (auto& child : children_) {
@@ -245,6 +263,7 @@ void CompactionMergingIterator::SeekToFirst() {
 }
 
 void CompactionMergingIterator::Seek(const Slice& target) {
+  DBUG_TRACE;
   minHeap_.clear();
   status_ = Status::OK();
   for (auto& child : children_) {
@@ -273,6 +292,7 @@ void CompactionMergingIterator::Seek(const Slice& target) {
 }
 
 void CompactionMergingIterator::Next() {
+  DBUG_TRACE;
   assert(Valid());
   // For the heap modifications below to be correct, current_ must be the
   // current top of the heap.
@@ -309,6 +329,7 @@ void CompactionMergingIterator::Next() {
 }
 
 void CompactionMergingIterator::FindNextVisibleKey() {
+  DBUG_TRACE;
   while (!minHeap_.empty()) {
     HeapItem* current = minHeap_.top();
     // IsDeleteRangeSentinelKey() here means file boundary sentinel keys.
@@ -337,6 +358,7 @@ void CompactionMergingIterator::FindNextVisibleKey() {
 }
 
 void CompactionMergingIterator::AddToMinHeapOrCheckStatus(HeapItem* child) {
+  DBUG_TRACE;
   if (child->iter.Valid()) {
     assert(child->iter.status().ok());
     minHeap_.push(child);
@@ -351,6 +373,7 @@ InternalIterator* NewCompactionMergingIterator(
                           std::unique_ptr<TruncatedRangeDelIterator>**>>&
         range_tombstone_iters,
     Arena* arena) {
+  DBUG_TRACE;
   assert(n >= 0);
   if (n == 0) {
     return NewEmptyInternalIterator<Slice>(arena);

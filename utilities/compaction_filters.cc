@@ -3,6 +3,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include <memory>
 
 #include "rocksdb/compaction_filter.h"
@@ -15,6 +16,7 @@
 namespace ROCKSDB_NAMESPACE {
 static int RegisterBuiltinCompactionFilters(ObjectLibrary& library,
                                             const std::string& /*arg*/) {
+  DBUG_TRACE;
   library.AddFactory<CompactionFilter>(
       RemoveEmptyValueCompactionFilter::kClassName(),
       [](const std::string& /*uri*/,
@@ -27,6 +29,7 @@ static int RegisterBuiltinCompactionFilters(ObjectLibrary& library,
 Status CompactionFilter::CreateFromString(const ConfigOptions& config_options,
                                           const std::string& value,
                                           const CompactionFilter** result) {
+  DBUG_TRACE;
   static std::once_flag once;
   std::call_once(once, [&]() {
     RegisterBuiltinCompactionFilters(*(ObjectLibrary::Default().get()), "");
@@ -43,6 +46,7 @@ Status CompactionFilter::CreateFromString(const ConfigOptions& config_options,
 Status CompactionFilterFactory::CreateFromString(
     const ConfigOptions& config_options, const std::string& value,
     std::shared_ptr<CompactionFilterFactory>* result) {
+  DBUG_TRACE;
   // Currently there are no builtin CompactionFilterFactories.
   // If any are introduced, they need to be registered here.
   Status status =

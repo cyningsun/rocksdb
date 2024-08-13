@@ -3,6 +3,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "table/plain/plain_table_factory.h"
 
 #include <cstdint>
@@ -59,6 +60,7 @@ Status PlainTableFactory::NewTableReader(
     std::unique_ptr<RandomAccessFileReader>&& file, uint64_t file_size,
     std::unique_ptr<TableReader>* table,
     bool /*prefetch_index_and_filter_in_cache*/) const {
+  DBUG_TRACE;
   return PlainTableReader::Open(
       table_reader_options.ioptions, table_reader_options.env_options,
       table_reader_options.internal_comparator, std::move(file), file_size,
@@ -71,6 +73,7 @@ Status PlainTableFactory::NewTableReader(
 TableBuilder* PlainTableFactory::NewTableBuilder(
     const TableBuilderOptions& table_builder_options,
     WritableFileWriter* file) const {
+  DBUG_TRACE;
   // Ignore the skip_filters flag. PlainTable format is optimized for small
   // in-memory dbs. The skip_filters optimization is not useful for plain
   // tables
@@ -89,6 +92,7 @@ TableBuilder* PlainTableFactory::NewTableBuilder(
 }
 
 std::string PlainTableFactory::GetPrintableOptions() const {
+  DBUG_TRACE;
   std::string ret;
   ret.reserve(20000);
   const int kBufferSize = 200;
@@ -125,6 +129,7 @@ Status GetPlainTableOptionsFromString(const ConfigOptions& config_options,
                                       const PlainTableOptions& table_options,
                                       const std::string& opts_str,
                                       PlainTableOptions* new_table_options) {
+  DBUG_TRACE;
   std::unordered_map<std::string, std::string> opts_map;
   Status s = StringToMap(opts_str, &opts_map);
   if (!s.ok()) {
@@ -143,6 +148,7 @@ Status GetPlainTableOptionsFromString(const ConfigOptions& config_options,
 
 static int RegisterBuiltinMemTableRepFactory(ObjectLibrary& library,
                                              const std::string& /*arg*/) {
+  DBUG_TRACE;
   // The MemTableRepFactory built-in classes will be either a class
   // (VectorRepFactory) or a nickname (vector), followed optionally by ":#",
   // where # is the "size" of the factory.
@@ -220,6 +226,7 @@ static int RegisterBuiltinMemTableRepFactory(ObjectLibrary& library,
 
 Status GetMemTableRepFactoryFromString(
     const std::string& opts_str, std::unique_ptr<MemTableRepFactory>* result) {
+  DBUG_TRACE;
   ConfigOptions config_options;
   config_options.ignore_unsupported_options = false;
   config_options.ignore_unknown_options = false;
@@ -229,6 +236,7 @@ Status GetMemTableRepFactoryFromString(
 Status MemTableRepFactory::CreateFromString(
     const ConfigOptions& config_options, const std::string& value,
     std::unique_ptr<MemTableRepFactory>* result) {
+  DBUG_TRACE;
   static std::once_flag once;
   std::call_once(once, [&]() {
     RegisterBuiltinMemTableRepFactory(*(ObjectLibrary::Default().get()), "");
@@ -255,6 +263,7 @@ Status MemTableRepFactory::CreateFromString(
 Status MemTableRepFactory::CreateFromString(
     const ConfigOptions& config_options, const std::string& value,
     std::shared_ptr<MemTableRepFactory>* result) {
+  DBUG_TRACE;
   std::unique_ptr<MemTableRepFactory> factory;
   Status s = CreateFromString(config_options, value, &factory);
   if (factory && s.ok()) {
@@ -267,6 +276,7 @@ Status GetPlainTableOptionsFromMap(
     const ConfigOptions& config_options, const PlainTableOptions& table_options,
     const std::unordered_map<std::string, std::string>& opts_map,
     PlainTableOptions* new_table_options) {
+  DBUG_TRACE;
   assert(new_table_options);
   PlainTableFactory ptf(table_options);
   Status s = ptf.ConfigureFromMap(config_options, opts_map);
@@ -280,6 +290,7 @@ Status GetPlainTableOptionsFromMap(
 }
 
 TableFactory* NewPlainTableFactory(const PlainTableOptions& options) {
+  DBUG_TRACE;
   return new PlainTableFactory(options);
 }
 

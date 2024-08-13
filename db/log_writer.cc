@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "db/log_writer.h"
 
 #include <cstdint>
@@ -52,6 +53,7 @@ Writer::~Writer() {
 }
 
 IOStatus Writer::WriteBuffer(const WriteOptions& write_options) {
+  DBUG_TRACE;
   if (dest_->seen_error()) {
 #ifndef NDEBUG
     if (dest_->seen_injected_error()) {
@@ -72,6 +74,7 @@ IOStatus Writer::WriteBuffer(const WriteOptions& write_options) {
 }
 
 IOStatus Writer::Close(const WriteOptions& write_options) {
+  DBUG_TRACE;
   IOStatus s;
   IOOptions opts;
   s = WritableFileWriter::PrepareIOOptions(write_options, opts);
@@ -83,6 +86,7 @@ IOStatus Writer::Close(const WriteOptions& write_options) {
 }
 
 bool Writer::PublishIfClosed() {
+  DBUG_TRACE;
   if (dest_->IsClosed()) {
     dest_.reset();
     return true;
@@ -93,6 +97,7 @@ bool Writer::PublishIfClosed() {
 
 IOStatus Writer::AddRecord(const WriteOptions& write_options,
                            const Slice& slice) {
+  DBUG_TRACE;
   if (dest_->seen_error()) {
 #ifndef NDEBUG
     if (dest_->seen_injected_error()) {
@@ -254,6 +259,7 @@ IOStatus Writer::AddCompressionTypeRecord(const WriteOptions& write_options) {
 IOStatus Writer::MaybeAddUserDefinedTimestampSizeRecord(
     const WriteOptions& write_options,
     const UnorderedMap<uint32_t, size_t>& cf_to_ts_sz) {
+  DBUG_TRACE;
   std::vector<std::pair<uint32_t, size_t>> ts_sz_to_record;
   for (const auto& [cf_id, ts_sz] : cf_to_ts_sz) {
     if (recorded_cf_to_ts_sz_.count(cf_id) != 0) {
@@ -297,10 +303,11 @@ IOStatus Writer::MaybeAddUserDefinedTimestampSizeRecord(
                             encoded.size());
 }
 
-bool Writer::BufferIsEmpty() { return dest_->BufferIsEmpty(); }
+bool Writer::BufferIsEmpty() { DBUG_TRACE; return dest_->BufferIsEmpty(); }
 
 IOStatus Writer::EmitPhysicalRecord(const WriteOptions& write_options,
                                     RecordType t, const char* ptr, size_t n) {
+  DBUG_TRACE;
   assert(n <= 0xffff);  // Must fit in two bytes
 
   size_t header_size;

@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "monitoring/thread_status_updater.h"
 
 #include <memory>
@@ -21,6 +22,7 @@ thread_local ThreadStatusData* ThreadStatusUpdater::thread_status_data_ =
 
 void ThreadStatusUpdater::RegisterThread(ThreadStatus::ThreadType ttype,
                                          uint64_t thread_id) {
+  DBUG_TRACE;
   if (UNLIKELY(thread_status_data_ == nullptr)) {
     thread_status_data_ = new ThreadStatusData();
     thread_status_data_->thread_type = ttype;
@@ -33,6 +35,7 @@ void ThreadStatusUpdater::RegisterThread(ThreadStatus::ThreadType ttype,
 }
 
 void ThreadStatusUpdater::UnregisterThread() {
+  DBUG_TRACE;
   if (thread_status_data_ != nullptr) {
     std::lock_guard<std::mutex> lck(thread_list_mutex_);
     thread_data_set_.erase(thread_status_data_);
@@ -42,12 +45,14 @@ void ThreadStatusUpdater::UnregisterThread() {
 }
 
 void ThreadStatusUpdater::ResetThreadStatus() {
+  DBUG_TRACE;
   ClearThreadState();
   ClearThreadOperation();
   SetColumnFamilyInfoKey(nullptr);
 }
 
 void ThreadStatusUpdater::SetEnableTracking(bool enable_tracking) {
+  DBUG_TRACE;
   auto* data = Get();
   if (data == nullptr) {
     return;
@@ -56,6 +61,7 @@ void ThreadStatusUpdater::SetEnableTracking(bool enable_tracking) {
 }
 
 void ThreadStatusUpdater::SetColumnFamilyInfoKey(const void* cf_key) {
+  DBUG_TRACE;
   auto* data = Get();
   if (data == nullptr) {
     return;
@@ -64,6 +70,7 @@ void ThreadStatusUpdater::SetColumnFamilyInfoKey(const void* cf_key) {
 }
 
 const void* ThreadStatusUpdater::GetColumnFamilyInfoKey() {
+  DBUG_TRACE;
   auto* data = GetLocalThreadStatus();
   if (data == nullptr) {
     return nullptr;
@@ -73,6 +80,7 @@ const void* ThreadStatusUpdater::GetColumnFamilyInfoKey() {
 
 void ThreadStatusUpdater::SetThreadOperation(
     const ThreadStatus::OperationType type) {
+  DBUG_TRACE;
   auto* data = GetLocalThreadStatus();
   if (data == nullptr) {
     return;
@@ -91,6 +99,7 @@ void ThreadStatusUpdater::SetThreadOperation(
 }
 
 ThreadStatus::OperationType ThreadStatusUpdater::GetThreadOperation() {
+  DBUG_TRACE;
   ThreadStatusData* data = GetLocalThreadStatus();
   if (data == nullptr) {
     return ThreadStatus::OperationType::OP_UNKNOWN;
@@ -99,6 +108,7 @@ ThreadStatus::OperationType ThreadStatusUpdater::GetThreadOperation() {
 }
 
 void ThreadStatusUpdater::SetThreadOperationProperty(int i, uint64_t value) {
+  DBUG_TRACE;
   auto* data = GetLocalThreadStatus();
   if (data == nullptr) {
     return;
@@ -108,6 +118,7 @@ void ThreadStatusUpdater::SetThreadOperationProperty(int i, uint64_t value) {
 
 void ThreadStatusUpdater::IncreaseThreadOperationProperty(int i,
                                                           uint64_t delta) {
+  DBUG_TRACE;
   auto* data = GetLocalThreadStatus();
   if (data == nullptr) {
     return;
@@ -116,6 +127,7 @@ void ThreadStatusUpdater::IncreaseThreadOperationProperty(int i,
 }
 
 void ThreadStatusUpdater::SetOperationStartTime(const uint64_t start_time) {
+  DBUG_TRACE;
   auto* data = GetLocalThreadStatus();
   if (data == nullptr) {
     return;
@@ -124,6 +136,7 @@ void ThreadStatusUpdater::SetOperationStartTime(const uint64_t start_time) {
 }
 
 void ThreadStatusUpdater::ClearThreadOperation() {
+  DBUG_TRACE;
   auto* data = GetLocalThreadStatus();
   if (data == nullptr) {
     return;
@@ -136,6 +149,7 @@ void ThreadStatusUpdater::ClearThreadOperation() {
 }
 
 void ThreadStatusUpdater::ClearThreadOperationProperties() {
+  DBUG_TRACE;
   auto* data = GetLocalThreadStatus();
   if (data == nullptr) {
     return;
@@ -147,6 +161,7 @@ void ThreadStatusUpdater::ClearThreadOperationProperties() {
 
 ThreadStatus::OperationStage ThreadStatusUpdater::SetThreadOperationStage(
     ThreadStatus::OperationStage stage) {
+  DBUG_TRACE;
   auto* data = GetLocalThreadStatus();
   if (data == nullptr) {
     return ThreadStatus::STAGE_UNKNOWN;
@@ -155,6 +170,7 @@ ThreadStatus::OperationStage ThreadStatusUpdater::SetThreadOperationStage(
 }
 
 void ThreadStatusUpdater::SetThreadState(const ThreadStatus::StateType type) {
+  DBUG_TRACE;
   auto* data = GetLocalThreadStatus();
   if (data == nullptr) {
     return;
@@ -163,6 +179,7 @@ void ThreadStatusUpdater::SetThreadState(const ThreadStatus::StateType type) {
 }
 
 void ThreadStatusUpdater::ClearThreadState() {
+  DBUG_TRACE;
   auto* data = GetLocalThreadStatus();
   if (data == nullptr) {
     return;
@@ -173,6 +190,7 @@ void ThreadStatusUpdater::ClearThreadState() {
 
 Status ThreadStatusUpdater::GetThreadList(
     std::vector<ThreadStatus>* thread_list) {
+  DBUG_TRACE;
   thread_list->clear();
   std::vector<std::shared_ptr<ThreadStatusData>> valid_list;
   uint64_t now_micros = SystemClock::Default()->NowMicros();
@@ -220,6 +238,7 @@ Status ThreadStatusUpdater::GetThreadList(
 }
 
 ThreadStatusData* ThreadStatusUpdater::GetLocalThreadStatus() {
+  DBUG_TRACE;
   if (thread_status_data_ == nullptr) {
     return nullptr;
   }
@@ -233,6 +252,7 @@ void ThreadStatusUpdater::NewColumnFamilyInfo(const void* db_key,
                                               const std::string& db_name,
                                               const void* cf_key,
                                               const std::string& cf_name) {
+  DBUG_TRACE;
   // Acquiring same lock as GetThreadList() to guarantee
   // a consistent view of global column family table (cf_info_map).
   std::lock_guard<std::mutex> lck(thread_list_mutex_);
@@ -243,6 +263,7 @@ void ThreadStatusUpdater::NewColumnFamilyInfo(const void* db_key,
 }
 
 void ThreadStatusUpdater::EraseColumnFamilyInfo(const void* cf_key) {
+  DBUG_TRACE;
   // Acquiring same lock as GetThreadList() to guarantee
   // a consistent view of global column family table (cf_info_map).
   std::lock_guard<std::mutex> lck(thread_list_mutex_);
@@ -263,6 +284,7 @@ void ThreadStatusUpdater::EraseColumnFamilyInfo(const void* cf_key) {
 }
 
 void ThreadStatusUpdater::EraseDatabaseInfo(const void* db_key) {
+  DBUG_TRACE;
   // Acquiring same lock as GetThreadList() to guarantee
   // a consistent view of global column family table (cf_info_map).
   std::lock_guard<std::mutex> lck(thread_list_mutex_);

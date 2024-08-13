@@ -3,6 +3,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "utilities/merge_operators.h"
 
 #include <memory>
@@ -22,6 +23,7 @@
 namespace ROCKSDB_NAMESPACE {
 static int RegisterBuiltinMergeOperators(ObjectLibrary& library,
                                          const std::string& /*arg*/) {
+  DBUG_TRACE;
   size_t num_types;
   library.AddFactory<MergeOperator>(
       ObjectLibrary::PatternEntry(StringAppendOperator::kClassName())
@@ -93,6 +95,7 @@ static int RegisterBuiltinMergeOperators(ObjectLibrary& library,
 Status MergeOperator::CreateFromString(const ConfigOptions& config_options,
                                        const std::string& value,
                                        std::shared_ptr<MergeOperator>* result) {
+  DBUG_TRACE;
   static std::once_flag once;
   std::call_once(once, [&]() {
     RegisterBuiltinMergeOperators(*(ObjectLibrary::Default().get()), "");
@@ -102,6 +105,7 @@ Status MergeOperator::CreateFromString(const ConfigOptions& config_options,
 
 std::shared_ptr<MergeOperator> MergeOperators::CreateFromStringId(
     const std::string& id) {
+  DBUG_TRACE;
   std::shared_ptr<MergeOperator> result;
   Status s = MergeOperator::CreateFromString(ConfigOptions(), id, &result);
   if (s.ok()) {

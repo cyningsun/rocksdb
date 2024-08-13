@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 //
+#include "rocksdb/util/dbug.h"
 #include "logging/auto_roll_logger.h"
 
 #include <algorithm>
@@ -59,6 +60,7 @@ AutoRollLogger::AutoRollLogger(const std::shared_ptr<FileSystem>& fs,
 }
 
 Status AutoRollLogger::ResetLogger() {
+  DBUG_TRACE;
   TEST_SYNC_POINT("AutoRollLogger::ResetLogger:BeforeNewLogger");
   status_ = fs_->NewLogger(log_fname_, io_options_, &logger_, &io_context_);
   TEST_SYNC_POINT("AutoRollLogger::ResetLogger:AfterNewLogger");
@@ -83,6 +85,7 @@ Status AutoRollLogger::ResetLogger() {
 }
 
 void AutoRollLogger::RollLogFile() {
+  DBUG_TRACE;
   // This function is called when log is rotating. Two rotations
   // can happen quickly (NowMicro returns same value). To not overwrite
   // previous log file we increment by one micro second and try again.
@@ -113,6 +116,7 @@ void AutoRollLogger::RollLogFile() {
 }
 
 void AutoRollLogger::GetExistingFiles() {
+  DBUG_TRACE;
   {
     // Empty the queue to avoid duplicated entries in the queue.
     std::queue<std::string> empty;
@@ -136,6 +140,7 @@ void AutoRollLogger::GetExistingFiles() {
 }
 
 Status AutoRollLogger::TrimOldLogFiles() {
+  DBUG_TRACE;
   // Here we directly list info files and delete them through FileSystem.
   // The deletion isn't going through DB, so there are shortcomes:
   // 1. the deletion is not rate limited by SstFileManager
@@ -166,6 +171,7 @@ Status AutoRollLogger::TrimOldLogFiles() {
 
 std::string AutoRollLogger::ValistToString(const char* format,
                                            va_list args) const {
+  DBUG_TRACE;
   // Any log messages longer than 1024 will get truncated.
   // The user is responsible for chopping longer messages into multi line log
   static const int MAXBUFFERSIZE = 1024;
@@ -179,6 +185,7 @@ std::string AutoRollLogger::ValistToString(const char* format,
 }
 
 void AutoRollLogger::LogInternal(const char* format, ...) {
+  DBUG_TRACE;
   mutex_.AssertHeld();
 
   if (!logger_) {
@@ -192,6 +199,7 @@ void AutoRollLogger::LogInternal(const char* format, ...) {
 }
 
 void AutoRollLogger::Logv(const char* format, va_list ap) {
+  DBUG_TRACE;
   std::shared_ptr<Logger> logger;
   {
     MutexLock l(&mutex_);
@@ -232,6 +240,7 @@ void AutoRollLogger::Logv(const char* format, va_list ap) {
 }
 
 void AutoRollLogger::WriteHeaderInfo() {
+  DBUG_TRACE;
   mutex_.AssertHeld();
   for (auto& header : headers_) {
     LogInternal("%s", header.c_str());
@@ -239,6 +248,7 @@ void AutoRollLogger::WriteHeaderInfo() {
 }
 
 void AutoRollLogger::LogHeader(const char* format, va_list args) {
+  DBUG_TRACE;
   // header message are to be retained in memory. Since we cannot make any
   // assumptions about the data contained in va_list, we will retain them as
   // strings
@@ -258,6 +268,7 @@ void AutoRollLogger::LogHeader(const char* format, va_list args) {
 }
 
 bool AutoRollLogger::LogExpired() {
+  DBUG_TRACE;
   if (cached_now_access_count >= call_NowMicros_every_N_records_) {
     cached_now = static_cast<uint64_t>(clock_->NowMicros() * 1e-6);
     cached_now_access_count = 0;
@@ -270,6 +281,7 @@ bool AutoRollLogger::LogExpired() {
 Status CreateLoggerFromOptions(const std::string& dbname,
                                const DBOptions& options,
                                std::shared_ptr<Logger>* logger) {
+  DBUG_TRACE;
   if (options.info_log) {
     *logger = options.info_log;
     return Status::OK();

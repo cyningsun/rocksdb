@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "db_stress_tool/db_stress_listener.h"
 
 #include <cstdint>
@@ -140,6 +141,7 @@ UniqueIdVerifier::~UniqueIdVerifier() {
 }
 
 void UniqueIdVerifier::VerifyNoWrite(const std::string& id) {
+  DBUG_TRACE;
   assert(id.size() == 24);
   bool is_new = id_set_.insert(DecodeFixed64(&id[offset_])).second;
   if (!is_new) {
@@ -151,6 +153,7 @@ void UniqueIdVerifier::VerifyNoWrite(const std::string& id) {
 }
 
 void UniqueIdVerifier::Verify(const std::string& id) {
+  DBUG_TRACE;
   assert(id.size() == 24);
   std::lock_guard<std::mutex> lock(mutex_);
   // If we accumulate more than ~4 million IDs, there would be > 1 in 1M
@@ -176,6 +179,7 @@ void UniqueIdVerifier::Verify(const std::string& id) {
 
 void DbStressListener::VerifyTableFileUniqueId(
     const TableProperties& new_file_properties, const std::string& file_path) {
+  DBUG_TRACE;
   // Verify unique ID
   std::string id;
   // Unit tests verify that GetUniqueIdFromTableProperties returns just a

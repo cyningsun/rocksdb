@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "db/blob/blob_log_writer.h"
 
 #include <cstdint>
@@ -34,6 +35,7 @@ BlobLogWriter::BlobLogWriter(std::unique_ptr<WritableFileWriter>&& dest,
 BlobLogWriter::~BlobLogWriter() = default;
 
 Status BlobLogWriter::Sync(const WriteOptions& write_options) {
+  DBUG_TRACE;
   TEST_SYNC_POINT("BlobLogWriter::Sync");
 
   StopWatch sync_sw(clock_, statistics_, BLOB_DB_BLOB_FILE_SYNC_MICROS);
@@ -50,6 +52,7 @@ Status BlobLogWriter::Sync(const WriteOptions& write_options) {
 
 Status BlobLogWriter::WriteHeader(const WriteOptions& write_options,
                                   BlobLogHeader& header) {
+  DBUG_TRACE;
   assert(block_offset_ == 0);
   assert(last_elem_type_ == kEtNone);
   std::string str;
@@ -78,6 +81,7 @@ Status BlobLogWriter::AppendFooter(const WriteOptions& write_options,
                                    BlobLogFooter& footer,
                                    std::string* checksum_method,
                                    std::string* checksum_value) {
+  DBUG_TRACE;
   assert(block_offset_ != 0);
   assert(last_elem_type_ == kEtFileHdr || last_elem_type_ == kEtRecord);
 
@@ -139,6 +143,7 @@ Status BlobLogWriter::AddRecord(const WriteOptions& write_options,
                                 const Slice& key, const Slice& val,
                                 uint64_t expiration, uint64_t* key_offset,
                                 uint64_t* blob_offset) {
+  DBUG_TRACE;
   assert(block_offset_ != 0);
   assert(last_elem_type_ == kEtFileHdr || last_elem_type_ == kEtRecord);
 
@@ -153,6 +158,7 @@ Status BlobLogWriter::AddRecord(const WriteOptions& write_options,
 Status BlobLogWriter::AddRecord(const WriteOptions& write_options,
                                 const Slice& key, const Slice& val,
                                 uint64_t* key_offset, uint64_t* blob_offset) {
+  DBUG_TRACE;
   assert(block_offset_ != 0);
   assert(last_elem_type_ == kEtFileHdr || last_elem_type_ == kEtRecord);
 
@@ -166,6 +172,7 @@ Status BlobLogWriter::AddRecord(const WriteOptions& write_options,
 
 void BlobLogWriter::ConstructBlobHeader(std::string* buf, const Slice& key,
                                         const Slice& val, uint64_t expiration) {
+  DBUG_TRACE;
   BlobLogRecord record;
   record.key = key;
   record.value = val;
@@ -178,6 +185,7 @@ Status BlobLogWriter::EmitPhysicalRecord(const WriteOptions& write_options,
                                          const Slice& key, const Slice& val,
                                          uint64_t* key_offset,
                                          uint64_t* blob_offset) {
+  DBUG_TRACE;
   IOOptions opts;
   Status s = WritableFileWriter::PrepareIOOptions(write_options, opts);
   if (s.ok()) {

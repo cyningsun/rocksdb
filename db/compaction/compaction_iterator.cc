@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "db/compaction/compaction_iterator.h"
 
 #include <iterator>
@@ -139,6 +140,7 @@ CompactionIterator::~CompactionIterator() {
 }
 
 void CompactionIterator::ResetRecordCounts() {
+  DBUG_TRACE;
   iter_stats_.num_record_drop_user = 0;
   iter_stats_.num_record_drop_hidden = 0;
   iter_stats_.num_record_drop_obsolete = 0;
@@ -148,11 +150,13 @@ void CompactionIterator::ResetRecordCounts() {
 }
 
 void CompactionIterator::SeekToFirst() {
+  DBUG_TRACE;
   NextFromInput();
   PrepareOutput();
 }
 
 void CompactionIterator::Next() {
+  DBUG_TRACE;
   // If there is a merge output, return it before continuing to process the
   // input.
   if (merge_out_iter_.Valid()) {
@@ -224,6 +228,7 @@ void CompactionIterator::Next() {
 
 bool CompactionIterator::InvokeFilterIfNeeded(bool* need_skip,
                                               Slice* skip_until) {
+  DBUG_TRACE;
   if (!compaction_filter_) {
     return true;
   }
@@ -454,6 +459,7 @@ bool CompactionIterator::InvokeFilterIfNeeded(bool* need_skip,
 }
 
 void CompactionIterator::NextFromInput() {
+  DBUG_TRACE;
   at_next_ = false;
   validity_info_.Invalidate();
 
@@ -1126,6 +1132,7 @@ void CompactionIterator::NextFromInput() {
 }
 
 bool CompactionIterator::ExtractLargeValueIfNeededImpl() {
+  DBUG_TRACE;
   if (!blob_file_builder_) {
     return false;
   }
@@ -1150,6 +1157,7 @@ bool CompactionIterator::ExtractLargeValueIfNeededImpl() {
 }
 
 void CompactionIterator::ExtractLargeValueIfNeeded() {
+  DBUG_TRACE;
   assert(ikey_.type == kTypeValue);
 
   if (!ExtractLargeValueIfNeededImpl()) {
@@ -1161,6 +1169,7 @@ void CompactionIterator::ExtractLargeValueIfNeeded() {
 }
 
 void CompactionIterator::GarbageCollectBlobIfNeeded() {
+  DBUG_TRACE;
   assert(ikey_.type == kTypeBlobIndex);
 
   if (!compaction_) {
@@ -1260,6 +1269,7 @@ void CompactionIterator::GarbageCollectBlobIfNeeded() {
 }
 
 void CompactionIterator::DecideOutputLevel() {
+  DBUG_TRACE;
   assert(compaction_->SupportsPerKeyPlacement());
   output_to_penultimate_level_ = false;
   // if the key is newer than the cutoff sequence or within the earliest
@@ -1325,6 +1335,7 @@ void CompactionIterator::DecideOutputLevel() {
 }
 
 void CompactionIterator::PrepareOutput() {
+  DBUG_TRACE;
   if (Valid()) {
     if (LIKELY(!is_range_del_)) {
       if (ikey_.type == kTypeValue) {
@@ -1398,6 +1409,7 @@ void CompactionIterator::PrepareOutput() {
 
 inline SequenceNumber CompactionIterator::findEarliestVisibleSnapshot(
     SequenceNumber in, SequenceNumber* prev_snapshot) {
+  DBUG_TRACE;
   assert(snapshots_->size());
   if (snapshots_->size() == 0) {
     ROCKS_LOG_FATAL(info_log_,
@@ -1449,6 +1461,7 @@ inline SequenceNumber CompactionIterator::findEarliestVisibleSnapshot(
 
 uint64_t CompactionIterator::ComputeBlobGarbageCollectionCutoffFileNumber(
     const CompactionProxy* compaction) {
+  DBUG_TRACE;
   if (!compaction) {
     return 0;
   }
@@ -1480,6 +1493,7 @@ uint64_t CompactionIterator::ComputeBlobGarbageCollectionCutoffFileNumber(
 
 std::unique_ptr<BlobFetcher> CompactionIterator::CreateBlobFetcherIfNeeded(
     const CompactionProxy* compaction) {
+  DBUG_TRACE;
   if (!compaction) {
     return nullptr;
   }
@@ -1499,6 +1513,7 @@ std::unique_ptr<BlobFetcher> CompactionIterator::CreateBlobFetcherIfNeeded(
 std::unique_ptr<PrefetchBufferCollection>
 CompactionIterator::CreatePrefetchBufferCollectionIfNeeded(
     const CompactionProxy* compaction) {
+  DBUG_TRACE;
   if (!compaction) {
     return nullptr;
   }

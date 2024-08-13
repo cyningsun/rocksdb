@@ -4,6 +4,7 @@
 //  (found in the LICENSE.Apache file in the root directory).
 //
 
+#include "rocksdb/util/dbug.h"
 #include "utilities/persistent_cache/persistent_cache_tier.h"
 
 #include <cinttypes>
@@ -13,6 +14,7 @@
 namespace ROCKSDB_NAMESPACE {
 
 std::string PersistentCacheConfig::ToString() const {
+  DBUG_TRACE;
   std::string ret;
   ret.reserve(20000);
   const int kBufferSize = 200;
@@ -56,6 +58,7 @@ std::string PersistentCacheConfig::ToString() const {
 // PersistentCacheTier implementation
 //
 Status PersistentCacheTier::Open() {
+  DBUG_TRACE;
   if (next_tier_) {
     return next_tier_->Open();
   }
@@ -63,6 +66,7 @@ Status PersistentCacheTier::Open() {
 }
 
 Status PersistentCacheTier::Close() {
+  DBUG_TRACE;
   if (next_tier_) {
     return next_tier_->Close();
   }
@@ -70,17 +74,20 @@ Status PersistentCacheTier::Close() {
 }
 
 bool PersistentCacheTier::Reserve(const size_t /*size*/) {
+  DBUG_TRACE;
   // default implementation is a pass through
   return true;
 }
 
 bool PersistentCacheTier::Erase(const Slice& /*key*/) {
+  DBUG_TRACE;
   // default implementation is a pass through since not all cache tiers might
   // support erase
   return true;
 }
 
 std::string PersistentCacheTier::PrintStats() {
+  DBUG_TRACE;
   std::ostringstream os;
   for (const auto& tier_stats : Stats()) {
     os << "---- next tier -----" << std::endl;
@@ -92,6 +99,7 @@ std::string PersistentCacheTier::PrintStats() {
 }
 
 PersistentCache::StatsType PersistentCacheTier::Stats() {
+  DBUG_TRACE;
   if (next_tier_) {
     return next_tier_->Stats();
   }
@@ -99,6 +107,7 @@ PersistentCache::StatsType PersistentCacheTier::Stats() {
 }
 
 uint64_t PersistentCacheTier::NewId() {
+  DBUG_TRACE;
   return last_id_.fetch_add(1, std::memory_order_relaxed);
 }
 
@@ -108,11 +117,13 @@ uint64_t PersistentCacheTier::NewId() {
 PersistentTieredCache::~PersistentTieredCache() { assert(tiers_.empty()); }
 
 Status PersistentTieredCache::Open() {
+  DBUG_TRACE;
   assert(!tiers_.empty());
   return tiers_.front()->Open();
 }
 
 Status PersistentTieredCache::Close() {
+  DBUG_TRACE;
   assert(!tiers_.empty());
   Status status = tiers_.front()->Close();
   if (status.ok()) {
@@ -122,22 +133,26 @@ Status PersistentTieredCache::Close() {
 }
 
 bool PersistentTieredCache::Erase(const Slice& key) {
+  DBUG_TRACE;
   assert(!tiers_.empty());
   return tiers_.front()->Erase(key);
 }
 
 PersistentCache::StatsType PersistentTieredCache::Stats() {
+  DBUG_TRACE;
   assert(!tiers_.empty());
   return tiers_.front()->Stats();
 }
 
 std::string PersistentTieredCache::PrintStats() {
+  DBUG_TRACE;
   assert(!tiers_.empty());
   return tiers_.front()->PrintStats();
 }
 
 Status PersistentTieredCache::Insert(const Slice& page_key, const char* data,
                                      const size_t size) {
+  DBUG_TRACE;
   assert(!tiers_.empty());
   return tiers_.front()->Insert(page_key, data, size);
 }
@@ -145,11 +160,13 @@ Status PersistentTieredCache::Insert(const Slice& page_key, const char* data,
 Status PersistentTieredCache::Lookup(const Slice& page_key,
                                      std::unique_ptr<char[]>* data,
                                      size_t* size) {
+  DBUG_TRACE;
   assert(!tiers_.empty());
   return tiers_.front()->Lookup(page_key, data, size);
 }
 
 void PersistentTieredCache::AddTier(const Tier& tier) {
+  DBUG_TRACE;
   if (!tiers_.empty()) {
     tiers_.back()->set_next_tier(tier);
   }
@@ -157,9 +174,9 @@ void PersistentTieredCache::AddTier(const Tier& tier) {
 }
 
 bool PersistentTieredCache::IsCompressed() {
+  DBUG_TRACE;
   assert(tiers_.size());
   return tiers_.front()->IsCompressed();
 }
 
 }  // namespace ROCKSDB_NAMESPACE
-

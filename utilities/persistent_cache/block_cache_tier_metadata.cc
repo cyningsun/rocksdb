@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "utilities/persistent_cache/block_cache_tier_metadata.h"
 
 #include <functional>
@@ -10,10 +11,12 @@
 namespace ROCKSDB_NAMESPACE {
 
 bool BlockCacheTierMetadata::Insert(BlockCacheFile* file) {
+  DBUG_TRACE;
   return cache_file_index_.Insert(file);
 }
 
 BlockCacheFile* BlockCacheTierMetadata::Lookup(const uint32_t cache_id) {
+  DBUG_TRACE;
   BlockCacheFile* ret = nullptr;
   BlockCacheFile lookup_key(cache_id);
   bool ok = cache_file_index_.Find(&lookup_key, &ret);
@@ -25,17 +28,20 @@ BlockCacheFile* BlockCacheTierMetadata::Lookup(const uint32_t cache_id) {
 }
 
 BlockCacheFile* BlockCacheTierMetadata::Evict() {
+  DBUG_TRACE;
   using std::placeholders::_1;
   auto fn = std::bind(&BlockCacheTierMetadata::RemoveAllKeys, this, _1);
   return cache_file_index_.Evict(fn);
 }
 
 void BlockCacheTierMetadata::Clear() {
+  DBUG_TRACE;
   cache_file_index_.Clear([](BlockCacheFile* arg) { delete arg; });
   block_index_.Clear([](BlockInfo* arg) { delete arg; });
 }
 
 BlockInfo* BlockCacheTierMetadata::Insert(const Slice& key, const LBA& lba) {
+  DBUG_TRACE;
   std::unique_ptr<BlockInfo> binfo(new BlockInfo(key, lba));
   if (!block_index_.Insert(binfo.get())) {
     return nullptr;
@@ -44,6 +50,7 @@ BlockInfo* BlockCacheTierMetadata::Insert(const Slice& key, const LBA& lba) {
 }
 
 bool BlockCacheTierMetadata::Lookup(const Slice& key, LBA* lba) {
+  DBUG_TRACE;
   BlockInfo lookup_key(key);
   BlockInfo* block;
   port::RWMutex* rlock = nullptr;
@@ -60,6 +67,7 @@ bool BlockCacheTierMetadata::Lookup(const Slice& key, LBA* lba) {
 }
 
 BlockInfo* BlockCacheTierMetadata::Remove(const Slice& key) {
+  DBUG_TRACE;
   BlockInfo lookup_key(key);
   BlockInfo* binfo = nullptr;
   bool ok __attribute__((__unused__));
@@ -69,6 +77,7 @@ BlockInfo* BlockCacheTierMetadata::Remove(const Slice& key) {
 }
 
 void BlockCacheTierMetadata::RemoveAllKeys(BlockCacheFile* f) {
+  DBUG_TRACE;
   for (BlockInfo* binfo : f->block_infos()) {
     BlockInfo* tmp = nullptr;
     bool status = block_index_.Erase(binfo, &tmp);
@@ -81,4 +90,3 @@ void BlockCacheTierMetadata::RemoveAllKeys(BlockCacheFile* f) {
 }
 
 }  // namespace ROCKSDB_NAMESPACE
-

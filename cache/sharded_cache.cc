@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "cache/sharded_cache.h"
 
 #include <algorithm>
@@ -26,6 +27,7 @@ namespace {
 // diagnostic/debugging purposes.
 constexpr uint32_t kSeedMask = 0x7fffffff;
 uint32_t DetermineSeed(int32_t hash_seed_option) {
+  DBUG_TRACE;
   if (hash_seed_option >= 0) {
     // User-specified exact seed
     return static_cast<uint32_t>(hash_seed_option);
@@ -66,43 +68,52 @@ ShardedCacheBase::ShardedCacheBase(const ShardedCacheOptions& opts)
       capacity_(opts.capacity) {}
 
 size_t ShardedCacheBase::ComputePerShardCapacity(size_t capacity) const {
+  DBUG_TRACE;
   uint32_t num_shards = GetNumShards();
   return (capacity + (num_shards - 1)) / num_shards;
 }
 
 size_t ShardedCacheBase::GetPerShardCapacity() const {
+  DBUG_TRACE;
   return ComputePerShardCapacity(GetCapacity());
 }
 
 uint64_t ShardedCacheBase::NewId() {
+  DBUG_TRACE;
   return last_id_.fetch_add(1, std::memory_order_relaxed);
 }
 
 size_t ShardedCacheBase::GetCapacity() const {
+  DBUG_TRACE;
   MutexLock l(&config_mutex_);
   return capacity_;
 }
 
 Status ShardedCacheBase::GetSecondaryCacheCapacity(size_t& size) const {
+  DBUG_TRACE;
   size = 0;
   return Status::OK();
 }
 
 Status ShardedCacheBase::GetSecondaryCachePinnedUsage(size_t& size) const {
+  DBUG_TRACE;
   size = 0;
   return Status::OK();
 }
 
 bool ShardedCacheBase::HasStrictCapacityLimit() const {
+  DBUG_TRACE;
   MutexLock l(&config_mutex_);
   return strict_capacity_limit_;
 }
 
 size_t ShardedCacheBase::GetUsage(Handle* handle) const {
+  DBUG_TRACE;
   return GetCharge(handle);
 }
 
 std::string ShardedCacheBase::GetPrintableOptions() const {
+  DBUG_TRACE;
   std::string ret;
   ret.reserve(20000);
   const int kBufferSize = 200;
@@ -127,6 +138,7 @@ std::string ShardedCacheBase::GetPrintableOptions() const {
 }
 
 int GetDefaultCacheShardBits(size_t capacity, size_t min_shard_size) {
+  DBUG_TRACE;
   int num_shard_bits = 0;
   size_t num_shards = capacity / min_shard_size;
   while (num_shards >>= 1) {
@@ -139,9 +151,10 @@ int GetDefaultCacheShardBits(size_t capacity, size_t min_shard_size) {
 }
 
 int ShardedCacheBase::GetNumShardBits() const {
+  DBUG_TRACE;
   return BitsSetToOne(shard_mask_);
 }
 
-uint32_t ShardedCacheBase::GetNumShards() const { return shard_mask_ + 1; }
+uint32_t ShardedCacheBase::GetNumShards() const { DBUG_TRACE; return shard_mask_ + 1; }
 
 }  // namespace ROCKSDB_NAMESPACE

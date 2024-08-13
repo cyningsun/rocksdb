@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #ifdef GFLAGS
 #include "db_stress_tool/db_stress_common.h"
 #include "file/file_util.h"
@@ -18,13 +19,14 @@ class CfConsistencyStressTest : public StressTest {
 
   ~CfConsistencyStressTest() override = default;
 
-  bool IsStateTracked() const override { return false; }
+  bool IsStateTracked() const override { DBUG_TRACE; return false; }
 
   Status TestPut(ThreadState* thread, WriteOptions& write_opts,
                  const ReadOptions& /* read_opts */,
                  const std::vector<int>& rand_column_families,
                  const std::vector<int64_t>& rand_keys,
                  char (&value)[100]) override {
+    DBUG_TRACE;
     assert(!rand_column_families.empty());
     assert(!rand_keys.empty());
 
@@ -88,6 +90,7 @@ class CfConsistencyStressTest : public StressTest {
   Status TestDelete(ThreadState* thread, WriteOptions& write_opts,
                     const std::vector<int>& rand_column_families,
                     const std::vector<int64_t>& rand_keys) override {
+    DBUG_TRACE;
     std::string key_str = Key(rand_keys[0]);
     Slice key = key_str;
     WriteBatch batch;
@@ -108,6 +111,7 @@ class CfConsistencyStressTest : public StressTest {
   Status TestDeleteRange(ThreadState* thread, WriteOptions& write_opts,
                          const std::vector<int>& rand_column_families,
                          const std::vector<int64_t>& rand_keys) override {
+    DBUG_TRACE;
     int64_t rand_key = rand_keys[0];
     auto shared = thread->shared;
     int64_t max_key = shared->GetMaxKey();
@@ -139,6 +143,7 @@ class CfConsistencyStressTest : public StressTest {
       ThreadState* /* thread */,
       const std::vector<int>& /* rand_column_families */,
       const std::vector<int64_t>& /* rand_keys */) override {
+    DBUG_TRACE;
     assert(false);
     fprintf(stderr,
             "CfConsistencyStressTest does not support TestIngestExternalFile "
@@ -149,6 +154,7 @@ class CfConsistencyStressTest : public StressTest {
   Status TestGet(ThreadState* thread, const ReadOptions& readoptions,
                  const std::vector<int>& rand_column_families,
                  const std::vector<int64_t>& rand_keys) override {
+    DBUG_TRACE;
     std::string key_str = Key(rand_keys[0]);
     Slice key = key_str;
     Status s;
@@ -252,6 +258,7 @@ class CfConsistencyStressTest : public StressTest {
       ThreadState* thread, const ReadOptions& read_opts,
       const std::vector<int>& rand_column_families,
       const std::vector<int64_t>& rand_keys) override {
+    DBUG_TRACE;
     size_t num_keys = rand_keys.size();
     std::vector<std::string> key_str;
     std::vector<Slice> keys;
@@ -289,6 +296,7 @@ class CfConsistencyStressTest : public StressTest {
   void TestGetEntity(ThreadState* thread, const ReadOptions& read_opts,
                      const std::vector<int>& rand_column_families,
                      const std::vector<int64_t>& rand_keys) override {
+    DBUG_TRACE;
     assert(thread);
     assert(!rand_column_families.empty());
     assert(!rand_keys.empty());
@@ -510,6 +518,7 @@ class CfConsistencyStressTest : public StressTest {
   void TestMultiGetEntity(ThreadState* thread, const ReadOptions& read_opts,
                           const std::vector<int>& rand_column_families,
                           const std::vector<int64_t>& rand_keys) override {
+    DBUG_TRACE;
     assert(thread);
     assert(thread->shared);
     assert(!rand_column_families.empty());
@@ -762,6 +771,7 @@ class CfConsistencyStressTest : public StressTest {
   Status TestPrefixScan(ThreadState* thread, const ReadOptions& readoptions,
                         const std::vector<int>& rand_column_families,
                         const std::vector<int64_t>& rand_keys) override {
+    DBUG_TRACE;
     assert(!rand_column_families.empty());
     assert(!rand_keys.empty());
 
@@ -831,6 +841,7 @@ class CfConsistencyStressTest : public StressTest {
   ColumnFamilyHandle* GetControlCfh(ThreadState* thread,
                                     int /*column_family_id*/
                                     ) override {
+    DBUG_TRACE;
     // All column families should contain the same data. Randomly pick one.
     return column_families_[thread->rand.Next() % column_families_.size()];
   }
@@ -1030,6 +1041,7 @@ class CfConsistencyStressTest : public StressTest {
   }
 
   void ContinuouslyVerifyDb(ThreadState* thread) const override {
+    DBUG_TRACE;
     assert(thread);
     Status status;
 
@@ -1122,6 +1134,7 @@ class CfConsistencyStressTest : public StressTest {
   std::vector<int> GenerateColumnFamilies(
       const int /* num_column_families */,
       int /* rand_column_family */) const override {
+    DBUG_TRACE;
     std::vector<int> ret;
     int num = static_cast<int>(column_families_.size());
     int k = 0;
@@ -1134,6 +1147,7 @@ class CfConsistencyStressTest : public StressTest {
 };
 
 StressTest* CreateCfConsistencyStressTest() {
+  DBUG_TRACE;
   return new CfConsistencyStressTest();
 }
 

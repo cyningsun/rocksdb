@@ -4,6 +4,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "utilities/blob_db/blob_db_impl.h"
 
 #include <algorithm>
@@ -53,12 +54,14 @@ namespace ROCKSDB_NAMESPACE::blob_db {
 bool BlobFileComparator::operator()(
     const std::shared_ptr<BlobFile>& lhs,
     const std::shared_ptr<BlobFile>& rhs) const {
+  DBUG_TRACE;
   return lhs->BlobFileNumber() > rhs->BlobFileNumber();
 }
 
 bool BlobFileComparatorTTL::operator()(
     const std::shared_ptr<BlobFile>& lhs,
     const std::shared_ptr<BlobFile>& rhs) const {
+  DBUG_TRACE;
   assert(lhs->HasTTL() && rhs->HasTTL());
   if (lhs->expiration_range_.first < rhs->expiration_range_.first) {
     return true;
@@ -106,6 +109,7 @@ BlobDBImpl::~BlobDBImpl() {
 }
 
 Status BlobDBImpl::Close() {
+  DBUG_TRACE;
   ThreadStatus::OperationType cur_op_type =
       ThreadStatusUtil::GetThreadOperation();
   ThreadStatusUtil::SetThreadOperation(ThreadStatus::OperationType::OP_UNKNOWN);
@@ -115,6 +119,7 @@ Status BlobDBImpl::Close() {
 }
 
 Status BlobDBImpl::CloseImpl() {
+  DBUG_TRACE;
   if (closed_) {
     return Status::OK();
   }
@@ -137,9 +142,10 @@ Status BlobDBImpl::CloseImpl() {
   return s;
 }
 
-BlobDBOptions BlobDBImpl::GetBlobDBOptions() const { return bdb_options_; }
+BlobDBOptions BlobDBImpl::GetBlobDBOptions() const { DBUG_TRACE; return bdb_options_; }
 
 Status BlobDBImpl::Open(std::vector<ColumnFamilyHandle*>* handles) {
+  DBUG_TRACE;
   assert(handles != nullptr);
   assert(db_ == nullptr);
 
@@ -301,6 +307,7 @@ Status BlobDBImpl::Open(std::vector<ColumnFamilyHandle*>* handles) {
 }
 
 void BlobDBImpl::StartBackgroundTasks() {
+  DBUG_TRACE;
   // store a call to a member function and object
   tqueue_.add(
       kReclaimOpenFilesPeriodMillisecs,
@@ -316,6 +323,7 @@ void BlobDBImpl::StartBackgroundTasks() {
 }
 
 Status BlobDBImpl::GetAllBlobFiles(std::set<uint64_t>* file_numbers) {
+  DBUG_TRACE;
   assert(file_numbers != nullptr);
   std::vector<std::string> all_files;
   Status s = env_->GetChildren(blob_dir_, &all_files);
@@ -342,6 +350,7 @@ Status BlobDBImpl::GetAllBlobFiles(std::set<uint64_t>* file_numbers) {
 }
 
 Status BlobDBImpl::OpenAllBlobFiles() {
+  DBUG_TRACE;
   std::set<uint64_t> file_numbers;
   Status s = GetAllBlobFiles(&file_numbers);
   if (!s.ok()) {
@@ -442,6 +451,7 @@ void BlobDBImpl::LinkSstToBlobFileImpl(uint64_t sst_file_number,
 
 void BlobDBImpl::LinkSstToBlobFile(uint64_t sst_file_number,
                                    uint64_t blob_file_number) {
+  DBUG_TRACE;
   auto linker = [](BlobFile* blob_file, uint64_t sst_file) {
     WriteLock file_lock(&blob_file->mutex_);
     blob_file->LinkSstFile(sst_file);
@@ -452,6 +462,7 @@ void BlobDBImpl::LinkSstToBlobFile(uint64_t sst_file_number,
 
 void BlobDBImpl::LinkSstToBlobFileNoLock(uint64_t sst_file_number,
                                          uint64_t blob_file_number) {
+  DBUG_TRACE;
   auto linker = [](BlobFile* blob_file, uint64_t sst_file) {
     blob_file->LinkSstFile(sst_file);
   };
@@ -461,6 +472,7 @@ void BlobDBImpl::LinkSstToBlobFileNoLock(uint64_t sst_file_number,
 
 void BlobDBImpl::UnlinkSstFromBlobFile(uint64_t sst_file_number,
                                        uint64_t blob_file_number) {
+  DBUG_TRACE;
   assert(bdb_options_.enable_garbage_collection);
   assert(blob_file_number != kInvalidBlobFileNumber);
 
@@ -489,6 +501,7 @@ void BlobDBImpl::UnlinkSstFromBlobFile(uint64_t sst_file_number,
 
 void BlobDBImpl::InitializeBlobFileToSstMapping(
     const std::vector<LiveFileMetaData>& live_files) {
+  DBUG_TRACE;
   assert(bdb_options_.enable_garbage_collection);
 
   for (const auto& live_file : live_files) {
@@ -504,6 +517,7 @@ void BlobDBImpl::InitializeBlobFileToSstMapping(
 }
 
 void BlobDBImpl::ProcessFlushJobInfo(const FlushJobInfo& info) {
+  DBUG_TRACE;
   assert(bdb_options_.enable_garbage_collection);
 
   WriteLock lock(&mutex_);
@@ -519,6 +533,7 @@ void BlobDBImpl::ProcessFlushJobInfo(const FlushJobInfo& info) {
 }
 
 void BlobDBImpl::ProcessCompactionJobInfo(const CompactionJobInfo& info) {
+  DBUG_TRACE;
   assert(bdb_options_.enable_garbage_collection);
 
   if (!info.status.ok()) {
@@ -596,6 +611,7 @@ void BlobDBImpl::ProcessCompactionJobInfo(const CompactionJobInfo& info) {
 
 bool BlobDBImpl::MarkBlobFileObsoleteIfNeeded(
     const std::shared_ptr<BlobFile>& blob_file, SequenceNumber obsolete_seq) {
+  DBUG_TRACE;
   assert(blob_file);
   assert(!blob_file->HasTTL());
   assert(blob_file->Immutable());
@@ -669,6 +685,7 @@ void BlobDBImpl::MarkUnreferencedBlobFilesObsoleteImpl(Functor mark_if_needed) {
 }
 
 void BlobDBImpl::MarkUnreferencedBlobFilesObsolete() {
+  DBUG_TRACE;
   const SequenceNumber obsolete_seq = GetLatestSequenceNumber();
 
   MarkUnreferencedBlobFilesObsoleteImpl(
@@ -679,6 +696,7 @@ void BlobDBImpl::MarkUnreferencedBlobFilesObsolete() {
 }
 
 void BlobDBImpl::MarkUnreferencedBlobFilesObsoleteDuringOpen() {
+  DBUG_TRACE;
   MarkUnreferencedBlobFilesObsoleteImpl(
       [this](const std::shared_ptr<BlobFile>& blob_file) {
         return MarkBlobFileObsoleteIfNeeded(blob_file, /* obsolete_seq */ 0);
@@ -687,6 +705,7 @@ void BlobDBImpl::MarkUnreferencedBlobFilesObsoleteDuringOpen() {
 
 void BlobDBImpl::CloseRandomAccessLocked(
     const std::shared_ptr<BlobFile>& bfile) {
+  DBUG_TRACE;
   bfile->CloseRandomAccessLocked();
   open_file_count_--;
 }
@@ -694,6 +713,7 @@ void BlobDBImpl::CloseRandomAccessLocked(
 Status BlobDBImpl::GetBlobFileReader(
     const std::shared_ptr<BlobFile>& blob_file,
     std::shared_ptr<RandomAccessFileReader>* reader) {
+  DBUG_TRACE;
   assert(reader != nullptr);
   bool fresh_open = false;
   Status s = blob_file->GetReader(env_, file_options_, reader, &fresh_open);
@@ -707,6 +727,7 @@ Status BlobDBImpl::GetBlobFileReader(
 std::shared_ptr<BlobFile> BlobDBImpl::NewBlobFile(
     bool has_ttl, const ExpirationRange& expiration_range,
     const std::string& reason) {
+  DBUG_TRACE;
   assert(has_ttl == (expiration_range.first || expiration_range.second));
 
   uint64_t file_num = next_file_number_++;
@@ -725,6 +746,7 @@ std::shared_ptr<BlobFile> BlobDBImpl::NewBlobFile(
 }
 
 void BlobDBImpl::RegisterBlobFile(std::shared_ptr<BlobFile> blob_file) {
+  DBUG_TRACE;
   const uint64_t blob_file_number = blob_file->BlobFileNumber();
 
   auto it = blob_files_.lower_bound(blob_file_number);
@@ -788,6 +810,7 @@ Status BlobDBImpl::CreateWriterLocked(const std::shared_ptr<BlobFile>& bfile) {
 
 std::shared_ptr<BlobFile> BlobDBImpl::FindBlobFileLocked(
     uint64_t expiration) const {
+  DBUG_TRACE;
   if (open_ttl_files_.empty()) {
     return nullptr;
   }
@@ -823,6 +846,7 @@ std::shared_ptr<BlobFile> BlobDBImpl::FindBlobFileLocked(
 Status BlobDBImpl::CheckOrCreateWriterLocked(
     const std::shared_ptr<BlobFile>& blob_file,
     std::shared_ptr<BlobLogWriter>* writer) {
+  DBUG_TRACE;
   assert(writer != nullptr);
   *writer = blob_file->GetWriter();
   if (*writer != nullptr) {
@@ -840,6 +864,7 @@ Status BlobDBImpl::CreateBlobFileAndWriter(
     const ExpirationRange& expiration_range, const std::string& reason,
     std::shared_ptr<BlobFile>* blob_file,
     std::shared_ptr<BlobLogWriter>* writer) {
+  DBUG_TRACE;
   TEST_SYNC_POINT("BlobDBImpl::CreateBlobFileAndWriter");
   assert(has_ttl == (expiration_range.first || expiration_range.second));
   assert(blob_file);
@@ -876,6 +901,7 @@ Status BlobDBImpl::CreateBlobFileAndWriter(
 
 Status BlobDBImpl::SelectBlobFile(const WriteOptions& write_options,
                                   std::shared_ptr<BlobFile>* blob_file) {
+  DBUG_TRACE;
   assert(blob_file);
 
   {
@@ -915,6 +941,7 @@ Status BlobDBImpl::SelectBlobFile(const WriteOptions& write_options,
 Status BlobDBImpl::SelectBlobFileTTL(const WriteOptions& write_options,
                                      uint64_t expiration,
                                      std::shared_ptr<BlobFile>* blob_file) {
+  DBUG_TRACE;
   assert(blob_file);
   assert(expiration != kNoExpiration);
 
@@ -973,10 +1000,11 @@ class BlobDBImpl::BlobInserter : public WriteBatch::Handler {
         blob_db_impl_(blob_db_impl),
         default_cf_id_(default_cf_id) {}
 
-  WriteBatch* batch() { return &batch_; }
+  WriteBatch* batch() { DBUG_TRACE; return &batch_; }
 
   Status PutCF(uint32_t column_family_id, const Slice& key,
                const Slice& value) override {
+    DBUG_TRACE;
     if (column_family_id != default_cf_id_) {
       return Status::NotSupported(
           "Blob DB doesn't support non-default column family.");
@@ -987,6 +1015,7 @@ class BlobDBImpl::BlobInserter : public WriteBatch::Handler {
   }
 
   Status DeleteCF(uint32_t column_family_id, const Slice& key) override {
+    DBUG_TRACE;
     if (column_family_id != default_cf_id_) {
       return Status::NotSupported(
           "Blob DB doesn't support non-default column family.");
@@ -997,6 +1026,7 @@ class BlobDBImpl::BlobInserter : public WriteBatch::Handler {
 
   virtual Status DeleteRange(uint32_t column_family_id, const Slice& begin_key,
                              const Slice& end_key) {
+    DBUG_TRACE;
     if (column_family_id != default_cf_id_) {
       return Status::NotSupported(
           "Blob DB doesn't support non-default column family.");
@@ -1008,18 +1038,21 @@ class BlobDBImpl::BlobInserter : public WriteBatch::Handler {
 
   Status SingleDeleteCF(uint32_t /*column_family_id*/,
                         const Slice& /*key*/) override {
+    DBUG_TRACE;
     return Status::NotSupported("Not supported operation in blob db.");
   }
 
   Status MergeCF(uint32_t /*column_family_id*/, const Slice& /*key*/,
                  const Slice& /*value*/) override {
+    DBUG_TRACE;
     return Status::NotSupported("Not supported operation in blob db.");
   }
 
-  void LogData(const Slice& blob) override { batch_.PutLogData(blob); }
+  void LogData(const Slice& blob) override { DBUG_TRACE; batch_.PutLogData(blob); }
 };
 
 Status BlobDBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
+  DBUG_TRACE;
   StopWatch write_sw(clock_, statistics_, BLOB_DB_WRITE_MICROS);
   RecordTick(statistics_, BLOB_DB_NUM_WRITE);
   uint32_t default_cf_id =
@@ -1042,11 +1075,13 @@ Status BlobDBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
 
 Status BlobDBImpl::Put(const WriteOptions& options, const Slice& key,
                        const Slice& value) {
+  DBUG_TRACE;
   return PutUntil(options, key, value, kNoExpiration);
 }
 
 Status BlobDBImpl::PutWithTTL(const WriteOptions& options, const Slice& key,
                               const Slice& value, uint64_t ttl) {
+  DBUG_TRACE;
   uint64_t now = EpochNow();
   uint64_t expiration = kNoExpiration - now > ttl ? now + ttl : kNoExpiration;
   return PutUntil(options, key, value, expiration);
@@ -1054,6 +1089,7 @@ Status BlobDBImpl::PutWithTTL(const WriteOptions& options, const Slice& key,
 
 Status BlobDBImpl::PutUntil(const WriteOptions& options, const Slice& key,
                             const Slice& value, uint64_t expiration) {
+  DBUG_TRACE;
   StopWatch write_sw(clock_, statistics_, BLOB_DB_WRITE_MICROS);
   RecordTick(statistics_, BLOB_DB_NUM_PUT);
   Status s;
@@ -1074,6 +1110,7 @@ Status BlobDBImpl::PutUntil(const WriteOptions& options, const Slice& key,
 Status BlobDBImpl::PutBlobValue(const WriteOptions& write_options,
                                 const Slice& key, const Slice& value,
                                 uint64_t expiration, WriteBatch* batch) {
+  DBUG_TRACE;
   write_mutex_.AssertHeld();
   Status s;
   std::string index_entry;
@@ -1158,6 +1195,7 @@ Status BlobDBImpl::PutBlobValue(const WriteOptions& write_options,
 
 Slice BlobDBImpl::GetCompressedSlice(const Slice& raw,
                                      std::string* compression_output) const {
+  DBUG_TRACE;
   if (bdb_options_.compression == kNoCompression) {
     return raw;
   }
@@ -1175,6 +1213,7 @@ Slice BlobDBImpl::GetCompressedSlice(const Slice& raw,
 Status BlobDBImpl::DecompressSlice(const Slice& compressed_value,
                                    CompressionType compression_type,
                                    PinnableSlice* value_output) const {
+  DBUG_TRACE;
   assert(compression_type != kNoCompression);
 
   BlockContents contents;
@@ -1204,6 +1243,7 @@ Status BlobDBImpl::CompactFiles(
     const std::vector<std::string>& input_file_names, const int output_level,
     const int output_path_id, std::vector<std::string>* const output_file_names,
     CompactionJobInfo* compaction_job_info) {
+  DBUG_TRACE;
   // Note: we need CompactionJobInfo to be able to track updates to the
   // blob file <-> SST mappings, so we provide one if the user hasn't,
   // assuming that GC is enabled.
@@ -1228,6 +1268,7 @@ Status BlobDBImpl::CompactFiles(
 }
 
 void BlobDBImpl::GetCompactionContextCommon(BlobCompactionContext* context) {
+  DBUG_TRACE;
   assert(context);
 
   context->blob_db_impl = this;
@@ -1241,6 +1282,7 @@ void BlobDBImpl::GetCompactionContextCommon(BlobCompactionContext* context) {
 }
 
 void BlobDBImpl::GetCompactionContext(BlobCompactionContext* context) {
+  DBUG_TRACE;
   assert(context);
 
   ReadLock l(&mutex_);
@@ -1249,6 +1291,7 @@ void BlobDBImpl::GetCompactionContext(BlobCompactionContext* context) {
 
 void BlobDBImpl::GetCompactionContext(BlobCompactionContext* context,
                                       BlobCompactionContextGC* context_gc) {
+  DBUG_TRACE;
   assert(context);
   assert(context_gc);
 
@@ -1266,6 +1309,7 @@ void BlobDBImpl::GetCompactionContext(BlobCompactionContext* context,
 }
 
 void BlobDBImpl::UpdateLiveSSTSize(const WriteOptions& write_options) {
+  DBUG_TRACE;
   uint64_t live_sst_size = 0;
   bool ok = GetIntProperty(DB::Properties::kLiveSstFilesSize, &live_sst_size);
   if (ok) {
@@ -1295,6 +1339,7 @@ void BlobDBImpl::UpdateLiveSSTSize(const WriteOptions& write_options) {
 Status BlobDBImpl::CheckSizeAndEvictBlobFiles(const WriteOptions& write_options,
                                               uint64_t blob_size,
                                               bool force_evict) {
+  DBUG_TRACE;
   write_mutex_.AssertHeld();
 
   uint64_t live_sst_size = live_sst_size_.load();
@@ -1369,6 +1414,7 @@ Status BlobDBImpl::AppendBlob(const WriteOptions& write_options,
                               const std::string& headerbuf, const Slice& key,
                               const Slice& value, uint64_t expiration,
                               std::string* index_entry) {
+  DBUG_TRACE;
   Status s;
   uint64_t blob_offset = 0;
   uint64_t key_offset = 0;
@@ -1413,6 +1459,7 @@ void BlobDBImpl::MultiGet(const ReadOptions& _read_options, size_t num_keys,
                           const Slice* keys, PinnableSlice* values,
                           std::string* timestamps, Status* statuses,
                           const bool /*sorted_input*/) {
+  DBUG_TRACE;
   StopWatch multiget_sw(clock_, statistics_, BLOB_DB_MULTIGET_MICROS);
   RecordTick(statistics_, BLOB_DB_NUM_MULTIGET);
   // Get a snapshot to avoid blob file get deleted between we
@@ -1463,6 +1510,7 @@ void BlobDBImpl::MultiGet(const ReadOptions& _read_options, size_t num_keys,
 }
 
 bool BlobDBImpl::SetSnapshotIfNeeded(ReadOptions* read_options) {
+  DBUG_TRACE;
   assert(read_options != nullptr);
   if (read_options->snapshot != nullptr) {
     return false;
@@ -1473,6 +1521,7 @@ bool BlobDBImpl::SetSnapshotIfNeeded(ReadOptions* read_options) {
 
 Status BlobDBImpl::GetBlobValue(const Slice& key, const Slice& index_entry,
                                 PinnableSlice* value, uint64_t* expiration) {
+  DBUG_TRACE;
   assert(value);
 
   BlobIndex blob_index;
@@ -1530,6 +1579,7 @@ Status BlobDBImpl::GetRawBlobFromFile(const Slice& key, uint64_t file_number,
                                       uint64_t offset, uint64_t size,
                                       PinnableSlice* value,
                                       CompressionType* compression_type) {
+  DBUG_TRACE;
   assert(value);
   assert(compression_type);
   assert(*compression_type == kNoCompression);
@@ -1664,6 +1714,7 @@ Status BlobDBImpl::GetRawBlobFromFile(const Slice& key, uint64_t file_number,
 Status BlobDBImpl::Get(const ReadOptions& _read_options,
                        ColumnFamilyHandle* column_family, const Slice& key,
                        PinnableSlice* value, std::string* timestamp) {
+  DBUG_TRACE;
   if (_read_options.io_activity != Env::IOActivity::kUnknown &&
       _read_options.io_activity != Env::IOActivity::kGet) {
     return Status::InvalidArgument(
@@ -1685,6 +1736,7 @@ Status BlobDBImpl::Get(const ReadOptions& _read_options,
 Status BlobDBImpl::Get(const ReadOptions& _read_options,
                        ColumnFamilyHandle* column_family, const Slice& key,
                        PinnableSlice* value, uint64_t* expiration) {
+  DBUG_TRACE;
   if (_read_options.io_activity != Env::IOActivity::kUnknown &&
       _read_options.io_activity != Env::IOActivity::kGet) {
     return Status::InvalidArgument(
@@ -1704,6 +1756,7 @@ Status BlobDBImpl::Get(const ReadOptions& _read_options,
 Status BlobDBImpl::GetImpl(const ReadOptions& read_options,
                            ColumnFamilyHandle* column_family, const Slice& key,
                            PinnableSlice* value, uint64_t* expiration) {
+  DBUG_TRACE;
   if (column_family->GetID() != DefaultColumnFamily()->GetID()) {
     return Status::NotSupported(
         "Blob DB doesn't support non-default column family.");
@@ -1742,6 +1795,7 @@ Status BlobDBImpl::GetImpl(const ReadOptions& read_options,
 }
 
 std::pair<bool, int64_t> BlobDBImpl::SanityCheck(bool aborted) {
+  DBUG_TRACE;
   if (aborted) {
     return std::make_pair(false, -1);
   }
@@ -1802,6 +1856,7 @@ std::pair<bool, int64_t> BlobDBImpl::SanityCheck(bool aborted) {
 
 Status BlobDBImpl::CloseBlobFile(const WriteOptions& write_options,
                                  std::shared_ptr<BlobFile> bfile) {
+  DBUG_TRACE;
   TEST_SYNC_POINT("BlobDBImpl::CloseBlobFile");
   assert(bfile);
   assert(!bfile->Immutable());
@@ -1851,6 +1906,7 @@ Status BlobDBImpl::CloseBlobFile(const WriteOptions& write_options,
 
 Status BlobDBImpl::CloseBlobFileIfNeeded(const WriteOptions& write_options,
                                          std::shared_ptr<BlobFile>& bfile) {
+  DBUG_TRACE;
   write_mutex_.AssertHeld();
 
   // atomic read
@@ -1872,6 +1928,7 @@ Status BlobDBImpl::CloseBlobFileIfNeeded(const WriteOptions& write_options,
 void BlobDBImpl::ObsoleteBlobFile(std::shared_ptr<BlobFile> blob_file,
                                   SequenceNumber obsolete_seq,
                                   bool update_size) {
+  DBUG_TRACE;
   assert(blob_file->Immutable());
   assert(!blob_file->Obsolete());
 
@@ -1886,6 +1943,7 @@ void BlobDBImpl::ObsoleteBlobFile(std::shared_ptr<BlobFile> blob_file,
 
 bool BlobDBImpl::VisibleToActiveSnapshot(
     const std::shared_ptr<BlobFile>& bfile) {
+  DBUG_TRACE;
   assert(bfile->Obsolete());
 
   // We check whether the oldest snapshot is no less than the last sequence
@@ -1917,6 +1975,7 @@ bool BlobDBImpl::VisibleToActiveSnapshot(
 }
 
 std::pair<bool, int64_t> BlobDBImpl::EvictExpiredFiles(bool aborted) {
+  DBUG_TRACE;
   if (aborted) {
     return std::make_pair(false, -1);
   }
@@ -1970,6 +2029,7 @@ std::pair<bool, int64_t> BlobDBImpl::EvictExpiredFiles(bool aborted) {
 }
 
 Status BlobDBImpl::SyncBlobFiles(const WriteOptions& write_options) {
+  DBUG_TRACE;
   MutexLock l(&write_mutex_);
 
   std::vector<std::shared_ptr<BlobFile>> process_files;
@@ -2004,6 +2064,7 @@ Status BlobDBImpl::SyncBlobFiles(const WriteOptions& write_options) {
 }
 
 std::pair<bool, int64_t> BlobDBImpl::ReclaimOpenFiles(bool aborted) {
+  DBUG_TRACE;
   if (aborted) {
     return std::make_pair(false, -1);
   }
@@ -2029,6 +2090,7 @@ std::pair<bool, int64_t> BlobDBImpl::ReclaimOpenFiles(bool aborted) {
 }
 
 std::pair<bool, int64_t> BlobDBImpl::DeleteObsoleteFiles(bool aborted) {
+  DBUG_TRACE;
   if (aborted) {
     return std::make_pair(false, -1);
   }
@@ -2113,6 +2175,7 @@ std::pair<bool, int64_t> BlobDBImpl::DeleteObsoleteFiles(bool aborted) {
 
 void BlobDBImpl::CopyBlobFiles(
     std::vector<std::shared_ptr<BlobFile>>* bfiles_copy) {
+  DBUG_TRACE;
   ReadLock rl(&mutex_);
   for (auto const& p : blob_files_) {
     bfiles_copy->push_back(p.second);
@@ -2120,6 +2183,7 @@ void BlobDBImpl::CopyBlobFiles(
 }
 
 Iterator* BlobDBImpl::NewIterator(const ReadOptions& _read_options) {
+  DBUG_TRACE;
   if (_read_options.io_activity != Env::IOActivity::kUnknown &&
       _read_options.io_activity != Env::IOActivity::kDBIterator) {
     return NewErrorIterator(Status::InvalidArgument(
@@ -2150,6 +2214,7 @@ Iterator* BlobDBImpl::NewIterator(const ReadOptions& _read_options) {
 
 Status DestroyBlobDB(const std::string& dbname, const Options& options,
                      const BlobDBOptions& bdb_options) {
+  DBUG_TRACE;
   const ImmutableDBOptions soptions(SanitizeOptions(dbname, options));
   Env* env = soptions.env;
 
@@ -2185,11 +2250,13 @@ Status DestroyBlobDB(const std::string& dbname, const Options& options,
 #ifndef NDEBUG
 Status BlobDBImpl::TEST_GetBlobValue(const Slice& key, const Slice& index_entry,
                                      PinnableSlice* value) {
+  DBUG_TRACE;
   return GetBlobValue(key, index_entry, value);
 }
 
 void BlobDBImpl::TEST_AddDummyBlobFile(uint64_t blob_file_number,
                                        SequenceNumber immutable_sequence) {
+  DBUG_TRACE;
   auto blob_file = std::make_shared<BlobFile>(this, blob_dir_, blob_file_number,
                                               db_options_.info_log.get());
   blob_file->MarkImmutable(immutable_sequence);
@@ -2199,6 +2266,7 @@ void BlobDBImpl::TEST_AddDummyBlobFile(uint64_t blob_file_number,
 }
 
 std::vector<std::shared_ptr<BlobFile>> BlobDBImpl::TEST_GetBlobFiles() const {
+  DBUG_TRACE;
   ReadLock l(&mutex_);
   std::vector<std::shared_ptr<BlobFile>> blob_files;
   for (auto& p : blob_files_) {
@@ -2209,6 +2277,7 @@ std::vector<std::shared_ptr<BlobFile>> BlobDBImpl::TEST_GetBlobFiles() const {
 
 std::vector<std::shared_ptr<BlobFile>> BlobDBImpl::TEST_GetLiveImmNonTTLFiles()
     const {
+  DBUG_TRACE;
   ReadLock l(&mutex_);
   std::vector<std::shared_ptr<BlobFile>> live_imm_non_ttl_files;
   for (const auto& pair : live_imm_non_ttl_blob_files_) {
@@ -2219,6 +2288,7 @@ std::vector<std::shared_ptr<BlobFile>> BlobDBImpl::TEST_GetLiveImmNonTTLFiles()
 
 std::vector<std::shared_ptr<BlobFile>> BlobDBImpl::TEST_GetObsoleteFiles()
     const {
+  DBUG_TRACE;
   ReadLock l(&mutex_);
   std::vector<std::shared_ptr<BlobFile>> obsolete_files;
   for (auto& bfile : obsolete_files_) {
@@ -2228,10 +2298,12 @@ std::vector<std::shared_ptr<BlobFile>> BlobDBImpl::TEST_GetObsoleteFiles()
 }
 
 void BlobDBImpl::TEST_DeleteObsoleteFiles() {
+  DBUG_TRACE;
   DeleteObsoleteFiles(false /*abort*/);
 }
 
 Status BlobDBImpl::TEST_CloseBlobFile(std::shared_ptr<BlobFile>& bfile) {
+  DBUG_TRACE;
   MutexLock l(&write_mutex_);
   WriteLock lock(&mutex_);
   WriteLock file_lock(&bfile->mutex_);
@@ -2242,25 +2314,30 @@ Status BlobDBImpl::TEST_CloseBlobFile(std::shared_ptr<BlobFile>& bfile) {
 void BlobDBImpl::TEST_ObsoleteBlobFile(std::shared_ptr<BlobFile>& blob_file,
                                        SequenceNumber obsolete_seq,
                                        bool update_size) {
+  DBUG_TRACE;
   return ObsoleteBlobFile(blob_file, obsolete_seq, update_size);
 }
 
 void BlobDBImpl::TEST_EvictExpiredFiles() {
+  DBUG_TRACE;
   EvictExpiredFiles(false /*abort*/);
 }
 
-uint64_t BlobDBImpl::TEST_live_sst_size() { return live_sst_size_.load(); }
+uint64_t BlobDBImpl::TEST_live_sst_size() { DBUG_TRACE; return live_sst_size_.load(); }
 
 void BlobDBImpl::TEST_InitializeBlobFileToSstMapping(
     const std::vector<LiveFileMetaData>& live_files) {
+  DBUG_TRACE;
   InitializeBlobFileToSstMapping(live_files);
 }
 
 void BlobDBImpl::TEST_ProcessFlushJobInfo(const FlushJobInfo& info) {
+  DBUG_TRACE;
   ProcessFlushJobInfo(info);
 }
 
 void BlobDBImpl::TEST_ProcessCompactionJobInfo(const CompactionJobInfo& info) {
+  DBUG_TRACE;
   ProcessCompactionJobInfo(info);
 }
 

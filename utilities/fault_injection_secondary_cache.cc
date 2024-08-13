@@ -6,12 +6,14 @@
 // This class implements a custom SecondaryCache that randomly injects an
 // error status into Inserts/Lookups based on a specified probability.
 
+#include "rocksdb/util/dbug.h"
 #include "utilities/fault_injection_secondary_cache.h"
 
 namespace ROCKSDB_NAMESPACE {
 
 void FaultInjectionSecondaryCache::ResultHandle::UpdateHandleValue(
     FaultInjectionSecondaryCache::ResultHandle* handle) {
+  DBUG_TRACE;
   ErrorContext* ctx = handle->cache_->GetErrorContext();
   if (!ctx->rand.OneIn(handle->cache_->prob_)) {
     handle->value_ = handle->base_->Value();
@@ -21,6 +23,7 @@ void FaultInjectionSecondaryCache::ResultHandle::UpdateHandleValue(
 }
 
 bool FaultInjectionSecondaryCache::ResultHandle::IsReady() {
+  DBUG_TRACE;
   bool ready = true;
   if (base_) {
     ready = base_->IsReady();
@@ -32,19 +35,22 @@ bool FaultInjectionSecondaryCache::ResultHandle::IsReady() {
 }
 
 void FaultInjectionSecondaryCache::ResultHandle::Wait() {
+  DBUG_TRACE;
   base_->Wait();
   UpdateHandleValue(this);
 }
 
 Cache::ObjectPtr FaultInjectionSecondaryCache::ResultHandle::Value() {
+  DBUG_TRACE;
   return value_;
 }
 
-size_t FaultInjectionSecondaryCache::ResultHandle::Size() { return size_; }
+size_t FaultInjectionSecondaryCache::ResultHandle::Size() { DBUG_TRACE; return size_; }
 
 void FaultInjectionSecondaryCache::ResultHandle::WaitAll(
     FaultInjectionSecondaryCache* cache,
     std::vector<SecondaryCacheResultHandle*> handles) {
+  DBUG_TRACE;
   std::vector<SecondaryCacheResultHandle*> base_handles;
   for (SecondaryCacheResultHandle* hdl : handles) {
     FaultInjectionSecondaryCache::ResultHandle* handle =
@@ -67,6 +73,7 @@ void FaultInjectionSecondaryCache::ResultHandle::WaitAll(
 
 FaultInjectionSecondaryCache::ErrorContext*
 FaultInjectionSecondaryCache::GetErrorContext() {
+  DBUG_TRACE;
   ErrorContext* ctx = static_cast<ErrorContext*>(thread_local_error_->Get());
   if (!ctx) {
     ctx = new ErrorContext(seed_);
@@ -79,6 +86,7 @@ FaultInjectionSecondaryCache::GetErrorContext() {
 Status FaultInjectionSecondaryCache::Insert(
     const Slice& key, Cache::ObjectPtr value,
     const Cache::CacheItemHelper* helper, bool force_insert) {
+  DBUG_TRACE;
   ErrorContext* ctx = GetErrorContext();
   if (ctx->rand.OneIn(prob_)) {
     return Status::IOError();
@@ -94,6 +102,7 @@ FaultInjectionSecondaryCache::Lookup(const Slice& key,
                                      bool wait, bool advise_erase,
                                      Statistics* stats,
                                      bool& kept_in_sec_cache) {
+  DBUG_TRACE;
   ErrorContext* ctx = GetErrorContext();
   if (base_is_compressed_sec_cache_) {
     if (ctx->rand.OneIn(prob_)) {
@@ -115,11 +124,13 @@ FaultInjectionSecondaryCache::Lookup(const Slice& key,
 }
 
 void FaultInjectionSecondaryCache::Erase(const Slice& key) {
+  DBUG_TRACE;
   base_->Erase(key);
 }
 
 void FaultInjectionSecondaryCache::WaitAll(
     std::vector<SecondaryCacheResultHandle*> handles) {
+  DBUG_TRACE;
   if (base_is_compressed_sec_cache_) {
     ErrorContext* ctx = GetErrorContext();
     std::vector<SecondaryCacheResultHandle*> base_handles;

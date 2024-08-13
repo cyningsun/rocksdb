@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "db/blob/blob_source.h"
 
 #include <cassert>
@@ -44,6 +45,7 @@ BlobSource::~BlobSource() = default;
 
 Status BlobSource::GetBlobFromCache(
     const Slice& cache_key, CacheHandleGuard<BlobContents>* cached_blob) const {
+  DBUG_TRACE;
   assert(blob_cache_);
   assert(!cache_key.empty());
   assert(cached_blob);
@@ -73,6 +75,7 @@ Status BlobSource::GetBlobFromCache(
 Status BlobSource::PutBlobIntoCache(
     const Slice& cache_key, std::unique_ptr<BlobContents>* blob,
     CacheHandleGuard<BlobContents>* cached_blob) const {
+  DBUG_TRACE;
   assert(blob_cache_);
   assert(!cache_key.empty());
   assert(blob);
@@ -104,6 +107,7 @@ Status BlobSource::PutBlobIntoCache(
 }
 
 BlobSource::TypedHandle* BlobSource::GetEntryFromCache(const Slice& key) const {
+  DBUG_TRACE;
   return blob_cache_.LookupFull(key, nullptr /* context */,
                                 Cache::Priority::BOTTOM, statistics_,
                                 lowest_used_cache_tier_);
@@ -130,6 +134,7 @@ void BlobSource::PinCachedBlob(CacheHandleGuard<BlobContents>* cached_blob,
 
 void BlobSource::PinOwnedBlob(std::unique_ptr<BlobContents>* owned_blob,
                               PinnableSlice* value) {
+  DBUG_TRACE;
   assert(owned_blob);
   assert(*owned_blob);
   assert(value);
@@ -149,6 +154,7 @@ void BlobSource::PinOwnedBlob(std::unique_ptr<BlobContents>* owned_blob,
 Status BlobSource::InsertEntryIntoCache(const Slice& key, BlobContents* value,
                                         TypedHandle** cache_handle,
                                         Cache::Priority priority) const {
+  DBUG_TRACE;
   return blob_cache_.InsertFull(key, value, value->ApproximateMemoryUsage(),
                                 cache_handle, priority,
                                 lowest_used_cache_tier_);
@@ -161,6 +167,7 @@ Status BlobSource::GetBlob(const ReadOptions& read_options,
                            CompressionType compression_type,
                            FilePrefetchBuffer* prefetch_buffer,
                            PinnableSlice* value, uint64_t* bytes_read) {
+  DBUG_TRACE;
   assert(value);
 
   Status s;
@@ -259,6 +266,7 @@ Status BlobSource::GetBlob(const ReadOptions& read_options,
 void BlobSource::MultiGetBlob(const ReadOptions& read_options,
                               autovector<BlobFileReadRequests>& blob_reqs,
                               uint64_t* bytes_read) {
+  DBUG_TRACE;
   assert(blob_reqs.size() > 0);
 
   uint64_t total_bytes_read = 0;
@@ -288,6 +296,7 @@ void BlobSource::MultiGetBlobFromOneFile(const ReadOptions& read_options,
                                          uint64_t /*file_size*/,
                                          autovector<BlobReadRequest>& blob_reqs,
                                          uint64_t* bytes_read) {
+  DBUG_TRACE;
   const size_t num_blobs = blob_reqs.size();
   assert(num_blobs > 0);
   assert(num_blobs <= MultiGetContext::MAX_BATCH_SIZE);
@@ -433,6 +442,7 @@ void BlobSource::MultiGetBlobFromOneFile(const ReadOptions& read_options,
 
 bool BlobSource::TEST_BlobInCache(uint64_t file_number, uint64_t file_size,
                                   uint64_t offset, size_t* charge) const {
+  DBUG_TRACE;
   const CacheKey cache_key = GetCacheKey(file_number, file_size, offset);
   const Slice key = cache_key.AsSlice();
 

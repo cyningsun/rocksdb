@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "test_util/mock_time_env.h"
 
 #include "test_util/sync_point.h"
@@ -13,6 +14,7 @@ namespace ROCKSDB_NAMESPACE {
 // for timedwait timeout. Ideally timedwait API should be moved to env.
 // details: PR #7101.
 void MockSystemClock::InstallTimedWaitFixCallback() {
+DBUG_TRACE;
 #ifndef NDEBUG
   SyncPoint::GetInstance()->DisableProcessing();
   SyncPoint::GetInstance()->ClearAllCallBacks();

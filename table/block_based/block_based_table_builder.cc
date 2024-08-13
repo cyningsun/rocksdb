@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "table/block_based/block_based_table_builder.h"
 
 #include <atomic>
@@ -71,6 +72,7 @@ FilterBlockBuilder* CreateFilterBlockBuilder(
     const bool use_delta_encoding_for_index_values,
     PartitionedIndexBuilder* const p_index_builder, size_t ts_sz,
     const bool persist_user_defined_timestamps) {
+  DBUG_TRACE;
   const BlockBasedTableOptions& table_opt = context.table_options;
   assert(table_opt.filter_policy);  // precondition
 
@@ -107,6 +109,7 @@ FilterBlockBuilder* CreateFilterBlockBuilder(
 
 bool GoodCompressionRatio(size_t compressed_size, size_t uncomp_size,
                           int max_compressed_bytes_per_kb) {
+  DBUG_TRACE;
   // For efficiency, avoid floating point and division
   return compressed_size <=
          (static_cast<uint64_t>(max_compressed_bytes_per_kb) * uncomp_size) >>
@@ -121,6 +124,7 @@ Slice CompressBlock(const Slice& uncompressed_data, const CompressionInfo& info,
                     bool allow_sample, std::string* compressed_output,
                     std::string* sampled_output_fast,
                     std::string* sampled_output_slow) {
+  DBUG_TRACE;
   assert(type);
   assert(compressed_output);
   assert(compressed_output->empty());
@@ -220,6 +224,7 @@ class BlockBasedTableBuilder::BlockBasedTablePropertiesCollector
 
   Status InternalAdd(const Slice& /*key*/, const Slice& /*value*/,
                      uint64_t /*file_size*/) override {
+    DBUG_TRACE;
     // Intentionally left blank. Have no interest in collecting stats for
     // individual key/value pairs.
     return Status::OK();
@@ -228,11 +233,13 @@ class BlockBasedTableBuilder::BlockBasedTablePropertiesCollector
   void BlockAdd(uint64_t /* block_uncomp_bytes */,
                 uint64_t /* block_compressed_bytes_fast */,
                 uint64_t /* block_compressed_bytes_slow */) override {
+    DBUG_TRACE;
     // Intentionally left blank. No interest in collecting stats for
     // blocks.
   }
 
   Status Finish(UserCollectedProperties* properties) override {
+    DBUG_TRACE;
     std::string val;
     PutFixed32(&val, static_cast<uint32_t>(index_type_));
     properties->insert({BlockBasedTablePropertyNames::kIndexType, val});
@@ -245,10 +252,12 @@ class BlockBasedTableBuilder::BlockBasedTablePropertiesCollector
 
   // The name of the properties collector can be used for debugging purpose.
   const char* Name() const override {
+    DBUG_TRACE;
     return "BlockBasedTablePropertiesCollector";
   }
 
   UserCollectedProperties GetReadableProperties() const override {
+    DBUG_TRACE;
     // Intentionally left blank.
     return UserCollectedProperties();
   }
@@ -366,14 +375,16 @@ struct BlockBasedTableBuilder::Rep {
   // See class Footer
   uint32_t base_context_checksum;
 
-  uint64_t get_offset() { return offset.load(std::memory_order_relaxed); }
-  void set_offset(uint64_t o) { offset.store(o, std::memory_order_relaxed); }
+  uint64_t get_offset() { DBUG_TRACE; return offset.load(std::memory_order_relaxed); }
+  void set_offset(uint64_t o) { DBUG_TRACE; offset.store(o, std::memory_order_relaxed); }
 
   bool IsParallelCompressionEnabled() const {
+    DBUG_TRACE;
     return compression_opts.parallel_threads > 1;
   }
 
   Status GetStatus() {
+    DBUG_TRACE;
     // We need to make modifications of status visible when status_ok is set
     // to false, and this is ensured by status_mutex, so no special memory
     // order for status_ok is required.
@@ -385,11 +396,13 @@ struct BlockBasedTableBuilder::Rep {
   }
 
   Status CopyStatus() {
+    DBUG_TRACE;
     std::lock_guard<std::mutex> lock(status_mutex);
     return status;
   }
 
   IOStatus GetIOStatus() {
+    DBUG_TRACE;
     // We need to make modifications of io_status visible when status_ok is set
     // to false, and this is ensured by io_status_mutex, so no special memory
     // order for io_status_ok is required.
@@ -407,12 +420,14 @@ struct BlockBasedTableBuilder::Rep {
   }
 
   IOStatus CopyIOStatus() {
+    DBUG_TRACE;
     std::lock_guard<std::mutex> lock(io_status_mutex);
     return io_status;
   }
 
   // Never erase an existing status that is not OK.
   void SetStatus(Status s) {
+    DBUG_TRACE;
     if (!s.ok() && status_ok.load(std::memory_order_relaxed)) {
       // Locking is an overkill for non compression_opts.parallel_threads
       // case but since it's unlikely that s is not OK, we take this cost
@@ -426,6 +441,7 @@ struct BlockBasedTableBuilder::Rep {
   // Never erase an existing I/O status that is not OK.
   // Calling this will also SetStatus(ios)
   void SetIOStatus(IOStatus ios) {
+    DBUG_TRACE;
     if (!ios.ok() && io_status_ok.load(std::memory_order_relaxed)) {
       // Locking is an overkill for non compression_opts.parallel_threads
       // case but since it's unlikely that s is not OK, we take this cost
@@ -661,6 +677,7 @@ struct BlockBasedTableBuilder::ParallelCompressionRep {
    public:
     Keys() : keys_(kKeysInitSize), size_(0) {}
     void PushBack(const Slice& key) {
+      DBUG_TRACE;
       if (size_ == keys_.size()) {
         keys_.emplace_back(key.data(), key.size());
       } else {
@@ -669,13 +686,15 @@ struct BlockBasedTableBuilder::ParallelCompressionRep {
       size_++;
     }
     void SwapAssign(std::vector<std::string>& keys) {
+      DBUG_TRACE;
       size_ = keys.size();
       std::swap(keys_, keys);
     }
-    void Clear() { size_ = 0; }
-    size_t Size() { return size_; }
-    std::string& Back() { return keys_[size_ - 1]; }
+    void Clear() { DBUG_TRACE; size_ = 0; }
+    size_t Size() { DBUG_TRACE; return size_; }
+    std::string& Back() { DBUG_TRACE; return keys_[size_ - 1]; }
     std::string& operator[](size_t idx) {
+      DBUG_TRACE;
       assert(idx < size_);
       return keys_[idx];
     }
@@ -721,7 +740,7 @@ struct BlockBasedTableBuilder::ParallelCompressionRep {
     void Fill(T&& rep) {
       slot_.push(std::forward<T>(rep));
     }
-    void Take(BlockRep*& rep) { slot_.pop(rep); }
+    void Take(BlockRep*& rep) { DBUG_TRACE; slot_.pop(rep); }
 
    private:
     // slot_ will pass references to BlockRep in block_rep_buf,
@@ -763,6 +782,7 @@ struct BlockBasedTableBuilder::ParallelCompressionRep {
     // Estimate file size when a block is about to be emitted to
     // compression thread
     void EmitBlock(uint64_t uncomp_block_size, uint64_t curr_file_size) {
+      DBUG_TRACE;
       uint64_t new_uncomp_bytes_inflight =
           uncomp_bytes_inflight.fetch_add(uncomp_block_size,
                                           std::memory_order_relaxed) +
@@ -783,6 +803,7 @@ struct BlockBasedTableBuilder::ParallelCompressionRep {
     // Estimate file size when a block is already reaped from
     // compression thread
     void ReapBlock(uint64_t compressed_block_size, uint64_t curr_file_size) {
+      DBUG_TRACE;
       assert(uncomp_bytes_curr_block_set);
 
       uint64_t new_uncomp_bytes_compressed =
@@ -817,14 +838,17 @@ struct BlockBasedTableBuilder::ParallelCompressionRep {
     }
 
     void SetEstimatedFileSize(uint64_t size) {
+      DBUG_TRACE;
       estimated_file_size.store(size, std::memory_order_relaxed);
     }
 
     uint64_t GetEstimatedFileSize() {
+      DBUG_TRACE;
       return estimated_file_size.load(std::memory_order_relaxed);
     }
 
     void SetCurrBlockUncompSize(uint64_t size) {
+      DBUG_TRACE;
       uncomp_bytes_curr_block = size;
       uncomp_bytes_curr_block_set = true;
     }
@@ -883,6 +907,7 @@ struct BlockBasedTableBuilder::ParallelCompressionRep {
   BlockRep* PrepareBlock(CompressionType compression_type,
                          const Slice* first_key_in_next_block,
                          BlockBuilder* data_block) {
+    DBUG_TRACE;
     BlockRep* block_rep =
         PrepareBlockInternal(compression_type, first_key_in_next_block);
     assert(block_rep != nullptr);
@@ -898,6 +923,7 @@ struct BlockBasedTableBuilder::ParallelCompressionRep {
                          const Slice* first_key_in_next_block,
                          std::string* data_block,
                          std::vector<std::string>* keys) {
+    DBUG_TRACE;
     BlockRep* block_rep =
         PrepareBlockInternal(compression_type, first_key_in_next_block);
     assert(block_rep != nullptr);
@@ -909,6 +935,7 @@ struct BlockBasedTableBuilder::ParallelCompressionRep {
 
   // Emit a block to compression thread
   void EmitBlock(BlockRep* block_rep) {
+    DBUG_TRACE;
     assert(block_rep != nullptr);
     assert(block_rep->status.ok());
     if (!write_queue.push(block_rep->slot.get())) {
@@ -928,6 +955,7 @@ struct BlockBasedTableBuilder::ParallelCompressionRep {
 
   // Reap a block from compression thread
   void ReapBlock(BlockRep* block_rep) {
+    DBUG_TRACE;
     assert(block_rep != nullptr);
     block_rep->compressed_data->clear();
     block_rep_pool.push(block_rep);
@@ -942,6 +970,7 @@ struct BlockBasedTableBuilder::ParallelCompressionRep {
  private:
   BlockRep* PrepareBlockInternal(CompressionType compression_type,
                                  const Slice* first_key_in_next_block) {
+    DBUG_TRACE;
     BlockRep* block_rep = nullptr;
     block_rep_pool.pop(block_rep);
     assert(block_rep != nullptr);
@@ -999,6 +1028,7 @@ BlockBasedTableBuilder::~BlockBasedTableBuilder() {
 }
 
 void BlockBasedTableBuilder::Add(const Slice& ikey, const Slice& value) {
+  DBUG_TRACE;
   Rep* r = rep_;
   assert(rep_->state != Rep::State::kClosed);
   if (!ok()) {
@@ -1127,6 +1157,7 @@ void BlockBasedTableBuilder::Add(const Slice& ikey, const Slice& value) {
 }
 
 void BlockBasedTableBuilder::Flush() {
+  DBUG_TRACE;
   Rep* r = rep_;
   assert(rep_->state != Rep::State::kClosed);
   if (!ok()) {
@@ -1152,6 +1183,7 @@ void BlockBasedTableBuilder::Flush() {
 void BlockBasedTableBuilder::WriteBlock(BlockBuilder* block,
                                         BlockHandle* handle,
                                         BlockType block_type) {
+  DBUG_TRACE;
   block->Finish();
   std::string uncompressed_block_data;
   uncompressed_block_data.reserve(rep_->table_options.block_size);
@@ -1168,6 +1200,7 @@ void BlockBasedTableBuilder::WriteBlock(BlockBuilder* block,
 void BlockBasedTableBuilder::WriteBlock(const Slice& uncompressed_block_data,
                                         BlockHandle* handle,
                                         BlockType block_type) {
+  DBUG_TRACE;
   Rep* r = rep_;
   assert(r->state == Rep::State::kUnbuffered);
   Slice block_contents;
@@ -1198,6 +1231,7 @@ void BlockBasedTableBuilder::WriteBlock(const Slice& uncompressed_block_data,
 void BlockBasedTableBuilder::BGWorkCompression(
     const CompressionContext& compression_ctx,
     UncompressionContext* verify_ctx) {
+  DBUG_TRACE;
   ParallelCompressionRep::BlockRep* block_rep = nullptr;
   while (rep_->pc_rep->compress_queue.pop(block_rep)) {
     assert(block_rep != nullptr);
@@ -1215,6 +1249,7 @@ void BlockBasedTableBuilder::CompressAndVerifyBlock(
     const CompressionContext& compression_ctx, UncompressionContext* verify_ctx,
     std::string* compressed_output, Slice* block_contents,
     CompressionType* type, Status* out_status) {
+  DBUG_TRACE;
   Rep* r = rep_;
   bool is_status_ok = ok();
   if (!r->IsParallelCompressionEnabled()) {
@@ -1340,6 +1375,7 @@ void BlockBasedTableBuilder::CompressAndVerifyBlock(
 void BlockBasedTableBuilder::WriteMaybeCompressedBlock(
     const Slice& block_contents, CompressionType comp_type, BlockHandle* handle,
     BlockType block_type, const Slice* uncompressed_block_data) {
+  DBUG_TRACE;
   // File format contains a sequence of blocks where each block has:
   //    block_data: uint8[n]
   //    compression_type: uint8
@@ -1451,6 +1487,7 @@ void BlockBasedTableBuilder::WriteMaybeCompressedBlock(
 }
 
 void BlockBasedTableBuilder::BGWorkWriteMaybeCompressedBlock() {
+  DBUG_TRACE;
   Rep* r = rep_;
   ParallelCompressionRep::BlockRepSlot* slot = nullptr;
   ParallelCompressionRep::BlockRep* block_rep = nullptr;
@@ -1504,6 +1541,7 @@ void BlockBasedTableBuilder::BGWorkWriteMaybeCompressedBlock() {
 }
 
 void BlockBasedTableBuilder::StartParallelCompression() {
+  DBUG_TRACE;
   rep_->pc_rep.reset(
       new ParallelCompressionRep(rep_->compression_opts.parallel_threads));
   rep_->pc_rep->compress_thread_pool.reserve(
@@ -1519,6 +1557,7 @@ void BlockBasedTableBuilder::StartParallelCompression() {
 }
 
 void BlockBasedTableBuilder::StopParallelCompression() {
+  DBUG_TRACE;
   rep_->pc_rep->compress_queue.finish();
   for (auto& thread : rep_->pc_rep->compress_thread_pool) {
     thread.join();
@@ -1527,15 +1566,17 @@ void BlockBasedTableBuilder::StopParallelCompression() {
   rep_->pc_rep->write_thread->join();
 }
 
-Status BlockBasedTableBuilder::status() const { return rep_->GetStatus(); }
+Status BlockBasedTableBuilder::status() const { DBUG_TRACE; return rep_->GetStatus(); }
 
 IOStatus BlockBasedTableBuilder::io_status() const {
+  DBUG_TRACE;
   return rep_->GetIOStatus();
 }
 
 Status BlockBasedTableBuilder::InsertBlockInCacheHelper(
     const Slice& block_contents, const BlockHandle* handle,
     BlockType block_type) {
+DBUG_TRACE;
 
   Cache* block_cache = rep_->table_options.block_cache.get();
   Status s;
@@ -1561,6 +1602,7 @@ Status BlockBasedTableBuilder::InsertBlockInCacheHelper(
 
 void BlockBasedTableBuilder::WriteFilterBlock(
     MetaIndexBuilder* meta_index_builder) {
+  DBUG_TRACE;
   if (rep_->filter_builder == nullptr || rep_->filter_builder->IsEmpty()) {
     // No filter block needed
     return;
@@ -1614,6 +1656,7 @@ void BlockBasedTableBuilder::WriteFilterBlock(
 
 void BlockBasedTableBuilder::WriteIndexBlock(
     MetaIndexBuilder* meta_index_builder, BlockHandle* index_block_handle) {
+  DBUG_TRACE;
   if (!ok()) {
     return;
   }
@@ -1684,6 +1727,7 @@ void BlockBasedTableBuilder::WriteIndexBlock(
 
 void BlockBasedTableBuilder::WritePropertiesBlock(
     MetaIndexBuilder* meta_index_builder) {
+  DBUG_TRACE;
   BlockHandle properties_block_handle;
   if (ok()) {
     PropertyBlockBuilder property_block_builder;
@@ -1791,6 +1835,7 @@ void BlockBasedTableBuilder::WritePropertiesBlock(
 
 void BlockBasedTableBuilder::WriteCompressionDictBlock(
     MetaIndexBuilder* meta_index_builder) {
+  DBUG_TRACE;
   if (rep_->compression_dict != nullptr &&
       rep_->compression_dict->GetRawDict().size()) {
     BlockHandle compression_dict_block_handle;
@@ -1814,6 +1859,7 @@ void BlockBasedTableBuilder::WriteCompressionDictBlock(
 
 void BlockBasedTableBuilder::WriteRangeDelBlock(
     MetaIndexBuilder* meta_index_builder) {
+  DBUG_TRACE;
   if (ok() && !rep_->range_del_block.empty()) {
     BlockHandle range_del_block_handle;
     WriteMaybeCompressedBlock(rep_->range_del_block.Finish(), kNoCompression,
@@ -1825,6 +1871,7 @@ void BlockBasedTableBuilder::WriteRangeDelBlock(
 
 void BlockBasedTableBuilder::WriteFooter(BlockHandle& metaindex_block_handle,
                                          BlockHandle& index_block_handle) {
+  DBUG_TRACE;
   assert(ok());
   Rep* r = rep_;
   // this is guaranteed by BlockBasedTableBuilder's constructor
@@ -1855,6 +1902,7 @@ void BlockBasedTableBuilder::WriteFooter(BlockHandle& metaindex_block_handle,
 }
 
 void BlockBasedTableBuilder::EnterUnbuffered() {
+  DBUG_TRACE;
   Rep* r = rep_;
   assert(r->state == Rep::State::kBuffered);
   r->state = Rep::State::kUnbuffered;
@@ -2010,6 +2058,7 @@ void BlockBasedTableBuilder::EnterUnbuffered() {
 }
 
 Status BlockBasedTableBuilder::Finish() {
+  DBUG_TRACE;
   Rep* r = rep_;
   assert(r->state != Rep::State::kClosed);
   bool empty_data_block = r->data_block.empty();
@@ -2073,6 +2122,7 @@ Status BlockBasedTableBuilder::Finish() {
 }
 
 void BlockBasedTableBuilder::Abandon() {
+  DBUG_TRACE;
   assert(rep_->state != Rep::State::kClosed);
   if (rep_->IsParallelCompressionEnabled()) {
     StopParallelCompression();
@@ -2085,16 +2135,19 @@ void BlockBasedTableBuilder::Abandon() {
 }
 
 uint64_t BlockBasedTableBuilder::NumEntries() const {
+  DBUG_TRACE;
   return rep_->props.num_entries;
 }
 
 bool BlockBasedTableBuilder::IsEmpty() const {
+  DBUG_TRACE;
   return rep_->props.num_entries == 0 && rep_->props.num_range_deletions == 0;
 }
 
-uint64_t BlockBasedTableBuilder::FileSize() const { return rep_->offset; }
+uint64_t BlockBasedTableBuilder::FileSize() const { DBUG_TRACE; return rep_->offset; }
 
 uint64_t BlockBasedTableBuilder::EstimatedFileSize() const {
+  DBUG_TRACE;
   if (rep_->IsParallelCompressionEnabled()) {
     // Use compression ratio so far and inflight uncompressed bytes to estimate
     // final SST size.
@@ -2104,9 +2157,10 @@ uint64_t BlockBasedTableBuilder::EstimatedFileSize() const {
   }
 }
 
-uint64_t BlockBasedTableBuilder::GetTailSize() const { return rep_->tail_size; }
+uint64_t BlockBasedTableBuilder::GetTailSize() const { DBUG_TRACE; return rep_->tail_size; }
 
 bool BlockBasedTableBuilder::NeedCompact() const {
+  DBUG_TRACE;
   for (const auto& collector : rep_->table_properties_collectors) {
     if (collector->NeedCompact()) {
       return true;
@@ -2116,10 +2170,12 @@ bool BlockBasedTableBuilder::NeedCompact() const {
 }
 
 TableProperties BlockBasedTableBuilder::GetTableProperties() const {
+  DBUG_TRACE;
   return rep_->props;
 }
 
 std::string BlockBasedTableBuilder::GetFileChecksum() const {
+  DBUG_TRACE;
   if (rep_->file != nullptr) {
     return rep_->file->GetFileChecksum();
   } else {
@@ -2128,6 +2184,7 @@ std::string BlockBasedTableBuilder::GetFileChecksum() const {
 }
 
 const char* BlockBasedTableBuilder::GetFileChecksumFuncName() const {
+  DBUG_TRACE;
   if (rep_->file != nullptr) {
     return rep_->file->GetFileChecksumFuncName();
   } else {
@@ -2136,6 +2193,7 @@ const char* BlockBasedTableBuilder::GetFileChecksumFuncName() const {
 }
 void BlockBasedTableBuilder::SetSeqnoTimeTableProperties(
     const SeqnoToTimeMapping& relevant_mapping, uint64_t oldest_ancestor_time) {
+  DBUG_TRACE;
   assert(rep_->props.seqno_to_time_mapping.empty());
   relevant_mapping.EncodeTo(rep_->props.seqno_to_time_mapping);
   rep_->props.creation_time = oldest_ancestor_time;

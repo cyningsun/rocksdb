@@ -4,6 +4,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/utilities/types_util.h"
 
 #include "db/dbformat.h"
@@ -12,6 +13,7 @@ namespace ROCKSDB_NAMESPACE {
 
 Status GetInternalKeyForSeek(const Slice& user_key,
                              const Comparator* comparator, std::string* buf) {
+  DBUG_TRACE;
   if (!comparator) {
     return Status::InvalidArgument(
         "Constructing an internal key requires user key comparator.");
@@ -35,6 +37,7 @@ Status GetInternalKeyForSeek(const Slice& user_key,
 Status GetInternalKeyForSeekForPrev(const Slice& user_key,
                                     const Comparator* comparator,
                                     std::string* buf) {
+  DBUG_TRACE;
   if (!comparator) {
     return Status::InvalidArgument(
         "Constructing an internal key requires user key comparator.");
@@ -57,6 +60,7 @@ Status GetInternalKeyForSeekForPrev(const Slice& user_key,
 
 Status ParseEntry(const Slice& internal_key, const Comparator* comparator,
                   ParsedEntryInfo* parsed_entry) {
+  DBUG_TRACE;
   if (internal_key.size() < kNumInternalBytes) {
     return Status::InvalidArgument("Internal key size invalid.");
   }

@@ -4,6 +4,7 @@
 //  (found in the LICENSE.Apache file in the root directory).
 
 
+#include "rocksdb/util/dbug.h"
 #include "utilities/transactions/optimistic_transaction.h"
 
 #include <cstdint>
@@ -37,6 +38,7 @@ OptimisticTransaction::OptimisticTransaction(
 
 void OptimisticTransaction::Initialize(
     const OptimisticTransactionOptions& txn_options) {
+  DBUG_TRACE;
   if (txn_options.set_snapshot) {
     SetSnapshot();
   }
@@ -45,20 +47,23 @@ void OptimisticTransaction::Initialize(
 void OptimisticTransaction::Reinitialize(
     OptimisticTransactionDB* txn_db, const WriteOptions& write_options,
     const OptimisticTransactionOptions& txn_options) {
+  DBUG_TRACE;
   TransactionBaseImpl::Reinitialize(txn_db->GetBaseDB(), write_options);
   Initialize(txn_options);
 }
 
 OptimisticTransaction::~OptimisticTransaction() = default;
 
-void OptimisticTransaction::Clear() { TransactionBaseImpl::Clear(); }
+void OptimisticTransaction::Clear() { DBUG_TRACE; TransactionBaseImpl::Clear(); }
 
 Status OptimisticTransaction::Prepare() {
+  DBUG_TRACE;
   return Status::InvalidArgument(
       "Two phase commit not supported for optimistic transactions.");
 }
 
 Status OptimisticTransaction::Commit() {
+  DBUG_TRACE;
   auto txn_db_impl = static_cast_with_check<OptimisticTransactionDBImpl,
                                             OptimisticTransactionDB>(txn_db_);
   assert(txn_db_impl);
@@ -75,6 +80,7 @@ Status OptimisticTransaction::Commit() {
 }
 
 Status OptimisticTransaction::CommitWithSerialValidate() {
+  DBUG_TRACE;
   // Set up callback which will call CheckTransactionForConflicts() to
   // check whether this transaction is safe to be committed.
   OptimisticTransactionCallback callback(this);
@@ -92,6 +98,7 @@ Status OptimisticTransaction::CommitWithSerialValidate() {
 }
 
 Status OptimisticTransaction::CommitWithParallelValidate() {
+  DBUG_TRACE;
   auto txn_db_impl = static_cast_with_check<OptimisticTransactionDBImpl,
                                             OptimisticTransactionDB>(txn_db_);
   assert(txn_db_impl);
@@ -149,6 +156,7 @@ Status OptimisticTransaction::CommitWithParallelValidate() {
 }
 
 Status OptimisticTransaction::Rollback() {
+  DBUG_TRACE;
   Clear();
   return Status::OK();
 }
@@ -160,6 +168,7 @@ Status OptimisticTransaction::TryLock(ColumnFamilyHandle* column_family,
                                       const Slice& key, bool read_only,
                                       bool exclusive, const bool do_validate,
                                       const bool assume_tracked) {
+  DBUG_TRACE;
   assert(!assume_tracked);  // not supported
   (void)assume_tracked;
   if (!do_validate) {
@@ -191,6 +200,7 @@ Status OptimisticTransaction::TryLock(ColumnFamilyHandle* column_family,
 // Should only be called on writer thread in order to avoid any race conditions
 // in detecting write conflicts.
 Status OptimisticTransaction::CheckTransactionForConflicts(DB* db) {
+  DBUG_TRACE;
   auto db_impl = static_cast_with_check<DBImpl>(db);
 
   // Since we are on the write thread and do not want to block other writers,
@@ -202,6 +212,7 @@ Status OptimisticTransaction::CheckTransactionForConflicts(DB* db) {
 }
 
 Status OptimisticTransaction::SetName(const TransactionName& /* unused */) {
+  DBUG_TRACE;
   return Status::InvalidArgument("Optimistic transactions cannot be named.");
 }
 

@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "memory/jemalloc_nodump_allocator.h"
 
 #include <string>
@@ -42,6 +43,7 @@ static std::unordered_map<std::string, OptionTypeInfo> jemalloc_type_info = {
       OptionVerificationType::kNormal, OptionTypeFlags::kNone}},
 };
 bool JemallocNodumpAllocator::IsSupported(std::string* why) {
+DBUG_TRACE;
 #ifndef ROCKSDB_JEMALLOC
   *why = "Not compiled with ROCKSDB_JEMALLOC";
   return false;
@@ -187,6 +189,7 @@ Status JemallocNodumpAllocator::InitializeArenas() {
 
 Status JemallocNodumpAllocator::PrepareOptions(
     const ConfigOptions& config_options) {
+  DBUG_TRACE;
   std::string message;
 
   if (!IsSupported(&message)) {
@@ -285,6 +288,7 @@ void JemallocNodumpAllocator::DestroyThreadSpecificCache(void* ptr) {
 Status NewJemallocNodumpAllocator(
     const JemallocAllocatorOptions& options,
     std::shared_ptr<MemoryAllocator>* memory_allocator) {
+  DBUG_TRACE;
   if (memory_allocator == nullptr) {
     return Status::InvalidArgument("memory_allocator must be non-null.");
   }

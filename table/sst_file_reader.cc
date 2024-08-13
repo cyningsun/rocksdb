@@ -4,6 +4,7 @@
 //  (found in the LICENSE.Apache file in the root directory).
 
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/sst_file_reader.h"
 
 #include "db/arena_wrapped_db_iter.h"
@@ -46,6 +47,7 @@ SstFileReader::SstFileReader(const Options& options) : rep_(new Rep(options)) {}
 SstFileReader::~SstFileReader() = default;
 
 Status SstFileReader::Open(const std::string& file_path) {
+  DBUG_TRACE;
   auto r = rep_.get();
   Status s;
   uint64_t file_size = 0;
@@ -82,6 +84,7 @@ Status SstFileReader::Open(const std::string& file_path) {
 }
 
 Iterator* SstFileReader::NewIterator(const ReadOptions& roptions) {
+  DBUG_TRACE;
   assert(roptions.io_activity == Env::IOActivity::kUnknown);
   auto r = rep_.get();
   auto sequence = roptions.snapshot != nullptr
@@ -102,6 +105,7 @@ Iterator* SstFileReader::NewIterator(const ReadOptions& roptions) {
 }
 
 std::unique_ptr<Iterator> SstFileReader::NewTableIterator() {
+  DBUG_TRACE;
   auto r = rep_.get();
   InternalIterator* internal_iter = r->table_reader->NewIterator(
       r->roptions_for_table_iter, r->moptions.prefix_extractor.get(),
@@ -118,16 +122,19 @@ std::unique_ptr<Iterator> SstFileReader::NewTableIterator() {
 
 std::shared_ptr<const TableProperties> SstFileReader::GetTableProperties()
     const {
+  DBUG_TRACE;
   return rep_->table_reader->GetTableProperties();
 }
 
 Status SstFileReader::VerifyChecksum(const ReadOptions& read_options) {
+  DBUG_TRACE;
   assert(read_options.io_activity == Env::IOActivity::kUnknown);
   return rep_->table_reader->VerifyChecksum(read_options,
                                             TableReaderCaller::kSSTFileReader);
 }
 
 Status SstFileReader::VerifyNumEntries(const ReadOptions& read_options) {
+  DBUG_TRACE;
   Rep* r = rep_.get();
   std::unique_ptr<InternalIterator> internal_iter{r->table_reader->NewIterator(
       read_options, r->moptions.prefix_extractor.get(), nullptr,

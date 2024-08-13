@@ -6,6 +6,7 @@
 // Copyright (c) 2011 The LevelDB Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
+#include "rocksdb/util/dbug.h"
 #include "table/block_based/binary_search_index_reader.h"
 
 namespace ROCKSDB_NAMESPACE {
@@ -14,6 +15,7 @@ Status BinarySearchIndexReader::Create(
     FilePrefetchBuffer* prefetch_buffer, bool use_cache, bool prefetch,
     bool pin, BlockCacheLookupContext* lookup_context,
     std::unique_ptr<IndexReader>* index_reader) {
+  DBUG_TRACE;
   assert(table != nullptr);
   assert(table->get_rep());
   assert(!pin || prefetch);
@@ -43,6 +45,7 @@ InternalIteratorBase<IndexValue>* BinarySearchIndexReader::NewIterator(
     const ReadOptions& read_options, bool /* disable_prefix_seek */,
     IndexBlockIter* iter, GetContext* get_context,
     BlockCacheLookupContext* lookup_context) {
+  DBUG_TRACE;
   const BlockBasedTable::Rep* rep = table()->get_rep();
   CachableEntry<Block> index_block;
   const Status s = GetOrReadIndexBlock(get_context, lookup_context,

@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include <memory>
 
 #include "rocksdb/merge_operator.h"
@@ -14,6 +15,7 @@ namespace ROCKSDB_NAMESPACE {
 
 bool MaxOperator::FullMergeV2(const MergeOperationInput& merge_in,
                               MergeOperationOutput* merge_out) const {
+  DBUG_TRACE;
   Slice& max = merge_out->existing_operand;
   if (merge_in.existing_value) {
     max =
@@ -35,6 +37,7 @@ bool MaxOperator::PartialMerge(const Slice& /*key*/, const Slice& left_operand,
                                const Slice& right_operand,
                                std::string* new_value,
                                Logger* /*logger*/) const {
+  DBUG_TRACE;
   if (left_operand.compare(right_operand) >= 0) {
     new_value->assign(left_operand.data(), left_operand.size());
   } else {
@@ -47,6 +50,7 @@ bool MaxOperator::PartialMergeMulti(const Slice& /*key*/,
                                     const std::deque<Slice>& operand_list,
                                     std::string* new_value,
                                     Logger* /*logger*/) const {
+  DBUG_TRACE;
   Slice max;
   for (const auto& operand : operand_list) {
     if (max.compare(operand) < 0) {
@@ -59,6 +63,7 @@ bool MaxOperator::PartialMergeMulti(const Slice& /*key*/,
 }
 
 std::shared_ptr<MergeOperator> MergeOperators::CreateMaxOperator() {
+  DBUG_TRACE;
   return std::make_shared<MaxOperator>();
 }
 }  // namespace ROCKSDB_NAMESPACE

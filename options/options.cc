@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/options.h"
 
 #include <cinttypes>
@@ -133,11 +134,13 @@ DBOptions::DBOptions(const Options& options)
     : DBOptions(*static_cast<const DBOptions*>(&options)) {}
 
 void DBOptions::Dump(Logger* log) const {
+    DBUG_TRACE;
     ImmutableDBOptions(*this).Dump(log);
     MutableDBOptions(*this).Dump(log);
 }  // DBOptions::Dump
 
 void ColumnFamilyOptions::Dump(Logger* log) const {
+  DBUG_TRACE;
   ROCKS_LOG_HEADER(log, "              Options.comparator: %s",
                    comparator->Name());
   if (comparator->timestamp_size() > 0) {
@@ -472,11 +475,13 @@ void ColumnFamilyOptions::Dump(Logger* log) const {
 }  // ColumnFamilyOptions::Dump
 
 void Options::Dump(Logger* log) const {
+  DBUG_TRACE;
   DBOptions::Dump(log);
   ColumnFamilyOptions::Dump(log);
 }  // Options::Dump
 
 void Options::DumpCFOptions(Logger* log) const {
+  DBUG_TRACE;
   ColumnFamilyOptions::Dump(log);
 }  // Options::DumpCFOptions
 
@@ -487,6 +492,7 @@ void Options::DumpCFOptions(Logger* log) const {
 Options*
 Options::PrepareForBulkLoad()
 {
+  DBUG_TRACE;
   // never slowdown ingest.
   level0_file_num_compaction_trigger = (1<<30);
   level0_slowdown_writes_trigger = (1<<30);
@@ -526,6 +532,7 @@ Options::PrepareForBulkLoad()
 }
 
 Options* Options::OptimizeForSmallDb() {
+  DBUG_TRACE;
   // 16MB block cache
   std::shared_ptr<Cache> cache = NewLRUCache(16 << 20);
 
@@ -535,6 +542,7 @@ Options* Options::OptimizeForSmallDb() {
 }
 
 Options* Options::DisableExtraChecks() {
+  DBUG_TRACE;
   // See https://github.com/facebook/rocksdb/issues/9354
   force_consistency_checks = false;
   // Considered but no clear performance impact seen:
@@ -548,6 +556,7 @@ Options* Options::DisableExtraChecks() {
 
 Options* Options::OldDefaults(int rocksdb_major_version,
                               int rocksdb_minor_version) {
+  DBUG_TRACE;
   ColumnFamilyOptions::OldDefaults(rocksdb_major_version,
                                    rocksdb_minor_version);
   DBOptions::OldDefaults(rocksdb_major_version, rocksdb_minor_version);
@@ -556,6 +565,7 @@ Options* Options::OldDefaults(int rocksdb_major_version,
 
 DBOptions* DBOptions::OldDefaults(int rocksdb_major_version,
                                   int rocksdb_minor_version) {
+  DBUG_TRACE;
   if (rocksdb_major_version < 4 ||
       (rocksdb_major_version == 4 && rocksdb_minor_version < 7)) {
     max_file_opening_threads = 1;
@@ -575,6 +585,7 @@ DBOptions* DBOptions::OldDefaults(int rocksdb_major_version,
 
 ColumnFamilyOptions* ColumnFamilyOptions::OldDefaults(
     int rocksdb_major_version, int rocksdb_minor_version) {
+  DBUG_TRACE;
   if (rocksdb_major_version < 5 ||
       (rocksdb_major_version == 5 && rocksdb_minor_version <= 18)) {
     compaction_pri = CompactionPri::kByCompensatedSize;
@@ -598,6 +609,7 @@ ColumnFamilyOptions* ColumnFamilyOptions::OldDefaults(
 
 // Optimization functions
 DBOptions* DBOptions::OptimizeForSmallDb(std::shared_ptr<Cache>* cache) {
+  DBUG_TRACE;
   max_file_opening_threads = 1;
   max_open_files = 5000;
 
@@ -612,6 +624,7 @@ DBOptions* DBOptions::OptimizeForSmallDb(std::shared_ptr<Cache>* cache) {
 
 ColumnFamilyOptions* ColumnFamilyOptions::OptimizeForSmallDb(
     std::shared_ptr<Cache>* cache) {
+  DBUG_TRACE;
   write_buffer_size = 2 << 20;
   target_file_size_base = 2 * 1048576;
   max_bytes_for_level_base = 10 * 1048576;
@@ -632,6 +645,7 @@ ColumnFamilyOptions* ColumnFamilyOptions::OptimizeForSmallDb(
 
 ColumnFamilyOptions* ColumnFamilyOptions::OptimizeForPointLookup(
     uint64_t block_cache_size_mb) {
+  DBUG_TRACE;
   BlockBasedTableOptions block_based_options;
   block_based_options.data_block_index_type =
       BlockBasedTableOptions::kDataBlockBinaryAndHash;
@@ -647,6 +661,7 @@ ColumnFamilyOptions* ColumnFamilyOptions::OptimizeForPointLookup(
 
 ColumnFamilyOptions* ColumnFamilyOptions::OptimizeLevelStyleCompaction(
     uint64_t memtable_memory_budget) {
+  DBUG_TRACE;
   write_buffer_size = static_cast<size_t>(memtable_memory_budget / 4);
   // merge two memtables when flushing to L0
   min_write_buffer_number_to_merge = 2;
@@ -682,6 +697,7 @@ ColumnFamilyOptions* ColumnFamilyOptions::OptimizeLevelStyleCompaction(
 
 ColumnFamilyOptions* ColumnFamilyOptions::OptimizeUniversalStyleCompaction(
     uint64_t memtable_memory_budget) {
+  DBUG_TRACE;
   write_buffer_size = static_cast<size_t>(memtable_memory_budget / 4);
   // merge two memtables when flushing to L0
   min_write_buffer_number_to_merge = 2;
@@ -695,6 +711,7 @@ ColumnFamilyOptions* ColumnFamilyOptions::OptimizeUniversalStyleCompaction(
 }
 
 DBOptions* DBOptions::IncreaseParallelism(int total_threads) {
+  DBUG_TRACE;
   max_background_jobs = total_threads;
   env->SetBackgroundThreads(total_threads, Env::LOW);
   env->SetBackgroundThreads(1, Env::HIGH);

@@ -47,6 +47,7 @@
 // tools/write_stress_runner.py should only take one parameter -- runtime_sec
 // and it should figure out everything else on its own.
 
+#include "rocksdb/util/dbug.h"
 #include <cstdio>
 
 #ifndef GFLAGS
@@ -155,6 +156,7 @@ class WriteStress {
   }
 
   void WriteThread() {
+    DBUG_TRACE;
     std::mt19937 rng(static_cast<unsigned int>(FLAGS_seed));
     std::uniform_real_distribution<double> dist(0, 1);
 
@@ -186,6 +188,7 @@ class WriteStress {
   }
 
   void IteratorHoldThread() {
+    DBUG_TRACE;
     while (!stop_.load(std::memory_order_relaxed)) {
       std::unique_ptr<Iterator> iterator(db_->NewIterator(ReadOptions()));
       SystemClock::Default()->SleepForMicroseconds(FLAGS_iterator_hold_sec *
@@ -201,6 +204,7 @@ class WriteStress {
   }
 
   void PrefixMutatorThread() {
+    DBUG_TRACE;
     std::mt19937 rng(static_cast<unsigned int>(FLAGS_seed));
     std::uniform_real_distribution<double> dist(0, 1);
     std::uniform_int_distribution<int> char_dist('a', 'z');
@@ -223,6 +227,7 @@ class WriteStress {
   }
 
   int Run() {
+    DBUG_TRACE;
     threads_.emplace_back([&]() { WriteThread(); });
     threads_.emplace_back([&]() { PrefixMutatorThread(); });
     threads_.emplace_back([&]() { IteratorHoldThread(); });
@@ -295,6 +300,7 @@ class WriteStress {
 }  // namespace ROCKSDB_NAMESPACE
 
 int main(int argc, char** argv) {
+  DBUG_TRACE;
   SetUsageMessage(std::string("\nUSAGE:\n") + std::string(argv[0]) +
                   " [OPTIONS]...");
   ParseCommandLineFlags(&argc, &argv, true);

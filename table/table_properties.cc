@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/table_properties.h"
 
 #include "db/seqno_to_time_mapping.h"
@@ -24,6 +25,7 @@ namespace {
 void AppendProperty(std::string& props, const std::string& key,
                     const std::string& value, const std::string& prop_delim,
                     const std::string& kv_delim) {
+  DBUG_TRACE;
   props.append(key);
   props.append(kv_delim);
   props.append(value);
@@ -40,6 +42,7 @@ void AppendProperty(std::string& props, const std::string& key,
 
 std::string TableProperties::ToString(const std::string& prop_delim,
                                       const std::string& kv_delim) const {
+  DBUG_TRACE;
   std::string result;
   result.reserve(1024);
 
@@ -172,6 +175,7 @@ std::string TableProperties::ToString(const std::string& prop_delim,
 }
 
 void TableProperties::Add(const TableProperties& tp) {
+  DBUG_TRACE;
   data_size += tp.data_size;
   index_size += tp.index_size;
   index_partitions += tp.index_partitions;
@@ -195,6 +199,7 @@ void TableProperties::Add(const TableProperties& tp) {
 
 std::map<std::string, uint64_t>
 TableProperties::GetAggregatablePropertiesAsMap() const {
+  DBUG_TRACE;
   std::map<std::string, uint64_t> rv;
   rv["data_size"] = data_size;
   rv["index_size"] = index_size;
@@ -223,6 +228,7 @@ TableProperties::GetAggregatablePropertiesAsMap() const {
 // TODO: eliminate the need of manually updating this function
 // for new string properties
 std::size_t TableProperties::ApproximateMemoryUsage() const {
+  DBUG_TRACE;
   std::size_t usage = 0;
 #ifdef ROCKSDB_MALLOC_USABLE_SIZE
   usage += malloc_usable_size((void*)this);
@@ -332,6 +338,7 @@ const std::string TablePropertiesNames::kUserDefinedTimestampsPersisted =
 //    ...
 // }
 void TEST_SetRandomTableProperties(TableProperties* props) {
+  DBUG_TRACE;
   Random* r = Random::GetTLSInstance();
   uint64_t* pu = &props->orig_file_number;
   assert(static_cast<void*>(pu) == static_cast<void*>(props));

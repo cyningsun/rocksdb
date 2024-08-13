@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "db/forward_iterator.h"
 
 #include <limits>
@@ -60,6 +61,7 @@ class ForwardLevelIterator : public InternalIterator {
   }
 
   void SetFileIndex(uint32_t file_index) {
+    DBUG_TRACE;
     assert(file_index < files_.size());
     status_ = Status::OK();
     if (file_index != file_index_) {
@@ -68,6 +70,7 @@ class ForwardLevelIterator : public InternalIterator {
     }
   }
   void Reset() {
+    DBUG_TRACE;
     assert(file_index_ < files_.size());
 
     // Reset current pointer
@@ -98,15 +101,18 @@ class ForwardLevelIterator : public InternalIterator {
     }
   }
   void SeekToLast() override {
+    DBUG_TRACE;
     status_ = Status::NotSupported("ForwardLevelIterator::SeekToLast()");
     valid_ = false;
   }
   void Prev() override {
+    DBUG_TRACE;
     status_ = Status::NotSupported("ForwardLevelIterator::Prev()");
     valid_ = false;
   }
-  bool Valid() const override { return valid_; }
+  bool Valid() const override { DBUG_TRACE; return valid_; }
   void SeekToFirst() override {
+    DBUG_TRACE;
     assert(file_iter_ != nullptr);
     if (!status_.ok()) {
       assert(!valid_);
@@ -116,6 +122,7 @@ class ForwardLevelIterator : public InternalIterator {
     valid_ = file_iter_->Valid();
   }
   void Seek(const Slice& internal_key) override {
+    DBUG_TRACE;
     assert(file_iter_ != nullptr);
 
     // This deviates from the usual convention for InternalIterator::Seek() in
@@ -132,10 +139,12 @@ class ForwardLevelIterator : public InternalIterator {
     valid_ = file_iter_->Valid();
   }
   void SeekForPrev(const Slice& /*internal_key*/) override {
+    DBUG_TRACE;
     status_ = Status::NotSupported("ForwardLevelIterator::SeekForPrev()");
     valid_ = false;
   }
   void Next() override {
+    DBUG_TRACE;
     assert(valid_);
     file_iter_->Next();
     for (;;) {
@@ -160,14 +169,17 @@ class ForwardLevelIterator : public InternalIterator {
     }
   }
   Slice key() const override {
+    DBUG_TRACE;
     assert(valid_);
     return file_iter_->key();
   }
   Slice value() const override {
+    DBUG_TRACE;
     assert(valid_);
     return file_iter_->value();
   }
   Status status() const override {
+    DBUG_TRACE;
     if (!status_.ok()) {
       return status_;
     } else if (file_iter_) {
@@ -176,6 +188,7 @@ class ForwardLevelIterator : public InternalIterator {
     return Status::OK();
   }
   bool PrepareValue() override {
+    DBUG_TRACE;
     assert(valid_);
     if (file_iter_->PrepareValue()) {
       return true;
@@ -186,14 +199,17 @@ class ForwardLevelIterator : public InternalIterator {
     return false;
   }
   bool IsKeyPinned() const override {
+    DBUG_TRACE;
     return pinned_iters_mgr_ && pinned_iters_mgr_->PinningEnabled() &&
            file_iter_->IsKeyPinned();
   }
   bool IsValuePinned() const override {
+    DBUG_TRACE;
     return pinned_iters_mgr_ && pinned_iters_mgr_->PinningEnabled() &&
            file_iter_->IsValuePinned();
   }
   void SetPinnedItersMgr(PinnedIteratorsManager* pinned_iters_mgr) override {
+    DBUG_TRACE;
     pinned_iters_mgr_ = pinned_iters_mgr;
     if (file_iter_) {
       file_iter_->SetPinnedItersMgr(pinned_iters_mgr_);
@@ -256,6 +272,7 @@ ForwardIterator::~ForwardIterator() { Cleanup(true); }
 
 void ForwardIterator::SVCleanup(DBImpl* db, SuperVersion* sv,
                                 bool background_purge_on_iterator_cleanup) {
+  DBUG_TRACE;
   if (sv->Unref()) {
     // Job id == 0 means that this is not our background process, but rather
     // user thread
@@ -289,6 +306,7 @@ struct SVCleanupParams {
 
 // Used in PinnedIteratorsManager to release pinned SuperVersion
 void ForwardIterator::DeferredSVCleanup(void* arg) {
+  DBUG_TRACE;
   auto d = static_cast<SVCleanupParams*>(arg);
   ForwardIterator::SVCleanup(d->db, d->sv,
                              d->background_purge_on_iterator_cleanup);
@@ -296,6 +314,7 @@ void ForwardIterator::DeferredSVCleanup(void* arg) {
 }
 
 void ForwardIterator::SVCleanup() {
+  DBUG_TRACE;
   if (sv_ == nullptr) {
     return;
   }
@@ -315,6 +334,7 @@ void ForwardIterator::SVCleanup() {
 }
 
 void ForwardIterator::Cleanup(bool release_sv) {
+  DBUG_TRACE;
   if (mutable_iter_ != nullptr) {
     DeleteIterator(mutable_iter_, true /* is_arena */);
   }
@@ -340,11 +360,13 @@ void ForwardIterator::Cleanup(bool release_sv) {
 }
 
 bool ForwardIterator::Valid() const {
+  DBUG_TRACE;
   // See UpdateCurrent().
   return valid_ ? !current_over_upper_bound_ : false;
 }
 
 void ForwardIterator::SeekToFirst() {
+  DBUG_TRACE;
   if (sv_ == nullptr) {
     RebuildIterators(true);
   } else if (sv_->version_number != cfd_->GetSuperVersionNumber()) {
@@ -356,6 +378,7 @@ void ForwardIterator::SeekToFirst() {
 }
 
 bool ForwardIterator::IsOverUpperBound(const Slice& internal_key) const {
+  DBUG_TRACE;
   return !(read_options_.iterate_upper_bound == nullptr ||
            cfd_->internal_comparator().user_comparator()->Compare(
                ExtractUserKey(internal_key),
@@ -363,6 +386,7 @@ bool ForwardIterator::IsOverUpperBound(const Slice& internal_key) const {
 }
 
 void ForwardIterator::Seek(const Slice& internal_key) {
+  DBUG_TRACE;
   if (sv_ == nullptr) {
     RebuildIterators(true);
   } else if (sv_->version_number != cfd_->GetSuperVersionNumber()) {
@@ -382,6 +406,7 @@ void ForwardIterator::Seek(const Slice& internal_key) {
 void ForwardIterator::SeekInternal(const Slice& internal_key,
                                    bool seek_to_first,
                                    bool seek_after_async_io) {
+  DBUG_TRACE;
   assert(mutable_iter_);
   // mutable
   if (!seek_after_async_io) {
@@ -545,6 +570,7 @@ void ForwardIterator::SeekInternal(const Slice& internal_key,
 }
 
 void ForwardIterator::Next() {
+  DBUG_TRACE;
   assert(valid_);
   bool update_prev_key = false;
 
@@ -607,21 +633,25 @@ void ForwardIterator::Next() {
 }
 
 Slice ForwardIterator::key() const {
+  DBUG_TRACE;
   assert(valid_);
   return current_->key();
 }
 
 uint64_t ForwardIterator::write_unix_time() const {
+  DBUG_TRACE;
   assert(valid_);
   return current_->write_unix_time();
 }
 
 Slice ForwardIterator::value() const {
+  DBUG_TRACE;
   assert(valid_);
   return current_->value();
 }
 
 Status ForwardIterator::status() const {
+  DBUG_TRACE;
   if (!status_.ok()) {
     return status_;
   } else if (!mutable_iter_->status().ok()) {
@@ -632,6 +662,7 @@ Status ForwardIterator::status() const {
 }
 
 bool ForwardIterator::PrepareValue() {
+  DBUG_TRACE;
   assert(valid_);
   if (current_->PrepareValue()) {
     return true;
@@ -648,6 +679,7 @@ bool ForwardIterator::PrepareValue() {
 }
 
 Status ForwardIterator::GetProperty(std::string prop_name, std::string* prop) {
+  DBUG_TRACE;
   assert(prop != nullptr);
   if (prop_name == "rocksdb.iterator.super-version-number") {
     *prop = std::to_string(sv_->version_number);
@@ -658,11 +690,13 @@ Status ForwardIterator::GetProperty(std::string prop_name, std::string* prop) {
 
 void ForwardIterator::SetPinnedItersMgr(
     PinnedIteratorsManager* pinned_iters_mgr) {
+  DBUG_TRACE;
   pinned_iters_mgr_ = pinned_iters_mgr;
   UpdateChildrenPinnedItersMgr();
 }
 
 void ForwardIterator::UpdateChildrenPinnedItersMgr() {
+  DBUG_TRACE;
   // Set PinnedIteratorsManager for mutable memtable iterator.
   if (mutable_iter_) {
     mutable_iter_->SetPinnedItersMgr(pinned_iters_mgr_);
@@ -691,16 +725,19 @@ void ForwardIterator::UpdateChildrenPinnedItersMgr() {
 }
 
 bool ForwardIterator::IsKeyPinned() const {
+  DBUG_TRACE;
   return pinned_iters_mgr_ && pinned_iters_mgr_->PinningEnabled() &&
          current_->IsKeyPinned();
 }
 
 bool ForwardIterator::IsValuePinned() const {
+  DBUG_TRACE;
   return pinned_iters_mgr_ && pinned_iters_mgr_->PinningEnabled() &&
          current_->IsValuePinned();
 }
 
 void ForwardIterator::RebuildIterators(bool refresh_sv) {
+  DBUG_TRACE;
   // Clean up
   Cleanup(refresh_sv);
   if (refresh_sv) {
@@ -766,6 +803,7 @@ void ForwardIterator::RebuildIterators(bool refresh_sv) {
 }
 
 void ForwardIterator::RenewIterators() {
+  DBUG_TRACE;
   SuperVersion* svnew;
   assert(sv_);
   svnew = cfd_->GetReferencedSuperVersion(db_);
@@ -866,6 +904,7 @@ void ForwardIterator::RenewIterators() {
 
 void ForwardIterator::BuildLevelIterators(const VersionStorageInfo* vstorage,
                                           SuperVersion* sv) {
+  DBUG_TRACE;
   level_iters_.reserve(vstorage->num_levels() - 1);
   for (int32_t level = 1; level < vstorage->num_levels(); ++level) {
     const auto& level_files = vstorage->LevelFiles(level);
@@ -888,6 +927,7 @@ void ForwardIterator::BuildLevelIterators(const VersionStorageInfo* vstorage,
 }
 
 void ForwardIterator::ResetIncompleteIterators() {
+  DBUG_TRACE;
   const auto& l0_files = sv_->current->storage_info()->LevelFiles(0);
   for (size_t i = 0; i < l0_iters_.size(); ++i) {
     assert(i < l0_files.size());
@@ -920,6 +960,7 @@ void ForwardIterator::ResetIncompleteIterators() {
 }
 
 void ForwardIterator::UpdateCurrent() {
+  DBUG_TRACE;
   if (immutable_min_heap_.empty() && !mutable_iter_->Valid()) {
     current_ = nullptr;
   } else if (immutable_min_heap_.empty()) {
@@ -954,6 +995,7 @@ void ForwardIterator::UpdateCurrent() {
 }
 
 bool ForwardIterator::NeedToSeekImmutable(const Slice& target) {
+  DBUG_TRACE;
   // We maintain the interval (prev_key_, immutable_min_heap_.top()->key())
   // such that there are no records with keys within that range in
   // immutable_min_heap_. Since immutable structures (SST files and immutable
@@ -987,6 +1029,7 @@ bool ForwardIterator::NeedToSeekImmutable(const Slice& target) {
 }
 
 void ForwardIterator::DeleteCurrentIter() {
+  DBUG_TRACE;
   const VersionStorageInfo* vstorage = sv_->current->storage_info();
   const std::vector<FileMetaData*>& l0 = vstorage->LevelFiles(0);
   for (size_t i = 0; i < l0.size(); ++i) {
@@ -1015,6 +1058,7 @@ void ForwardIterator::DeleteCurrentIter() {
 
 bool ForwardIterator::TEST_CheckDeletedIters(int* pdeleted_iters,
                                              int* pnum_iters) {
+  DBUG_TRACE;
   bool retval = false;
   int deleted_iters = 0;
   int num_iters = 0;
@@ -1054,6 +1098,7 @@ bool ForwardIterator::TEST_CheckDeletedIters(int* pdeleted_iters,
 uint32_t ForwardIterator::FindFileInRange(
     const std::vector<FileMetaData*>& files, const Slice& internal_key,
     uint32_t left, uint32_t right) {
+  DBUG_TRACE;
   auto cmp = [&](const FileMetaData* f, const Slice& k) -> bool {
     return cfd_->internal_comparator().InternalKeyComparator::Compare(
                f->largest.Encode(), k) < 0;
@@ -1064,6 +1109,7 @@ uint32_t ForwardIterator::FindFileInRange(
 }
 
 void ForwardIterator::DeleteIterator(InternalIterator* iter, bool is_arena) {
+  DBUG_TRACE;
   if (iter == nullptr) {
     return;
   }

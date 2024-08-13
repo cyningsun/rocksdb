@@ -1,5 +1,6 @@
 /* -*- mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 // vim: ft=cpp:expandtab:ts=8:sw=4:softtabstop=4:
+#include "rocksdb/util/dbug.h"
 #ifndef OS_WIN
 #ident "$Id$"
 /*======
@@ -65,6 +66,7 @@ namespace toku {
 void locktree_manager::create(lt_create_cb create_cb, lt_destroy_cb destroy_cb,
                               lt_escalate_cb escalate_cb, void *escalate_extra,
                               toku_external_mutex_factory_t mutex_factory_arg) {
+  DBUG_TRACE;
   mutex_factory = mutex_factory_arg;
   m_max_lock_memory = DEFAULT_MAX_LOCK_MEMORY;
   m_current_lock_memory = 0;
@@ -83,6 +85,7 @@ void locktree_manager::create(lt_create_cb create_cb, lt_destroy_cb destroy_cb,
 }
 
 void locktree_manager::destroy(void) {
+  DBUG_TRACE;
   escalator_destroy();
   invariant(m_current_lock_memory == 0);
   invariant(m_locktree_map.size() == 0);
@@ -90,13 +93,14 @@ void locktree_manager::destroy(void) {
   toku_mutex_destroy(&m_mutex);
 }
 
-void locktree_manager::mutex_lock(void) { toku_mutex_lock(&m_mutex); }
+void locktree_manager::mutex_lock(void) { DBUG_TRACE; toku_mutex_lock(&m_mutex); }
 
-void locktree_manager::mutex_unlock(void) { toku_mutex_unlock(&m_mutex); }
+void locktree_manager::mutex_unlock(void) { DBUG_TRACE; toku_mutex_unlock(&m_mutex); }
 
-size_t locktree_manager::get_max_lock_memory(void) { return m_max_lock_memory; }
+size_t locktree_manager::get_max_lock_memory(void) { DBUG_TRACE; return m_max_lock_memory; }
 
 int locktree_manager::set_max_lock_memory(size_t max_lock_memory) {
+  DBUG_TRACE;
   int r = 0;
   mutex_lock();
   if (max_lock_memory < m_current_lock_memory) {
@@ -110,6 +114,7 @@ int locktree_manager::set_max_lock_memory(size_t max_lock_memory) {
 
 int locktree_manager::find_by_dict_id(locktree *const &lt,
                                       const DICTIONARY_ID &dict_id) {
+  DBUG_TRACE;
   if (lt->get_dict_id().dictid < dict_id.dictid) {
     return -1;
   } else if (lt->get_dict_id().dictid == dict_id.dictid) {
@@ -120,6 +125,7 @@ int locktree_manager::find_by_dict_id(locktree *const &lt,
 }
 
 locktree *locktree_manager::locktree_map_find(const DICTIONARY_ID &dict_id) {
+  DBUG_TRACE;
   locktree *lt;
   int r = m_locktree_map.find_zero<DICTIONARY_ID, find_by_dict_id>(dict_id, &lt,
                                                                    nullptr);
@@ -127,12 +133,14 @@ locktree *locktree_manager::locktree_map_find(const DICTIONARY_ID &dict_id) {
 }
 
 void locktree_manager::locktree_map_put(locktree *lt) {
+  DBUG_TRACE;
   int r = m_locktree_map.insert<DICTIONARY_ID, find_by_dict_id>(
       lt, lt->get_dict_id(), nullptr);
   invariant_zero(r);
 }
 
 void locktree_manager::locktree_map_remove(locktree *lt) {
+  DBUG_TRACE;
   uint32_t idx;
   locktree *found_lt;
   int r = m_locktree_map.find_zero<DICTIONARY_ID, find_by_dict_id>(
@@ -145,6 +153,7 @@ void locktree_manager::locktree_map_remove(locktree *lt) {
 
 locktree *locktree_manager::get_lt(DICTIONARY_ID dict_id, const comparator &cmp,
                                    void *on_create_extra) {
+  DBUG_TRACE;
   // hold the mutex around searching and maybe
   // inserting into the locktree map
   mutex_lock();
@@ -178,6 +187,7 @@ locktree *locktree_manager::get_lt(DICTIONARY_ID dict_id, const comparator &cmp,
 }
 
 void locktree_manager::reference_lt(locktree *lt) {
+  DBUG_TRACE;
   // increment using a sync fetch and add.
   // the caller guarantees that the lt won't be
   // destroyed while we increment the count here.
@@ -192,6 +202,7 @@ void locktree_manager::reference_lt(locktree *lt) {
 }
 
 void locktree_manager::release_lt(locktree *lt) {
+  DBUG_TRACE;
   bool do_destroy = false;
   DICTIONARY_ID dict_id = lt->get_dict_id();
 
@@ -256,8 +267,10 @@ void locktree_manager::release_lt(locktree *lt) {
 }
 
 void locktree_manager::run_escalation(void) {
+  DBUG_TRACE;
   struct escalation_fn {
     static void run(void *extra) {
+      DBUG_TRACE;
       locktree_manager *mgr = (locktree_manager *)extra;
       mgr->escalate_all_locktrees();
     }
@@ -266,9 +279,10 @@ void locktree_manager::run_escalation(void) {
 }
 
 // test-only version of lock escalation
-void locktree_manager::run_escalation_for_test(void) { run_escalation(); }
+void locktree_manager::run_escalation_for_test(void) { DBUG_TRACE; run_escalation(); }
 
 void locktree_manager::escalate_all_locktrees(void) {
+  DBUG_TRACE;
   uint64_t t0 = toku_current_time_microsec();
 
   // get all locktrees
@@ -292,25 +306,30 @@ void locktree_manager::escalate_all_locktrees(void) {
 }
 
 void locktree_manager::note_mem_used(uint64_t mem_used) {
+  DBUG_TRACE;
   (void)toku_sync_fetch_and_add(&m_current_lock_memory, mem_used);
 }
 
 void locktree_manager::note_mem_released(uint64_t mem_released) {
+  DBUG_TRACE;
   uint64_t old_mem_used =
       toku_sync_fetch_and_sub(&m_current_lock_memory, mem_released);
   invariant(old_mem_used >= mem_released);
 }
 
 bool locktree_manager::out_of_locks(void) const {
+  DBUG_TRACE;
   return m_current_lock_memory >= m_max_lock_memory;
 }
 
 bool locktree_manager::over_big_threshold(void) {
+  DBUG_TRACE;
   return m_current_lock_memory >= m_max_lock_memory / 2;
 }
 
 int locktree_manager::iterate_pending_lock_requests(
     lock_request_iterate_callback callback, void *extra) {
+  DBUG_TRACE;
   mutex_lock();
   int r = 0;
   uint32_t num_locktrees = m_locktree_map.size();
@@ -343,6 +362,7 @@ int locktree_manager::iterate_pending_lock_requests(
 }
 
 int locktree_manager::check_current_lock_constraints(bool big_txn) {
+  DBUG_TRACE;
   int r = 0;
   if (big_txn && over_big_threshold()) {
     run_escalation();
@@ -361,6 +381,7 @@ int locktree_manager::check_current_lock_constraints(bool big_txn) {
 }
 
 void locktree_manager::escalator_init(void) {
+  DBUG_TRACE;
   ZERO_STRUCT(m_escalation_mutex);
   toku_mutex_init(manager_escalation_mutex_key, &m_escalation_mutex, nullptr);
   m_escalation_count = 0;
@@ -374,11 +395,13 @@ void locktree_manager::escalator_init(void) {
 }
 
 void locktree_manager::escalator_destroy(void) {
+  DBUG_TRACE;
   m_escalator.destroy();
   toku_mutex_destroy(&m_escalation_mutex);
 }
 
 void locktree_manager::add_escalator_wait_time(uint64_t t) {
+  DBUG_TRACE;
   toku_mutex_lock(&m_escalation_mutex);
   m_wait_escalation_count += 1;
   m_wait_escalation_time += t;
@@ -391,6 +414,7 @@ void locktree_manager::add_escalator_wait_time(uint64_t t) {
 
 void locktree_manager::escalate_locktrees(locktree **locktrees,
                                           int num_locktrees) {
+  DBUG_TRACE;
   // there are too many row locks in the system and we need to tidy up.
   //
   // a simple implementation of escalation does not attempt
@@ -420,6 +444,7 @@ struct escalate_args {
 };
 
 void locktree_manager::locktree_escalator::create(void) {
+  DBUG_TRACE;
   ZERO_STRUCT(m_escalator_mutex);
   toku_mutex_init(manager_escalator_mutex_key, &m_escalator_mutex, nullptr);
   toku_cond_init(manager_m_escalator_done_key, &m_escalator_done, nullptr);
@@ -427,6 +452,7 @@ void locktree_manager::locktree_escalator::create(void) {
 }
 
 void locktree_manager::locktree_escalator::destroy(void) {
+  DBUG_TRACE;
   toku_cond_destroy(&m_escalator_done);
   toku_mutex_destroy(&m_escalator_mutex);
 }
@@ -434,6 +460,7 @@ void locktree_manager::locktree_escalator::destroy(void) {
 void locktree_manager::locktree_escalator::run(
     locktree_manager *mgr, void (*escalate_locktrees_fun)(void *extra),
     void *extra) {
+  DBUG_TRACE;
   uint64_t t0 = toku_current_time_microsec();
   toku_mutex_lock(&m_escalator_mutex);
   if (!m_escalator_running) {
@@ -453,6 +480,7 @@ void locktree_manager::locktree_escalator::run(
 }
 
 void locktree_manager::get_status(LTM_STATUS statp) {
+  DBUG_TRACE;
   ltm_status.init();
   LTM_STATUS_VAL(LTM_SIZE_CURRENT) = m_current_lock_memory;
   LTM_STATUS_VAL(LTM_SIZE_LIMIT) = m_max_lock_memory;
@@ -508,6 +536,7 @@ void locktree_manager::get_status(LTM_STATUS statp) {
 }
 
 void locktree_manager::kill_waiter(void *extra) {
+  DBUG_TRACE;
   mutex_lock();
   int r = 0;
   uint32_t num_locktrees = m_locktree_map.size();

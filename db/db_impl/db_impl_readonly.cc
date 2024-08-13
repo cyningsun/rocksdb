@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "db/db_impl/db_impl_readonly.h"
 
 #include "db/arena_wrapped_db_iter.h"
@@ -32,6 +33,7 @@ DBImplReadOnly::~DBImplReadOnly() = default;
 Status DBImplReadOnly::GetImpl(const ReadOptions& read_options,
                                const Slice& key,
                                GetImplOptions& get_impl_options) {
+  DBUG_TRACE;
   assert(get_impl_options.value != nullptr ||
          get_impl_options.columns != nullptr);
   assert(get_impl_options.column_family);
@@ -132,6 +134,7 @@ Status DBImplReadOnly::GetImpl(const ReadOptions& read_options,
 
 Iterator* DBImplReadOnly::NewIterator(const ReadOptions& _read_options,
                                       ColumnFamilyHandle* column_family) {
+  DBUG_TRACE;
   if (_read_options.io_activity != Env::IOActivity::kUnknown &&
       _read_options.io_activity != Env::IOActivity::kDBIterator) {
     return NewErrorIterator(Status::InvalidArgument(
@@ -188,6 +191,7 @@ Status DBImplReadOnly::NewIterators(
     const ReadOptions& read_options,
     const std::vector<ColumnFamilyHandle*>& column_families,
     std::vector<Iterator*>* iterators) {
+  DBUG_TRACE;
   if (read_options.timestamp) {
     for (auto* cf : column_families) {
       assert(cf);
@@ -259,6 +263,7 @@ namespace {
 // create_if_missing
 Status OpenForReadOnlyCheckExistence(const DBOptions& db_options,
                                      const std::string& dbname) {
+  DBUG_TRACE;
   Status s;
   if (!db_options.create_if_missing) {
     // Attempt to read "CURRENT" file
@@ -277,6 +282,7 @@ Status OpenForReadOnlyCheckExistence(const DBOptions& db_options,
 
 Status DB::OpenForReadOnly(const Options& options, const std::string& dbname,
                            DB** dbptr, bool /*error_if_wal_file_exists*/) {
+  DBUG_TRACE;
   Status s = OpenForReadOnlyCheckExistence(options, dbname);
   if (!s.ok()) {
     return s;
@@ -312,6 +318,7 @@ Status DB::OpenForReadOnly(
     const std::vector<ColumnFamilyDescriptor>& column_families,
     std::vector<ColumnFamilyHandle*>* handles, DB** dbptr,
     bool error_if_wal_file_exists) {
+  DBUG_TRACE;
   // If dbname does not exist in the file system, should not do anything
   Status s = OpenForReadOnlyCheckExistence(db_options, dbname);
   if (!s.ok()) {
@@ -328,6 +335,7 @@ Status DBImplReadOnly::OpenForReadOnlyWithoutCheck(
     const std::vector<ColumnFamilyDescriptor>& column_families,
     std::vector<ColumnFamilyHandle*>* handles, DB** dbptr,
     bool error_if_wal_file_exists) {
+  DBUG_TRACE;
   *dbptr = nullptr;
   handles->clear();
 

@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "table/persistent_cache_helper.h"
 
 #include "table/block_based/block_based_table_reader.h"
@@ -15,6 +16,7 @@ const PersistentCacheOptions PersistentCacheOptions::kEmpty;
 void PersistentCacheHelper::InsertSerialized(
     const PersistentCacheOptions& cache_options, const BlockHandle& handle,
     const char* data, const size_t size) {
+  DBUG_TRACE;
   assert(cache_options.persistent_cache);
   assert(cache_options.persistent_cache->IsCompressed());
 
@@ -28,6 +30,7 @@ void PersistentCacheHelper::InsertSerialized(
 void PersistentCacheHelper::InsertUncompressed(
     const PersistentCacheOptions& cache_options, const BlockHandle& handle,
     const BlockContents& contents) {
+  DBUG_TRACE;
   assert(cache_options.persistent_cache);
   assert(!cache_options.persistent_cache->IsCompressed());
   // Precondition:
@@ -45,6 +48,7 @@ void PersistentCacheHelper::InsertUncompressed(
 Status PersistentCacheHelper::LookupSerialized(
     const PersistentCacheOptions& cache_options, const BlockHandle& handle,
     std::unique_ptr<char[]>* out_data, const size_t expected_data_size) {
+DBUG_TRACE;
 #ifdef NDEBUG
   (void)expected_data_size;
 #endif
@@ -75,6 +79,7 @@ Status PersistentCacheHelper::LookupSerialized(
 Status PersistentCacheHelper::LookupUncompressed(
     const PersistentCacheOptions& cache_options, const BlockHandle& handle,
     BlockContents* contents) {
+  DBUG_TRACE;
   assert(cache_options.persistent_cache);
   assert(!cache_options.persistent_cache->IsCompressed());
   if (!contents) {

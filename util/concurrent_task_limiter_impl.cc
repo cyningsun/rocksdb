@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "util/concurrent_task_limiter_impl.h"
 
 #include "rocksdb/concurrent_task_limiter.h"
@@ -23,22 +24,26 @@ ConcurrentTaskLimiterImpl::~ConcurrentTaskLimiterImpl() {
   assert(outstanding_tasks_ == 0);
 }
 
-const std::string& ConcurrentTaskLimiterImpl::GetName() const { return name_; }
+const std::string& ConcurrentTaskLimiterImpl::GetName() const { DBUG_TRACE; return name_; }
 
 void ConcurrentTaskLimiterImpl::SetMaxOutstandingTask(int32_t limit) {
+  DBUG_TRACE;
   max_outstanding_tasks_.store(limit, std::memory_order_relaxed);
 }
 
 void ConcurrentTaskLimiterImpl::ResetMaxOutstandingTask() {
+  DBUG_TRACE;
   max_outstanding_tasks_.store(-1, std::memory_order_relaxed);
 }
 
 int32_t ConcurrentTaskLimiterImpl::GetOutstandingTask() const {
+  DBUG_TRACE;
   return outstanding_tasks_.load(std::memory_order_relaxed);
 }
 
 std::unique_ptr<TaskLimiterToken> ConcurrentTaskLimiterImpl::GetToken(
     bool force) {
+  DBUG_TRACE;
   int32_t limit = max_outstanding_tasks_.load(std::memory_order_relaxed);
   int32_t tasks = outstanding_tasks_.load(std::memory_order_relaxed);
   // force = true, bypass the throttle.
@@ -53,6 +58,7 @@ std::unique_ptr<TaskLimiterToken> ConcurrentTaskLimiterImpl::GetToken(
 
 ConcurrentTaskLimiter* NewConcurrentTaskLimiter(const std::string& name,
                                                 int32_t limit) {
+  DBUG_TRACE;
   return new ConcurrentTaskLimiterImpl(name, limit);
 }
 

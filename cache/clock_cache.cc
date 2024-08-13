@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "cache/clock_cache.h"
 
 #include <algorithm>
@@ -40,12 +41,14 @@ namespace clock_cache {
 
 namespace {
 inline uint64_t GetRefcount(uint64_t meta) {
+  DBUG_TRACE;
   return ((meta >> ClockHandle::kAcquireCounterShift) -
           (meta >> ClockHandle::kReleaseCounterShift)) &
          ClockHandle::kCounterMask;
 }
 
 inline uint64_t GetInitialCountdown(Cache::Priority priority) {
+  DBUG_TRACE;
   // Set initial clock data from priority
   // TODO: configuration parameters for priority handling and clock cycle
   // count?
@@ -64,6 +67,7 @@ inline uint64_t GetInitialCountdown(Cache::Priority priority) {
 }
 
 inline void MarkEmpty(ClockHandle& h) {
+DBUG_TRACE;
 #ifndef NDEBUG
   // Mark slot as empty, with assertion
   uint64_t meta = h.meta.Exchange(0);
@@ -75,6 +79,7 @@ inline void MarkEmpty(ClockHandle& h) {
 }
 
 inline void FreeDataMarkEmpty(ClockHandle& h, MemoryAllocator* allocator) {
+  DBUG_TRACE;
   // NOTE: in theory there's more room for parallelism if we copy the handle
   // data and delay actions like this until after marking the entry as empty,
   // but performance tests only show a regression by copying the few words
@@ -87,6 +92,7 @@ inline void FreeDataMarkEmpty(ClockHandle& h, MemoryAllocator* allocator) {
 // Called to undo the effect of referencing an entry for internal purposes,
 // so it should not be marked as having been used.
 inline void Unref(const ClockHandle& h, uint64_t count = 1) {
+  DBUG_TRACE;
   // Pretend we never took the reference
   // WART: there's a tiny chance we release last ref to invisible
   // entry here. If that happens, we let eviction take care of it.
@@ -97,6 +103,7 @@ inline void Unref(const ClockHandle& h, uint64_t count = 1) {
 
 inline bool ClockUpdate(ClockHandle& h, BaseClockTable::EvictionData* data,
                         bool* purgeable = nullptr) {
+  DBUG_TRACE;
   uint64_t meta;
   if (purgeable) {
     assert(*purgeable == false);
@@ -237,6 +244,7 @@ inline void CorrectNearOverflow(uint64_t old_meta,
 
 inline bool BeginSlotInsert(const ClockHandleBasicData& proto, ClockHandle& h,
                             uint64_t initial_countdown, bool* already_matches) {
+  DBUG_TRACE;
   assert(*already_matches == false);
   // Optimistically transition the slot from "empty" to
   // "under construction" (no effect on other states)
@@ -288,6 +296,7 @@ inline bool BeginSlotInsert(const ClockHandleBasicData& proto, ClockHandle& h,
 
 inline void FinishSlotInsert(const ClockHandleBasicData& proto, ClockHandle& h,
                              uint64_t initial_countdown, bool keep_ref) {
+  DBUG_TRACE;
   // Save data fields
   ClockHandleBasicData* h_alias = &h;
   *h_alias = proto;
@@ -315,6 +324,7 @@ inline void FinishSlotInsert(const ClockHandleBasicData& proto, ClockHandle& h,
 bool TryInsert(const ClockHandleBasicData& proto, ClockHandle& h,
                uint64_t initial_countdown, bool keep_ref,
                bool* already_matches) {
+  DBUG_TRACE;
   bool b = BeginSlotInsert(proto, h, initial_countdown, already_matches);
   if (b) {
     FinishSlotInsert(proto, h, initial_countdown, keep_ref);
@@ -365,6 +375,7 @@ constexpr uint32_t kStrictCapacityLimitBit = 1u << 31;
 
 uint32_t SanitizeEncodeEecAndScl(int eviction_effort_cap,
                                  bool strict_capacit_limit) {
+  DBUG_TRACE;
   eviction_effort_cap = std::max(int{1}, eviction_effort_cap);
   eviction_effort_cap =
       std::min(static_cast<int>(~kStrictCapacityLimitBit), eviction_effort_cap);
@@ -376,6 +387,7 @@ uint32_t SanitizeEncodeEecAndScl(int eviction_effort_cap,
 }  // namespace
 
 void ClockHandleBasicData::FreeData(MemoryAllocator* allocator) const {
+  DBUG_TRACE;
   if (helper->del_cb) {
     helper->del_cb(value, allocator);
   }
@@ -553,6 +565,7 @@ inline bool BaseClockTable::ChargeUsageMaybeEvictNonStrict(
 }
 
 void BaseClockTable::TrackAndReleaseEvictedEntry(ClockHandle* h) {
+  DBUG_TRACE;
   bool took_value_ownership = false;
   if (eviction_callback_) {
     // For key reconstructed from hash
@@ -571,6 +584,7 @@ void BaseClockTable::TrackAndReleaseEvictedEntry(ClockHandle* h) {
 
 bool IsEvictionEffortExceeded(const BaseClockTable::EvictionData& data,
                               uint32_t eviction_effort_cap) {
+  DBUG_TRACE;
   // Basically checks whether the ratio of useful effort to wasted effort is
   // too low, with a start-up allowance for wasted effort before any useful
   // effort.
@@ -684,6 +698,7 @@ Status BaseClockTable::Insert(const ClockHandleBasicData& proto,
 }
 
 void BaseClockTable::Ref(ClockHandle& h) {
+  DBUG_TRACE;
   // Increment acquire counter
   uint64_t old_meta = h.meta.FetchAdd(ClockHandle::kAcquireIncrement);
 
@@ -696,6 +711,7 @@ void BaseClockTable::Ref(ClockHandle& h) {
 
 #ifndef NDEBUG
 void BaseClockTable::TEST_RefN(ClockHandle& h, size_t n) {
+  DBUG_TRACE;
   // Increment acquire counter
   uint64_t old_meta = h.meta.FetchAdd(n * ClockHandle::kAcquireIncrement);
 
@@ -705,6 +721,7 @@ void BaseClockTable::TEST_RefN(ClockHandle& h, size_t n) {
 }
 
 void BaseClockTable::TEST_ReleaseNMinus1(ClockHandle* h, size_t n) {
+  DBUG_TRACE;
   assert(n > 0);
 
   // Like n-1 Releases, but assumes one more will happen in the caller to take
@@ -775,15 +792,17 @@ FixedHyperClockTable::~FixedHyperClockTable() {
   assert(occupancy_.LoadRelaxed() == 0);
 }
 
-void FixedHyperClockTable::StartInsert(InsertState&) {}
+void FixedHyperClockTable::StartInsert(InsertState&) {DBUG_TRACE;}
 
 bool FixedHyperClockTable::GrowIfNeeded(size_t new_occupancy, InsertState&) {
+  DBUG_TRACE;
   return new_occupancy <= occupancy_limit_;
 }
 
 FixedHyperClockTable::HandleImpl* FixedHyperClockTable::DoInsert(
     const ClockHandleBasicData& proto, uint64_t initial_countdown,
     bool keep_ref, InsertState&) {
+  DBUG_TRACE;
   bool already_matches = false;
   HandleImpl* e = FindSlot(
       proto.hashed_key,
@@ -892,6 +911,7 @@ FixedHyperClockTable::HandleImpl* FixedHyperClockTable::Lookup(
 
 bool FixedHyperClockTable::Release(HandleImpl* h, bool useful,
                                    bool erase_if_last_ref) {
+  DBUG_TRACE;
   // In contrast with LRUCache's Release, this function won't delete the handle
   // when the cache is above capacity and the reference is the last one. Space
   // is only freed up by EvictFromClock (called by Insert when space is needed)
@@ -967,6 +987,7 @@ bool FixedHyperClockTable::Release(HandleImpl* h, bool useful,
 
 #ifndef NDEBUG
 void FixedHyperClockTable::TEST_ReleaseN(HandleImpl* h, size_t n) {
+  DBUG_TRACE;
   if (n > 0) {
     // Do n-1 simple releases first
     TEST_ReleaseNMinus1(h, n);
@@ -978,6 +999,7 @@ void FixedHyperClockTable::TEST_ReleaseN(HandleImpl* h, size_t n) {
 #endif
 
 void FixedHyperClockTable::Erase(const UniqueId64x2& hashed_key) {
+  DBUG_TRACE;
   (void)FindSlot(
       hashed_key,
       [&](HandleImpl* h) {
@@ -1037,6 +1059,7 @@ void FixedHyperClockTable::Erase(const UniqueId64x2& hashed_key) {
 }
 
 void FixedHyperClockTable::EraseUnRefEntries() {
+  DBUG_TRACE;
   for (size_t i = 0; i <= this->length_bits_mask_; i++) {
     HandleImpl& h = array_[i];
 
@@ -1093,6 +1116,7 @@ inline FixedHyperClockTable::HandleImpl* FixedHyperClockTable::FindSlot(
 
 inline void FixedHyperClockTable::Rollback(const UniqueId64x2& hashed_key,
                                            const HandleImpl* h) {
+  DBUG_TRACE;
   size_t current = ModTableSize(hashed_key[1]);
   size_t increment = static_cast<size_t>(hashed_key[0]) | 1U;
   while (&array_[current] != h) {
@@ -1102,6 +1126,7 @@ inline void FixedHyperClockTable::Rollback(const UniqueId64x2& hashed_key,
 }
 
 inline void FixedHyperClockTable::ReclaimEntryUsage(size_t total_charge) {
+  DBUG_TRACE;
   auto old_occupancy = occupancy_.FetchSub(1U);
   (void)old_occupancy;
   // No underflow
@@ -1179,6 +1204,7 @@ ClockCacheShard<Table>::ClockCacheShard(
 
 template <class Table>
 void ClockCacheShard<Table>::EraseUnRefEntries() {
+  DBUG_TRACE;
   table_.EraseUnRefEntries();
 }
 
@@ -1188,6 +1214,7 @@ void ClockCacheShard<Table>::ApplyToSomeEntries(
                              size_t charge,
                              const Cache::CacheItemHelper* helper)>& callback,
     size_t average_entries_per_lock, size_t* state) {
+  DBUG_TRACE;
   // The state will be a simple index into the table. Even with a dynamic
   // hyper clock cache, entries will generally stay in their existing
   // slots, so we don't need to be aware of the high-level organization
@@ -1219,6 +1246,7 @@ void ClockCacheShard<Table>::ApplyToSomeEntries(
 int FixedHyperClockTable::CalcHashBits(
     size_t capacity, size_t estimated_value_size,
     CacheMetadataChargePolicy metadata_charge_policy) {
+  DBUG_TRACE;
   double average_slot_charge = estimated_value_size * kLoadFactor;
   if (metadata_charge_policy == kFullChargeCacheMetadata) {
     average_slot_charge += sizeof(HandleImpl);
@@ -1240,6 +1268,7 @@ int FixedHyperClockTable::CalcHashBits(
 
 template <class Table>
 void ClockCacheShard<Table>::SetCapacity(size_t capacity) {
+  DBUG_TRACE;
   capacity_.StoreRelaxed(capacity);
   // next Insert will take care of any necessary evictions
 }
@@ -1247,6 +1276,7 @@ void ClockCacheShard<Table>::SetCapacity(size_t capacity) {
 template <class Table>
 void ClockCacheShard<Table>::SetStrictCapacityLimit(
     bool strict_capacity_limit) {
+  DBUG_TRACE;
   if (strict_capacity_limit) {
     eec_and_scl_.FetchOrRelaxed(kStrictCapacityLimitBit);
   } else {
@@ -1262,6 +1292,7 @@ Status ClockCacheShard<Table>::Insert(const Slice& key,
                                       const Cache::CacheItemHelper* helper,
                                       size_t charge, HandleImpl** handle,
                                       Cache::Priority priority) {
+  DBUG_TRACE;
   if (UNLIKELY(key.size() != kCacheKeySize)) {
     return Status::NotSupported("ClockCache only supports key size " +
                                 std::to_string(kCacheKeySize) + "B");
@@ -1280,6 +1311,7 @@ template <class Table>
 typename Table::HandleImpl* ClockCacheShard<Table>::CreateStandalone(
     const Slice& key, const UniqueId64x2& hashed_key, Cache::ObjectPtr obj,
     const Cache::CacheItemHelper* helper, size_t charge, bool allow_uncharged) {
+  DBUG_TRACE;
   if (UNLIKELY(key.size() != kCacheKeySize)) {
     return nullptr;
   }
@@ -1296,6 +1328,7 @@ typename Table::HandleImpl* ClockCacheShard<Table>::CreateStandalone(
 template <class Table>
 typename ClockCacheShard<Table>::HandleImpl* ClockCacheShard<Table>::Lookup(
     const Slice& key, const UniqueId64x2& hashed_key) {
+  DBUG_TRACE;
   if (UNLIKELY(key.size() != kCacheKeySize)) {
     return nullptr;
   }
@@ -1304,6 +1337,7 @@ typename ClockCacheShard<Table>::HandleImpl* ClockCacheShard<Table>::Lookup(
 
 template <class Table>
 bool ClockCacheShard<Table>::Ref(HandleImpl* h) {
+  DBUG_TRACE;
   if (h == nullptr) {
     return false;
   }
@@ -1314,6 +1348,7 @@ bool ClockCacheShard<Table>::Ref(HandleImpl* h) {
 template <class Table>
 bool ClockCacheShard<Table>::Release(HandleImpl* handle, bool useful,
                                      bool erase_if_last_ref) {
+  DBUG_TRACE;
   if (handle == nullptr) {
     return false;
   }
@@ -1323,11 +1358,13 @@ bool ClockCacheShard<Table>::Release(HandleImpl* handle, bool useful,
 #ifndef NDEBUG
 template <class Table>
 void ClockCacheShard<Table>::TEST_RefN(HandleImpl* h, size_t n) {
+  DBUG_TRACE;
   table_.TEST_RefN(*h, n);
 }
 
 template <class Table>
 void ClockCacheShard<Table>::TEST_ReleaseN(HandleImpl* h, size_t n) {
+  DBUG_TRACE;
   table_.TEST_ReleaseN(h, n);
 }
 #endif
@@ -1335,12 +1372,14 @@ void ClockCacheShard<Table>::TEST_ReleaseN(HandleImpl* h, size_t n) {
 template <class Table>
 bool ClockCacheShard<Table>::Release(HandleImpl* handle,
                                      bool erase_if_last_ref) {
+  DBUG_TRACE;
   return Release(handle, /*useful=*/true, erase_if_last_ref);
 }
 
 template <class Table>
 void ClockCacheShard<Table>::Erase(const Slice& key,
                                    const UniqueId64x2& hashed_key) {
+  DBUG_TRACE;
   if (UNLIKELY(key.size() != kCacheKeySize)) {
     return;
   }
@@ -1349,21 +1388,25 @@ void ClockCacheShard<Table>::Erase(const Slice& key,
 
 template <class Table>
 size_t ClockCacheShard<Table>::GetUsage() const {
+  DBUG_TRACE;
   return table_.GetUsage();
 }
 
 template <class Table>
 size_t ClockCacheShard<Table>::GetStandaloneUsage() const {
+  DBUG_TRACE;
   return table_.GetStandaloneUsage();
 }
 
 template <class Table>
 size_t ClockCacheShard<Table>::GetCapacity() const {
+  DBUG_TRACE;
   return capacity_.LoadRelaxed();
 }
 
 template <class Table>
 size_t ClockCacheShard<Table>::GetPinnedUsage() const {
+  DBUG_TRACE;
   // Computes the pinned usage by scanning the whole hash table. This
   // is slow, but avoids keeping an exact counter on the clock usage,
   // i.e., the number of not externally referenced elements.
@@ -1393,16 +1436,19 @@ size_t ClockCacheShard<Table>::GetPinnedUsage() const {
 
 template <class Table>
 size_t ClockCacheShard<Table>::GetOccupancyCount() const {
+  DBUG_TRACE;
   return table_.GetOccupancy();
 }
 
 template <class Table>
 size_t ClockCacheShard<Table>::GetOccupancyLimit() const {
+  DBUG_TRACE;
   return table_.GetOccupancyLimit();
 }
 
 template <class Table>
 size_t ClockCacheShard<Table>::GetTableAddressCount() const {
+  DBUG_TRACE;
   return table_.GetTableSize();
 }
 
@@ -1428,11 +1474,13 @@ BaseHyperClockCache<Table>::BaseHyperClockCache(
 
 template <class Table>
 Cache::ObjectPtr BaseHyperClockCache<Table>::Value(Handle* handle) {
+  DBUG_TRACE;
   return static_cast<const typename Table::HandleImpl*>(handle)->value;
 }
 
 template <class Table>
 size_t BaseHyperClockCache<Table>::GetCharge(Handle* handle) const {
+  DBUG_TRACE;
   return static_cast<const typename Table::HandleImpl*>(handle)
       ->GetTotalCharge();
 }
@@ -1440,6 +1488,7 @@ size_t BaseHyperClockCache<Table>::GetCharge(Handle* handle) const {
 template <class Table>
 const Cache::CacheItemHelper* BaseHyperClockCache<Table>::GetCacheItemHelper(
     Handle* handle) const {
+  DBUG_TRACE;
   auto h = static_cast<const typename Table::HandleImpl*>(handle);
   return h->helper;
 }
@@ -1456,6 +1505,7 @@ namespace {
 void AddShardEvaluation(const FixedHyperClockCache::Shard& shard,
                         std::vector<double>& predicted_load_factors,
                         size_t& min_recommendation) {
+  DBUG_TRACE;
   size_t usage = shard.GetUsage() - shard.GetStandaloneUsage();
   size_t capacity = shard.GetCapacity();
   double usage_ratio = 1.0 * usage / capacity;
@@ -1480,6 +1530,7 @@ void AddShardEvaluation(const FixedHyperClockCache::Shard& shard,
 }
 
 bool IsSlotOccupied(const ClockHandle& h) {
+  DBUG_TRACE;
   return (h.meta.LoadRelaxed() >> ClockHandle::kStateShift) != 0;
 }
 }  // namespace
@@ -1489,6 +1540,7 @@ template <size_t N = 500>
 class LoadVarianceStats {
  public:
   std::string Report() const {
+    DBUG_TRACE;
     return "Overall " + PercentStr(positive_count_, samples_) + " (" +
            std::to_string(positive_count_) + "/" + std::to_string(samples_) +
            "), Min/Max/Window = " + PercentStr(min_, N) + "/" +
@@ -1498,6 +1550,7 @@ class LoadVarianceStats {
   }
 
   void Add(bool positive) {
+    DBUG_TRACE;
     recent_[samples_ % N] = positive;
     if (positive) {
       ++positive_count_;
@@ -1529,6 +1582,7 @@ class LoadVarianceStats {
   std::bitset<N> recent_;
 
   static std::string PercentStr(size_t a, size_t b) {
+    DBUG_TRACE;
     if (b == 0) {
       return "??%";
     } else {
@@ -1540,6 +1594,7 @@ class LoadVarianceStats {
 template <class Table>
 void BaseHyperClockCache<Table>::ReportProblems(
     const std::shared_ptr<Logger>& info_log) const {
+  DBUG_TRACE;
   if (info_log->GetInfoLogLevel() <= InfoLogLevel::DEBUG_LEVEL) {
     LoadVarianceStats slot_stats;
     uint64_t eviction_effort_exceeded_count = 0;
@@ -1680,6 +1735,7 @@ void FixedHyperClockCache::ReportProblems(
 namespace {
 
 inline int LengthInfoToMinShift(uint64_t length_info) {
+  DBUG_TRACE;
   int mask_shift = BitwiseAnd(length_info, int{255});
   assert(mask_shift <= 63);
   assert(mask_shift > 0);
@@ -1687,10 +1743,12 @@ inline int LengthInfoToMinShift(uint64_t length_info) {
 }
 
 inline size_t LengthInfoToThreshold(uint64_t length_info) {
+  DBUG_TRACE;
   return static_cast<size_t>(length_info >> 8);
 }
 
 inline size_t LengthInfoToUsedLength(uint64_t length_info) {
+  DBUG_TRACE;
   size_t threshold = LengthInfoToThreshold(length_info);
   int shift = LengthInfoToMinShift(length_info);
   assert(threshold < (size_t{1} << shift));
@@ -1700,6 +1758,7 @@ inline size_t LengthInfoToUsedLength(uint64_t length_info) {
 }
 
 inline uint64_t UsedLengthToLengthInfo(size_t used_length) {
+  DBUG_TRACE;
   assert(used_length >= 2);
   int shift = FloorLog2(used_length);
   uint64_t threshold = BottomNBits(used_length, shift);
@@ -1712,6 +1771,7 @@ inline uint64_t UsedLengthToLengthInfo(size_t used_length) {
 }
 
 inline size_t GetStartingLength(size_t capacity) {
+  DBUG_TRACE;
   if (capacity > port::kPageSize) {
     // Start with one memory page
     return port::kPageSize / sizeof(AutoHyperClockTable::HandleImpl);
@@ -1722,11 +1782,13 @@ inline size_t GetStartingLength(size_t capacity) {
 }
 
 inline size_t GetHomeIndex(uint64_t hash, int shift) {
+  DBUG_TRACE;
   return static_cast<size_t>(BottomNBits(hash, shift));
 }
 
 inline void GetHomeIndexAndShift(uint64_t length_info, uint64_t hash,
                                  size_t* home, int* shift) {
+  DBUG_TRACE;
   int min_shift = LengthInfoToMinShift(length_info);
   size_t threshold = LengthInfoToThreshold(length_info);
   bool extra_shift = GetHomeIndex(hash, min_shift) < threshold;
@@ -1736,21 +1798,25 @@ inline void GetHomeIndexAndShift(uint64_t length_info, uint64_t hash,
 }
 
 inline int GetShiftFromNextWithShift(uint64_t next_with_shift) {
+  DBUG_TRACE;
   return BitwiseAnd(next_with_shift,
                     AutoHyperClockTable::HandleImpl::kShiftMask);
 }
 
 inline size_t GetNextFromNextWithShift(uint64_t next_with_shift) {
+  DBUG_TRACE;
   return static_cast<size_t>(next_with_shift >>
                              AutoHyperClockTable::HandleImpl::kNextShift);
 }
 
 inline uint64_t MakeNextWithShift(size_t next, int shift) {
+  DBUG_TRACE;
   return (uint64_t{next} << AutoHyperClockTable::HandleImpl::kNextShift) |
          static_cast<uint64_t>(shift);
 }
 
 inline uint64_t MakeNextWithShiftEnd(size_t head, int shift) {
+  DBUG_TRACE;
   return AutoHyperClockTable::HandleImpl::kNextEndFlags |
          MakeNextWithShift(head, shift);
 }
@@ -1759,6 +1825,7 @@ inline uint64_t MakeNextWithShiftEnd(size_t head, int shift) {
 inline bool MatchAndRef(const UniqueId64x2* hashed_key, const ClockHandle& h,
                         int shift = 0, size_t home = 0,
                         bool* full_match_or_unknown = nullptr) {
+  DBUG_TRACE;
   // Must be at least something to match
   assert(hashed_key || shift > 0);
 
@@ -1809,6 +1876,7 @@ inline bool MatchAndRef(const UniqueId64x2* hashed_key, const ClockHandle& h,
 void UpgradeShiftsOnRange(AutoHyperClockTable::HandleImpl* arr,
                           size_t& frontier, uint64_t stop_before_or_new_tail,
                           int old_shift, int new_shift) {
+  DBUG_TRACE;
   assert(frontier != SIZE_MAX);
   assert(new_shift == old_shift + 1);
   (void)old_shift;
@@ -1838,6 +1906,7 @@ void UpgradeShiftsOnRange(AutoHyperClockTable::HandleImpl* arr,
 }
 
 size_t CalcOccupancyLimit(size_t used_length) {
+  DBUG_TRACE;
   return static_cast<size_t>(used_length * AutoHyperClockTable::kMaxLoadFactor +
                              0.999);
 }
@@ -1888,15 +1957,17 @@ class AutoHyperClockTable::ChainRewriteLock {
   }
 
   void Reset(HandleImpl* h, RelaxedAtomic<uint64_t>& yield_count) {
+    DBUG_TRACE;
     this->~ChainRewriteLock();
     new (this) ChainRewriteLock(h, yield_count);
   }
 
   // Expected current state, assuming no parallel updates.
-  uint64_t GetSavedHead() const { return saved_head_; }
+  uint64_t GetSavedHead() const { DBUG_TRACE; return saved_head_; }
 
   bool CasUpdate(uint64_t next_with_shift,
                  RelaxedAtomic<uint64_t>& yield_count) {
+    DBUG_TRACE;
     uint64_t new_head = next_with_shift | HandleImpl::kHeadLocked;
     uint64_t expected = GetSavedHead();
     bool success = head_ptr_->CasStrong(expected, new_head);
@@ -1924,10 +1995,11 @@ class AutoHyperClockTable::ChainRewriteLock {
     return success;
   }
 
-  bool IsEnd() const { return HandleImpl::IsEnd(saved_head_); }
+  bool IsEnd() const { DBUG_TRACE; return HandleImpl::IsEnd(saved_head_); }
 
  private:
   void Acquire(RelaxedAtomic<uint64_t>& yield_count) {
+    DBUG_TRACE;
     for (;;) {
       // Acquire removal lock on the chain
       uint64_t old_head = head_ptr_->FetchOr(HandleImpl::kHeadLocked);
@@ -2103,14 +2175,17 @@ AutoHyperClockTable::~AutoHyperClockTable() {
 }
 
 size_t AutoHyperClockTable::GetTableSize() const {
+  DBUG_TRACE;
   return LengthInfoToUsedLength(length_info_.Load());
 }
 
 size_t AutoHyperClockTable::GetOccupancyLimit() const {
+  DBUG_TRACE;
   return occupancy_limit_.LoadRelaxed();
 }
 
 void AutoHyperClockTable::StartInsert(InsertState& state) {
+  DBUG_TRACE;
   state.saved_length_info = length_info_.Load();
 }
 
@@ -2134,6 +2209,7 @@ void AutoHyperClockTable::StartInsert(InsertState& state) {
 
 bool AutoHyperClockTable::GrowIfNeeded(size_t new_occupancy,
                                        InsertState& state) {
+  DBUG_TRACE;
   // new_occupancy has taken into account other threads that are also trying
   // to insert, so as soon as we see sufficient *published* usable size, we
   // can declare success even if we aren't the one that grows the table.
@@ -2163,6 +2239,7 @@ bool AutoHyperClockTable::GrowIfNeeded(size_t new_occupancy,
 }
 
 bool AutoHyperClockTable::Grow(InsertState& state) {
+  DBUG_TRACE;
   // Allocate the next grow slot
   size_t grow_home = grow_frontier_.FetchAddRelaxed(1);
   if (grow_home >= array_.Count()) {
@@ -2242,6 +2319,7 @@ bool AutoHyperClockTable::Grow(InsertState& state) {
 // See call in Grow()
 void AutoHyperClockTable::CatchUpLengthInfoNoWait(
     size_t known_usable_grow_home) {
+  DBUG_TRACE;
   uint64_t current_length_info = length_info_.Load();
   size_t published_usable_size = LengthInfoToUsedLength(current_length_info);
   while (published_usable_size <= known_usable_grow_home) {
@@ -2292,6 +2370,7 @@ void AutoHyperClockTable::CatchUpLengthInfoNoWait(
 
 void AutoHyperClockTable::SplitForGrow(size_t grow_home, size_t old_home,
                                        int old_shift) {
+  DBUG_TRACE;
   int new_shift = old_shift + 1;
   HandleImpl* const arr = array_.Get();
 
@@ -3074,6 +3153,7 @@ AutoHyperClockTable::HandleImpl* AutoHyperClockTable::DoInsert(
 
 AutoHyperClockTable::HandleImpl* AutoHyperClockTable::Lookup(
     const UniqueId64x2& hashed_key) {
+  DBUG_TRACE;
   // Lookups are wait-free with low occurrence of retries, back-tracking,
   // and fallback. We do not have the benefit of holding a rewrite lock on
   // the chain so must be prepared for many kinds of mayhem, most notably
@@ -3309,6 +3389,7 @@ AutoHyperClockTable::HandleImpl* AutoHyperClockTable::Lookup(
 }
 
 void AutoHyperClockTable::Remove(HandleImpl* h) {
+  DBUG_TRACE;
   assert((h->meta.Load() >> ClockHandle::kStateShift) ==
          ClockHandle::kStateConstruction);
 
@@ -3318,6 +3399,7 @@ void AutoHyperClockTable::Remove(HandleImpl* h) {
 
 bool AutoHyperClockTable::TryEraseHandle(HandleImpl* h, bool holding_ref,
                                          bool mark_invisible) {
+  DBUG_TRACE;
   uint64_t meta;
   if (mark_invisible) {
     // Set invisible
@@ -3367,6 +3449,7 @@ bool AutoHyperClockTable::TryEraseHandle(HandleImpl* h, bool holding_ref,
 
 bool AutoHyperClockTable::Release(HandleImpl* h, bool useful,
                                   bool erase_if_last_ref) {
+  DBUG_TRACE;
   // In contrast with LRUCache's Release, this function won't delete the handle
   // when the cache is above capacity and the reference is the last one. Space
   // is only freed up by Evict/PurgeImpl (called by Insert when space
@@ -3404,6 +3487,7 @@ bool AutoHyperClockTable::Release(HandleImpl* h, bool useful,
 
 #ifndef NDEBUG
 void AutoHyperClockTable::TEST_ReleaseN(HandleImpl* h, size_t n) {
+  DBUG_TRACE;
   if (n > 0) {
     // Do n-1 simple releases first
     TEST_ReleaseNMinus1(h, n);
@@ -3415,6 +3499,7 @@ void AutoHyperClockTable::TEST_ReleaseN(HandleImpl* h, size_t n) {
 #endif
 
 void AutoHyperClockTable::Erase(const UniqueId64x2& hashed_key) {
+  DBUG_TRACE;
   // Don't need to be efficient.
   // Might be one match masking another, so loop.
   while (HandleImpl* h = Lookup(hashed_key)) {
@@ -3429,6 +3514,7 @@ void AutoHyperClockTable::Erase(const UniqueId64x2& hashed_key) {
 }
 
 void AutoHyperClockTable::EraseUnRefEntries() {
+  DBUG_TRACE;
   size_t usable_size = GetTableSize();
   for (size_t i = 0; i < usable_size; i++) {
     HandleImpl& h = array_[i];
@@ -3555,6 +3641,7 @@ void AutoHyperClockTable::Evict(size_t requested_charge, InsertState& state,
 size_t AutoHyperClockTable::CalcMaxUsableLength(
     size_t capacity, size_t min_avg_value_size,
     CacheMetadataChargePolicy metadata_charge_policy) {
+  DBUG_TRACE;
   double min_avg_slot_charge = min_avg_value_size * kMaxLoadFactor;
   if (metadata_charge_policy == kFullChargeCacheMetadata) {
     min_avg_slot_charge += sizeof(HandleImpl);
@@ -3571,11 +3658,13 @@ size_t AutoHyperClockTable::CalcMaxUsableLength(
 
 namespace {
 bool IsHeadNonempty(const AutoHyperClockTable::HandleImpl& h) {
+  DBUG_TRACE;
   return !AutoHyperClockTable::HandleImpl::IsEnd(
       h.head_next_with_shift.LoadRelaxed());
 }
 bool IsEntryAtHome(const AutoHyperClockTable::HandleImpl& h, int shift,
                    size_t home) {
+  DBUG_TRACE;
   if (MatchAndRef(nullptr, h, shift, home)) {
     Unref(h);
     return true;
@@ -3587,6 +3676,7 @@ bool IsEntryAtHome(const AutoHyperClockTable::HandleImpl& h, int shift,
 
 void AutoHyperClockCache::ReportProblems(
     const std::shared_ptr<Logger>& info_log) const {
+  DBUG_TRACE;
   BaseHyperClockCache::ReportProblems(info_log);
 
   if (info_log->GetInfoLogLevel() <= InfoLogLevel::DEBUG_LEVEL) {
@@ -3622,6 +3712,7 @@ void AutoHyperClockCache::ReportProblems(
 std::shared_ptr<Cache> NewClockCache(
     size_t capacity, int num_shard_bits, bool strict_capacity_limit,
     CacheMetadataChargePolicy metadata_charge_policy) {
+  DBUG_TRACE;
   return NewLRUCache(capacity, num_shard_bits, strict_capacity_limit,
                      /* high_pri_pool_ratio */ 0.5, nullptr,
                      kDefaultToAdaptiveMutex, metadata_charge_policy,

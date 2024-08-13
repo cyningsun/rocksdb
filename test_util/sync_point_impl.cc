@@ -3,17 +3,20 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "test_util/sync_point_impl.h"
 
 #ifndef NDEBUG
 namespace ROCKSDB_NAMESPACE {
 KillPoint* KillPoint::GetInstance() {
+  DBUG_TRACE;
   static KillPoint kp;
   return &kp;
 }
 
 void KillPoint::TestKillRandom(std::string kill_point, int odds_weight,
                                const std::string& srcfile, int srcline) {
+  DBUG_TRACE;
   if (rocksdb_kill_odds <= 0) {
     return;
   }
@@ -39,6 +42,7 @@ void KillPoint::TestKillRandom(std::string kill_point, int odds_weight,
 
 void SyncPoint::Data::LoadDependency(
     const std::vector<SyncPointPair>& dependencies) {
+  DBUG_TRACE;
   std::lock_guard<std::mutex> lock(mutex_);
   successors_.clear();
   predecessors_.clear();
@@ -55,6 +59,7 @@ void SyncPoint::Data::LoadDependency(
 void SyncPoint::Data::LoadDependencyAndMarkers(
     const std::vector<SyncPointPair>& dependencies,
     const std::vector<SyncPointPair>& markers) {
+  DBUG_TRACE;
   std::lock_guard<std::mutex> lock(mutex_);
   successors_.clear();
   predecessors_.clear();
@@ -78,6 +83,7 @@ void SyncPoint::Data::LoadDependencyAndMarkers(
 }
 
 bool SyncPoint::Data::PredecessorsAllCleared(const std::string& point) {
+  DBUG_TRACE;
   for (const auto& pred : predecessors_[point]) {
     if (cleared_points_.count(pred) == 0) {
       return false;
@@ -87,6 +93,7 @@ bool SyncPoint::Data::PredecessorsAllCleared(const std::string& point) {
 }
 
 void SyncPoint::Data::ClearCallBack(const std::string& point) {
+  DBUG_TRACE;
   std::unique_lock<std::mutex> lock(mutex_);
   while (num_callbacks_running_ > 0) {
     cv_.wait(lock);
@@ -95,6 +102,7 @@ void SyncPoint::Data::ClearCallBack(const std::string& point) {
 }
 
 void SyncPoint::Data::ClearAllCallBacks() {
+  DBUG_TRACE;
   std::unique_lock<std::mutex> lock(mutex_);
   while (num_callbacks_running_ > 0) {
     cv_.wait(lock);
@@ -103,6 +111,7 @@ void SyncPoint::Data::ClearAllCallBacks() {
 }
 
 void SyncPoint::Data::Process(const Slice& point, void* cb_arg) {
+  DBUG_TRACE;
   if (!enabled_) {
     return;
   }

@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #ifndef OS_WIN
 
 #include "utilities/transactions/lock/range/range_tree/range_tree_lock_manager.h"
@@ -26,6 +27,7 @@ namespace ROCKSDB_NAMESPACE {
 
 RangeLockManagerHandle* NewRangeLockManager(
     std::shared_ptr<TransactionDBMutexFactory> mutex_factory) {
+  DBUG_TRACE;
   std::shared_ptr<TransactionDBMutexFactory> use_factory;
 
   if (mutex_factory) {
@@ -42,6 +44,7 @@ static const char SUFFIX_SUPREMUM = 0x1;
 // Convert Endpoint into an internal format used for storing it in locktree
 // (DBT structure is used for passing endpoints to locktree and getting back)
 void serialize_endpoint(const Endpoint& endp, std::string* buf) {
+  DBUG_TRACE;
   buf->push_back(endp.inf_suffix ? SUFFIX_SUPREMUM : SUFFIX_INFIMUM);
   buf->append(endp.slice.data(), endp.slice.size());
 }
@@ -64,6 +67,7 @@ Status RangeTreeLockManager::TryLock(PessimisticTransaction* txn,
                                      const Endpoint& start_endp,
                                      const Endpoint& end_endp, Env*,
                                      bool exclusive) {
+  DBUG_TRACE;
   toku::lock_request request;
   request.create(mutex_factory_);
   DBT start_key_dbt, end_key_dbt;
@@ -148,6 +152,7 @@ Status RangeTreeLockManager::TryLock(PessimisticTransaction* txn,
 // Wait callback that locktree library will call to inform us about
 // the lock waits that are in progress.
 void wait_callback_for_locktree(void*, toku::lock_wait_infos* infos) {
+  DBUG_TRACE;
   TEST_SYNC_POINT("RangeTreeLockManager::TryRangeLock:EnterWaitingTxn");
   for (const auto& wait_info : *infos) {
     // As long as we hold the lock on the locktree's pending request queue
@@ -169,6 +174,7 @@ void wait_callback_for_locktree(void*, toku::lock_wait_infos* infos) {
 void RangeTreeLockManager::UnLock(PessimisticTransaction* txn,
                                   ColumnFamilyId column_family_id,
                                   const std::string& key, Env*) {
+  DBUG_TRACE;
   auto locktree = GetLockTreeForCF(column_family_id);
   std::string endp_image;
   serialize_endpoint({key.data(), key.size(), false}, &endp_image);
@@ -189,6 +195,7 @@ void RangeTreeLockManager::UnLock(PessimisticTransaction* txn,
 
 void RangeTreeLockManager::UnLock(PessimisticTransaction* txn,
                                   const LockTracker& tracker, Env*) {
+  DBUG_TRACE;
   const RangeTreeLockTracker* range_tracker =
       static_cast<const RangeTreeLockTracker*>(&tracker);
 
@@ -203,6 +210,7 @@ void RangeTreeLockManager::UnLock(PessimisticTransaction* txn,
 
 int RangeTreeLockManager::CompareDbtEndpoints(void* arg, const DBT* a_key,
                                               const DBT* b_key) {
+  DBUG_TRACE;
   const char* a = (const char*)a_key->data;
   const char* b = (const char*)b_key->data;
 
@@ -249,6 +257,7 @@ int RangeTreeLockManager::CompareDbtEndpoints(void* arg, const DBT* a_key,
 
 namespace {
 void UnrefLockTreeMapsCache(void* ptr) {
+  DBUG_TRACE;
   // Called when a thread exits or a ThreadLocalPtr gets destroyed.
   auto lock_tree_map_cache = static_cast<
       std::unordered_map<ColumnFamilyId, std::shared_ptr<toku::locktree>>*>(
@@ -266,6 +275,7 @@ RangeTreeLockManager::RangeTreeLockManager(
 }
 
 int RangeTreeLockManager::on_create(toku::locktree* lt, void* arg) {
+  DBUG_TRACE;
   // arg is a pointer to RangeTreeLockManager
   lt->set_escalation_barrier_func(&OnEscalationBarrierCheck, arg);
   return 0;
@@ -273,6 +283,7 @@ int RangeTreeLockManager::on_create(toku::locktree* lt, void* arg) {
 
 bool RangeTreeLockManager::OnEscalationBarrierCheck(const DBT* a, const DBT* b,
                                                     void* extra) {
+  DBUG_TRACE;
   Endpoint a_endp, b_endp;
   deserialize_endpoint(a, &a_endp);
   deserialize_endpoint(b, &b_endp);
@@ -282,19 +293,23 @@ bool RangeTreeLockManager::OnEscalationBarrierCheck(const DBT* a, const DBT* b,
 
 void RangeTreeLockManager::SetRangeDeadlockInfoBufferSize(
     uint32_t target_size) {
+  DBUG_TRACE;
   dlock_buffer_.Resize(target_size);
 }
 
 void RangeTreeLockManager::Resize(uint32_t target_size) {
+  DBUG_TRACE;
   SetRangeDeadlockInfoBufferSize(target_size);
 }
 
 std::vector<RangeDeadlockPath>
 RangeTreeLockManager::GetRangeDeadlockInfoBuffer() {
+  DBUG_TRACE;
   return dlock_buffer_.PrepareBuffer();
 }
 
 std::vector<DeadlockPath> RangeTreeLockManager::GetDeadlockInfoBuffer() {
+  DBUG_TRACE;
   std::vector<DeadlockPath> res;
   std::vector<RangeDeadlockPath> data = GetRangeDeadlockInfoBuffer();
   // report left endpoints
@@ -320,6 +335,7 @@ std::vector<DeadlockPath> RangeTreeLockManager::GetDeadlockInfoBuffer() {
 void RangeTreeLockManager::on_escalate(TXNID txnid, const toku::locktree* lt,
                                        const toku::range_buffer& buffer,
                                        void*) {
+  DBUG_TRACE;
   auto txn = (PessimisticTransaction*)txnid;
   ((RangeTreeLockTracker*)&txn->GetTrackedLocks())->ReplaceLocks(lt, buffer);
 }
@@ -335,6 +351,7 @@ RangeTreeLockManager::~RangeTreeLockManager() {
 }
 
 RangeLockManagerHandle::Counters RangeTreeLockManager::GetStatus() {
+  DBUG_TRACE;
   LTM_STATUS_S ltm_status_test;
   ltm_.get_status(&ltm_status_test);
   Counters res;
@@ -361,12 +378,14 @@ RangeLockManagerHandle::Counters RangeTreeLockManager::GetStatus() {
 
 std::shared_ptr<toku::locktree> RangeTreeLockManager::MakeLockTreePtr(
     toku::locktree* lt) {
+  DBUG_TRACE;
   toku::locktree_manager* ltm = &ltm_;
   return std::shared_ptr<toku::locktree>(
       lt, [ltm](toku::locktree* p) { ltm->release_lt(p); });
 }
 
 void RangeTreeLockManager::AddColumnFamily(const ColumnFamilyHandle* cfh) {
+  DBUG_TRACE;
   uint32_t column_family_id = cfh->GetID();
 
   InstrumentedMutexLock l(&ltree_map_mutex_);
@@ -385,6 +404,7 @@ void RangeTreeLockManager::AddColumnFamily(const ColumnFamilyHandle* cfh) {
 }
 
 void RangeTreeLockManager::RemoveColumnFamily(const ColumnFamilyHandle* cfh) {
+  DBUG_TRACE;
   uint32_t column_family_id = cfh->GetID();
   // Remove lock_map for this column family.  Since the lock map is stored
   // as a shared ptr, concurrent transactions can still keep using it
@@ -421,6 +441,7 @@ void RangeTreeLockManager::RemoveColumnFamily(const ColumnFamilyHandle* cfh) {
 
 std::shared_ptr<toku::locktree> RangeTreeLockManager::GetLockTreeForCF(
     ColumnFamilyId column_family_id) {
+  DBUG_TRACE;
   // First check thread-local cache
   if (ltree_lookup_cache_->Get() == nullptr) {
     ltree_lookup_cache_->Reset(new LockTreeMap());
@@ -454,6 +475,7 @@ struct LOCK_PRINT_CONTEXT {
 
 // Report left endpoints of the acquired locks
 LockManager::PointLockStatus RangeTreeLockManager::GetPointLockStatus() {
+  DBUG_TRACE;
   PointLockStatus res;
   LockManager::RangeLockStatus data = GetRangeLockStatus();
   // report left endpoints
@@ -467,6 +489,7 @@ LockManager::PointLockStatus RangeTreeLockManager::GetPointLockStatus() {
 static void push_into_lock_status_data(void* param, const DBT* left,
                                        const DBT* right, TXNID txnid_arg,
                                        bool is_shared, TxnidVector* owners) {
+  DBUG_TRACE;
   struct LOCK_PRINT_CONTEXT* ctx = (LOCK_PRINT_CONTEXT*)param;
   struct RangeLockInfo info;
 
@@ -486,6 +509,7 @@ static void push_into_lock_status_data(void* param, const DBT* left,
 }
 
 LockManager::RangeLockStatus RangeTreeLockManager::GetRangeLockStatus() {
+  DBUG_TRACE;
   LockManager::RangeLockStatus data;
   {
     InstrumentedMutexLock l(&ltree_map_mutex_);

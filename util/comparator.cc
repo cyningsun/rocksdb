@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/comparator.h"
 
 #include <algorithm>
@@ -30,17 +31,19 @@ namespace {
 class BytewiseComparatorImpl : public Comparator {
  public:
   BytewiseComparatorImpl() = default;
-  static const char* kClassName() { return "leveldb.BytewiseComparator"; }
-  const char* Name() const override { return kClassName(); }
+  static const char* kClassName() { DBUG_TRACE; return "leveldb.BytewiseComparator"; }
+  const char* Name() const override { DBUG_TRACE; return kClassName(); }
 
   int Compare(const Slice& a, const Slice& b) const override {
+    DBUG_TRACE;
     return a.compare(b);
   }
 
-  bool Equal(const Slice& a, const Slice& b) const override { return a == b; }
+  bool Equal(const Slice& a, const Slice& b) const override { DBUG_TRACE; return a == b; }
 
   void FindShortestSeparator(std::string* start,
                              const Slice& limit) const override {
+    DBUG_TRACE;
     // Find length of common prefix
     size_t min_length = std::min(start->size(), limit.size());
     size_t diff_index = 0;
@@ -91,6 +94,7 @@ class BytewiseComparatorImpl : public Comparator {
   }
 
   void FindShortSuccessor(std::string* key) const override {
+    DBUG_TRACE;
     // Find first character that can be incremented
     size_t n = key->size();
     for (size_t i = 0; i < n; i++) {
@@ -106,6 +110,7 @@ class BytewiseComparatorImpl : public Comparator {
 
   bool IsSameLengthImmediateSuccessor(const Slice& s,
                                       const Slice& t) const override {
+    DBUG_TRACE;
     if (s.size() != t.size() || s.size() == 0) {
       return false;
     }
@@ -133,16 +138,19 @@ class BytewiseComparatorImpl : public Comparator {
   }
 
   bool CanKeysWithDifferentByteContentsBeEqual() const override {
+    DBUG_TRACE;
     return false;
   }
 
   using Comparator::CompareWithoutTimestamp;
   int CompareWithoutTimestamp(const Slice& a, bool /*a_has_ts*/, const Slice& b,
                               bool /*b_has_ts*/) const override {
+    DBUG_TRACE;
     return a.compare(b);
   }
 
   bool EqualWithoutTimestamp(const Slice& a, const Slice& b) const override {
+    DBUG_TRACE;
     return a == b;
   }
 };
@@ -152,16 +160,19 @@ class ReverseBytewiseComparatorImpl : public BytewiseComparatorImpl {
   ReverseBytewiseComparatorImpl() = default;
 
   static const char* kClassName() {
+    DBUG_TRACE;
     return "rocksdb.ReverseBytewiseComparator";
   }
-  const char* Name() const override { return kClassName(); }
+  const char* Name() const override { DBUG_TRACE; return kClassName(); }
 
   int Compare(const Slice& a, const Slice& b) const override {
+    DBUG_TRACE;
     return -a.compare(b);
   }
 
   void FindShortestSeparator(std::string* start,
                              const Slice& limit) const override {
+    DBUG_TRACE;
     // Find length of common prefix
     size_t min_length = std::min(start->size(), limit.size());
     size_t diff_index = 0;
@@ -208,11 +219,13 @@ class ReverseBytewiseComparatorImpl : public BytewiseComparatorImpl {
   }
 
   void FindShortSuccessor(std::string* /*key*/) const override {
+    DBUG_TRACE;
     // Don't do anything for simplicity.
   }
 
   bool IsSameLengthImmediateSuccessor(const Slice& s,
                                       const Slice& t) const override {
+    DBUG_TRACE;
     // Always returning false to prevent surfacing design flaws in
     // auto_prefix_mode
     (void)s, (void)t;
@@ -222,12 +235,14 @@ class ReverseBytewiseComparatorImpl : public BytewiseComparatorImpl {
   }
 
   bool CanKeysWithDifferentByteContentsBeEqual() const override {
+    DBUG_TRACE;
     return false;
   }
 
   using Comparator::CompareWithoutTimestamp;
   int CompareWithoutTimestamp(const Slice& a, bool /*a_has_ts*/, const Slice& b,
                               bool /*b_has_ts*/) const override {
+    DBUG_TRACE;
     return -a.compare(b);
   }
 };
@@ -245,21 +260,24 @@ class ComparatorWithU64TsImpl : public Comparator {
   }
 
   static const char* kClassName() {
+    DBUG_TRACE;
     static std::string class_name = kClassNameInternal();
     return class_name.c_str();
   }
 
-  const char* Name() const override { return kClassName(); }
+  const char* Name() const override { DBUG_TRACE; return kClassName(); }
 
   // The comparator that compares the user key without timestamp part is treated
   // as the root comparator.
   const Comparator* GetRootComparator() const override {
+    DBUG_TRACE;
     return &cmp_without_ts_;
   }
 
-  void FindShortSuccessor(std::string*) const override {}
-  void FindShortestSeparator(std::string*, const Slice&) const override {}
+  void FindShortSuccessor(std::string*) const override {DBUG_TRACE;}
+  void FindShortestSeparator(std::string*, const Slice&) const override {DBUG_TRACE;}
   int Compare(const Slice& a, const Slice& b) const override {
+    DBUG_TRACE;
     int ret = CompareWithoutTimestamp(a, b);
     size_t ts_sz = timestamp_size();
     if (ret != 0) {
@@ -272,11 +290,12 @@ class ComparatorWithU64TsImpl : public Comparator {
                              ExtractTimestampFromUserKey(b, ts_sz));
   }
 
-  Slice GetMaxTimestamp() const override { return MaxU64Ts(); }
+  Slice GetMaxTimestamp() const override { DBUG_TRACE; return MaxU64Ts(); }
 
-  Slice GetMinTimestamp() const override { return MinU64Ts(); }
+  Slice GetMinTimestamp() const override { DBUG_TRACE; return MinU64Ts(); }
 
   std::string TimestampToString(const Slice& timestamp) const override {
+    DBUG_TRACE;
     assert(timestamp.size() == sizeof(uint64_t));
     uint64_t ts = 0;
     DecodeU64Ts(timestamp, &ts).PermitUncheckedError();
@@ -286,6 +305,7 @@ class ComparatorWithU64TsImpl : public Comparator {
   using Comparator::CompareWithoutTimestamp;
   int CompareWithoutTimestamp(const Slice& a, bool a_has_ts, const Slice& b,
                               bool b_has_ts) const override {
+    DBUG_TRACE;
     const size_t ts_sz = timestamp_size();
     assert(!a_has_ts || a.size() >= ts_sz);
     assert(!b_has_ts || b.size() >= ts_sz);
@@ -294,6 +314,7 @@ class ComparatorWithU64TsImpl : public Comparator {
     return cmp_without_ts_.Compare(lhs, rhs);
   }
   int CompareTimestamp(const Slice& ts1, const Slice& ts2) const override {
+    DBUG_TRACE;
     assert(ts1.size() == sizeof(uint64_t));
     assert(ts2.size() == sizeof(uint64_t));
     uint64_t lhs = DecodeFixed64(ts1.data());
@@ -309,6 +330,7 @@ class ComparatorWithU64TsImpl : public Comparator {
 
  private:
   static std::string kClassNameInternal() {
+    DBUG_TRACE;
     std::stringstream ss;
     ss << TComparator::kClassName() << ".u64ts";
     return ss.str();
@@ -320,28 +342,33 @@ class ComparatorWithU64TsImpl : public Comparator {
 }  // namespace
 
 const Comparator* BytewiseComparator() {
+  DBUG_TRACE;
   STATIC_AVOID_DESTRUCTION(BytewiseComparatorImpl, bytewise);
   return &bytewise;
 }
 
 const Comparator* ReverseBytewiseComparator() {
+  DBUG_TRACE;
   STATIC_AVOID_DESTRUCTION(ReverseBytewiseComparatorImpl, rbytewise);
   return &rbytewise;
 }
 
 const Comparator* BytewiseComparatorWithU64Ts() {
+  DBUG_TRACE;
   STATIC_AVOID_DESTRUCTION(ComparatorWithU64TsImpl<BytewiseComparatorImpl>,
                            comp_with_u64_ts);
   return &comp_with_u64_ts;
 }
 
 const Comparator* ReverseBytewiseComparatorWithU64Ts() {
+  DBUG_TRACE;
   STATIC_AVOID_DESTRUCTION(
       ComparatorWithU64TsImpl<ReverseBytewiseComparatorImpl>, comp_with_u64_ts);
   return &comp_with_u64_ts;
 }
 
 Status DecodeU64Ts(const Slice& ts, uint64_t* int_ts) {
+  DBUG_TRACE;
   if (ts.size() != sizeof(uint64_t)) {
     return Status::InvalidArgument("U64Ts timestamp size mismatch.");
   }
@@ -350,6 +377,7 @@ Status DecodeU64Ts(const Slice& ts, uint64_t* int_ts) {
 }
 
 Slice EncodeU64Ts(uint64_t ts, std::string* ts_buf) {
+  DBUG_TRACE;
   char buf[sizeof(ts)];
   EncodeFixed64(buf, ts);
   ts_buf->assign(buf, sizeof(buf));
@@ -368,6 +396,7 @@ Slice MinU64Ts() {
 
 static int RegisterBuiltinComparators(ObjectLibrary& library,
                                       const std::string& /*arg*/) {
+  DBUG_TRACE;
   library.AddFactory<const Comparator>(
       BytewiseComparatorImpl::kClassName(),
       [](const std::string& /*uri*/,
@@ -396,6 +425,7 @@ static int RegisterBuiltinComparators(ObjectLibrary& library,
 Status Comparator::CreateFromString(const ConfigOptions& config_options,
                                     const std::string& value,
                                     const Comparator** result) {
+  DBUG_TRACE;
   static std::once_flag once;
   std::call_once(once, [&]() {
     RegisterBuiltinComparators(*(ObjectLibrary::Default().get()), "");

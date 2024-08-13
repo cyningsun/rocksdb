@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 //
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/file_system.h"
 
 #include "env/composite_env_wrapper.h"
@@ -28,6 +29,7 @@ FileSystem::~FileSystem() = default;
 
 static int RegisterBuiltinFileSystems(ObjectLibrary& library,
                                       const std::string& /*arg*/) {
+  DBUG_TRACE;
   library.AddFactory<FileSystem>(
       TimedFileSystem::kClassName(),
       [](const std::string& /*uri*/, std::unique_ptr<FileSystem>* guard,
@@ -82,6 +84,7 @@ static int RegisterBuiltinFileSystems(ObjectLibrary& library,
 Status FileSystem::CreateFromString(const ConfigOptions& config_options,
                                     const std::string& value,
                                     std::shared_ptr<FileSystem>* result) {
+  DBUG_TRACE;
   auto default_fs = FileSystem::Default();
   if (default_fs->IsInstanceOf(value)) {
     *result = default_fs;
@@ -100,6 +103,7 @@ IOStatus FileSystem::ReuseWritableFile(const std::string& fname,
                                        const FileOptions& opts,
                                        std::unique_ptr<FSWritableFile>* result,
                                        IODebugContext* dbg) {
+  DBUG_TRACE;
   IOStatus s = RenameFile(old_fname, fname, opts.io_options, dbg);
   if (!s.ok()) {
     return s;
@@ -111,6 +115,7 @@ IOStatus FileSystem::NewLogger(const std::string& fname,
                                const IOOptions& io_opts,
                                std::shared_ptr<Logger>* result,
                                IODebugContext* dbg) {
+  DBUG_TRACE;
   FileOptions options;
   options.io_options = io_opts;
   // TODO: Tune the buffer size.
@@ -128,6 +133,7 @@ IOStatus FileSystem::NewLogger(const std::string& fname,
 
 FileOptions FileSystem::OptimizeForLogRead(
     const FileOptions& file_options) const {
+  DBUG_TRACE;
   FileOptions optimized_file_options(file_options);
   optimized_file_options.use_direct_reads = false;
   return optimized_file_options;
@@ -135,6 +141,7 @@ FileOptions FileSystem::OptimizeForLogRead(
 
 FileOptions FileSystem::OptimizeForManifestRead(
     const FileOptions& file_options) const {
+  DBUG_TRACE;
   FileOptions optimized_file_options(file_options);
   optimized_file_options.use_direct_reads = false;
   return optimized_file_options;
@@ -142,6 +149,7 @@ FileOptions FileSystem::OptimizeForManifestRead(
 
 FileOptions FileSystem::OptimizeForLogWrite(const FileOptions& file_options,
                                             const DBOptions& db_options) const {
+  DBUG_TRACE;
   FileOptions optimized_file_options(file_options);
   optimized_file_options.bytes_per_sync = db_options.wal_bytes_per_sync;
   optimized_file_options.writable_file_max_buffer_size =
@@ -151,12 +159,14 @@ FileOptions FileSystem::OptimizeForLogWrite(const FileOptions& file_options,
 
 FileOptions FileSystem::OptimizeForManifestWrite(
     const FileOptions& file_options) const {
+  DBUG_TRACE;
   return file_options;
 }
 
 FileOptions FileSystem::OptimizeForCompactionTableWrite(
     const FileOptions& file_options,
     const ImmutableDBOptions& db_options) const {
+  DBUG_TRACE;
   FileOptions optimized_file_options(file_options);
   optimized_file_options.use_direct_writes =
       db_options.use_direct_io_for_flush_and_compaction;
@@ -166,6 +176,7 @@ FileOptions FileSystem::OptimizeForCompactionTableWrite(
 FileOptions FileSystem::OptimizeForCompactionTableRead(
     const FileOptions& file_options,
     const ImmutableDBOptions& db_options) const {
+  DBUG_TRACE;
   FileOptions optimized_file_options(file_options);
   optimized_file_options.use_direct_reads = db_options.use_direct_reads;
   return optimized_file_options;
@@ -174,6 +185,7 @@ FileOptions FileSystem::OptimizeForCompactionTableRead(
 FileOptions FileSystem::OptimizeForBlobFileRead(
     const FileOptions& file_options,
     const ImmutableDBOptions& db_options) const {
+  DBUG_TRACE;
   FileOptions optimized_file_options(file_options);
   optimized_file_options.use_direct_reads = db_options.use_direct_reads;
   return optimized_file_options;
@@ -182,6 +194,7 @@ FileOptions FileSystem::OptimizeForBlobFileRead(
 IOStatus WriteStringToFile(FileSystem* fs, const Slice& data,
                            const std::string& fname, bool should_sync,
                            const IOOptions& io_options) {
+  DBUG_TRACE;
   std::unique_ptr<FSWritableFile> file;
   EnvOptions soptions;
   IOStatus s = fs->NewWritableFile(fname, soptions, &file, nullptr);
@@ -200,6 +213,7 @@ IOStatus WriteStringToFile(FileSystem* fs, const Slice& data,
 
 IOStatus ReadFileToString(FileSystem* fs, const std::string& fname,
                           std::string* data) {
+  DBUG_TRACE;
   FileOptions soptions;
   data->clear();
   std::unique_ptr<FSSequentialFile> file;
@@ -238,6 +252,7 @@ FileSystemWrapper::FileSystemWrapper(const std::shared_ptr<FileSystem>& t)
 }
 
 Status FileSystemWrapper::PrepareOptions(const ConfigOptions& options) {
+  DBUG_TRACE;
   if (target_ == nullptr) {
     target_ = FileSystem::Default();
   }
@@ -246,6 +261,7 @@ Status FileSystemWrapper::PrepareOptions(const ConfigOptions& options) {
 
 std::string FileSystemWrapper::SerializeOptions(
     const ConfigOptions& config_options, const std::string& header) const {
+  DBUG_TRACE;
   auto parent = FileSystem::SerializeOptions(config_options, "");
   if (config_options.IsShallow() || target_ == nullptr ||
       target_->IsInstanceOf(FileSystem::kDefaultName())) {

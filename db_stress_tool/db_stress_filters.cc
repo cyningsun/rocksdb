@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "db_stress_tool/db_stress_filters.h"
 
 #include <memory>
@@ -21,10 +22,11 @@ using experimental::SstQueryFilterConfigsManager;
 namespace {
 class VariableWidthExtractor : public KeySegmentsExtractor {
  public:
-  const char* Name() const override { return "VariableWidthExtractor"; }
+  const char* Name() const override { DBUG_TRACE; return "VariableWidthExtractor"; }
 
   void Extract(const Slice& key_or_bound, KeyKind /*kind*/,
                Result* result) const override {
+    DBUG_TRACE;
     uint32_t len = static_cast<uint32_t>(key_or_bound.size());
     // This uses as delimiter any zero byte that follows a non-zero byte.
     // And in accordance with best practice, the delimiter is part of the
@@ -41,10 +43,11 @@ class VariableWidthExtractor : public KeySegmentsExtractor {
 const auto kVariableWidthExtractor = std::make_shared<VariableWidthExtractor>();
 class FixedWidthExtractor : public KeySegmentsExtractor {
  public:
-  const char* Name() const override { return "FixedWidthExtractor"; }
+  const char* Name() const override { DBUG_TRACE; return "FixedWidthExtractor"; }
 
   void Extract(const Slice& key_or_bound, KeyKind /*kind*/,
                Result* result) const override {
+    DBUG_TRACE;
     uint32_t len = static_cast<uint32_t>(key_or_bound.size());
     // Fixed 8-byte segments, with any leftovers going into another
     // segment.
@@ -78,6 +81,7 @@ const SstQueryFilterConfigsManager::Data data = {
 }  // namespace
 
 SstQueryFilterConfigsManager& DbStressSqfcManager() {
+  DBUG_TRACE;
   std::once_flag flag;
   static std::shared_ptr<SstQueryFilterConfigsManager> mgr;
   std::call_once(flag, []() {

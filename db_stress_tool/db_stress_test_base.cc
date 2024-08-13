@@ -8,6 +8,7 @@
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 //
 
+#include "rocksdb/util/dbug.h"
 #include <ios>
 #include <thread>
 
@@ -42,6 +43,7 @@ namespace ROCKSDB_NAMESPACE {
 namespace {
 
 std::shared_ptr<const FilterPolicy> CreateFilterPolicy() {
+  DBUG_TRACE;
   if (FLAGS_bloom_bits < 0) {
     return BlockBasedTableOptions().filter_policy;
   }
@@ -104,6 +106,7 @@ StressTest::StressTest()
 }
 
 void StressTest::CleanUp() {
+  DBUG_TRACE;
   for (auto cf : column_families_) {
     delete cf;
   }
@@ -123,6 +126,7 @@ void StressTest::CleanUp() {
 
 std::shared_ptr<Cache> StressTest::NewCache(size_t capacity,
                                             int32_t num_shard_bits) {
+  DBUG_TRACE;
   ConfigOptions config_options;
   if (capacity <= 0) {
     return nullptr;
@@ -254,6 +258,7 @@ std::shared_ptr<Cache> StressTest::NewCache(size_t capacity,
 }
 
 std::vector<std::string> StressTest::GetBlobCompressionTags() {
+  DBUG_TRACE;
   std::vector<std::string> compression_tags{"kNoCompression"};
 
   if (Snappy_Supported()) {
@@ -270,6 +275,7 @@ std::vector<std::string> StressTest::GetBlobCompressionTags() {
 }
 
 bool StressTest::BuildOptionsTable() {
+  DBUG_TRACE;
   if (FLAGS_set_options_one_in <= 0) {
     return true;
   }
@@ -409,6 +415,7 @@ bool StressTest::BuildOptionsTable() {
 }
 
 void StressTest::InitDb(SharedState* shared) {
+  DBUG_TRACE;
   uint64_t now = clock_->NowMicros();
   fprintf(stdout, "%s Initializing db_stress\n",
           clock_->TimeToString(now / 1000000).c_str());
@@ -418,6 +425,7 @@ void StressTest::InitDb(SharedState* shared) {
 }
 
 void StressTest::FinishInitDb(SharedState* shared) {
+  DBUG_TRACE;
   if (FLAGS_read_only) {
     uint64_t now = clock_->NowMicros();
     fprintf(stdout, "%s Preloading db with %" PRIu64 " KVs\n",
@@ -460,6 +468,7 @@ void StressTest::FinishInitDb(SharedState* shared) {
 }
 
 void StressTest::TrackExpectedState(SharedState* shared) {
+  DBUG_TRACE;
   // When data loss is simulated, recovery from potential data loss is a prefix
   // recovery that requires tracing
   if (MightHaveUnsyncedDataLoss() && IsStateTracked()) {
@@ -474,6 +483,7 @@ void StressTest::TrackExpectedState(SharedState* shared) {
 
 Status StressTest::AssertSame(DB* db, ColumnFamilyHandle* cf,
                               ThreadState::SnapshotState& snap_state) {
+  DBUG_TRACE;
   Status s;
   if (cf->GetName() != snap_state.cf_at_name) {
     return s;
@@ -539,6 +549,7 @@ Status StressTest::AssertSame(DB* db, ColumnFamilyHandle* cf,
 void StressTest::ProcessStatus(SharedState* shared, std::string opname,
                                const Status& s,
                                bool ignore_injected_error) const {
+  DBUG_TRACE;
   if (s.ok()) {
     return;
   }
@@ -551,12 +562,14 @@ void StressTest::ProcessStatus(SharedState* shared, std::string opname,
 }
 
 void StressTest::VerificationAbort(SharedState* shared, std::string msg) const {
+  DBUG_TRACE;
   fprintf(stderr, "Verification failed: %s\n", msg.c_str());
   shared->SetVerificationFailure();
 }
 
 void StressTest::VerificationAbort(SharedState* shared, std::string msg, int cf,
                                    int64_t key) const {
+  DBUG_TRACE;
   auto key_str = Key(key);
   Slice key_slice = key_str;
   fprintf(stderr,
@@ -568,6 +581,7 @@ void StressTest::VerificationAbort(SharedState* shared, std::string msg, int cf,
 void StressTest::VerificationAbort(SharedState* shared, std::string msg, int cf,
                                    int64_t key, Slice value_from_db,
                                    Slice value_from_expected) const {
+  DBUG_TRACE;
   auto key_str = Key(key);
   fprintf(stderr,
           "Verification failed for column family %d key %s (%" PRIi64
@@ -581,6 +595,7 @@ void StressTest::VerificationAbort(SharedState* shared, std::string msg, int cf,
 void StressTest::VerificationAbort(SharedState* shared, int cf, int64_t key,
                                    const Slice& value,
                                    const WideColumns& columns) const {
+  DBUG_TRACE;
   assert(shared);
 
   auto key_str = Key(key);
@@ -597,6 +612,7 @@ void StressTest::VerificationAbort(SharedState* shared, int cf, int64_t key,
 
 std::string StressTest::DebugString(const Slice& value,
                                     const WideColumns& columns) {
+  DBUG_TRACE;
   std::ostringstream oss;
 
   oss << "value: " << value.ToString(/* hex */ true)
@@ -606,6 +622,7 @@ std::string StressTest::DebugString(const Slice& value,
 }
 
 void StressTest::PrintStatistics() {
+  DBUG_TRACE;
   if (dbstats) {
     fprintf(stdout, "STATISTICS:\n%s\n", dbstats->ToString().c_str());
   }
@@ -618,6 +635,7 @@ void StressTest::PrintStatistics() {
 // Currently PreloadDb has to be single-threaded.
 void StressTest::PreloadDbAndReopenAsReadOnly(int64_t number_of_keys,
                                               SharedState* shared) {
+  DBUG_TRACE;
   WriteOptions write_opts;
   write_opts.disableWAL = FLAGS_disable_wal;
   if (FLAGS_sync) {
@@ -726,6 +744,7 @@ void StressTest::PreloadDbAndReopenAsReadOnly(int64_t number_of_keys,
 }
 
 Status StressTest::SetOptions(ThreadState* thread) {
+  DBUG_TRACE;
   assert(FLAGS_set_options_one_in > 0);
   std::unordered_map<std::string, std::string> opts;
   std::string name =
@@ -750,6 +769,7 @@ Status StressTest::SetOptions(ThreadState* thread) {
 }
 
 void StressTest::ProcessRecoveredPreparedTxns(SharedState* shared) {
+  DBUG_TRACE;
   assert(txn_db_);
   std::vector<Transaction*> recovered_prepared_trans;
   txn_db_->GetAllPreparedTransactions(&recovered_prepared_trans);
@@ -764,6 +784,7 @@ void StressTest::ProcessRecoveredPreparedTxns(SharedState* shared) {
 
 void StressTest::ProcessRecoveredPreparedTxnsHelper(Transaction* txn,
                                                     SharedState* shared) {
+  DBUG_TRACE;
   thread_local Random rand(static_cast<uint32_t>(FLAGS_seed));
   for (size_t i = 0; i < column_families_.size(); ++i) {
     std::unique_ptr<WBWIIterator> wbwi_iter(
@@ -786,6 +807,7 @@ void StressTest::ProcessRecoveredPreparedTxnsHelper(Transaction* txn,
 
 Status StressTest::NewTxn(WriteOptions& write_opts,
                           std::unique_ptr<Transaction>* out_txn) {
+  DBUG_TRACE;
   if (!FLAGS_use_txn) {
     return Status::InvalidArgument("NewTxn when FLAGS_use_txn is not set");
   }
@@ -858,6 +880,7 @@ Status StressTest::CommitTxn(Transaction& txn, ThreadState* thread) {
 Status StressTest::ExecuteTransaction(
     WriteOptions& write_opts, ThreadState* thread,
     std::function<Status(Transaction&)>&& ops) {
+  DBUG_TRACE;
   std::unique_ptr<Transaction> txn;
   Status s = NewTxn(write_opts, &txn);
   std::string try_again_messages;
@@ -1444,6 +1467,7 @@ std::vector<std::string> StressTest::GetWhiteBoxKeys(ThreadState* thread,
                                                      DB* db,
                                                      ColumnFamilyHandle* cfh,
                                                      size_t num_keys) {
+  DBUG_TRACE;
   ColumnFamilyMetaData cfmd;
   db->GetColumnFamilyMetaData(cfh, &cfmd);
   std::vector<std::string> boundaries;
@@ -1503,6 +1527,7 @@ Status StressTest::TestIterate(ThreadState* thread,
                                const ReadOptions& read_opts,
                                const std::vector<int>& rand_column_families,
                                const std::vector<int64_t>& rand_keys) {
+  DBUG_TRACE;
   auto new_iter_func = [&rand_column_families, this](const ReadOptions& ro) {
     if (FLAGS_use_multi_cf_iterator) {
       std::vector<ColumnFamilyHandle*> cfhs;
@@ -1539,6 +1564,7 @@ Status StressTest::TestIterateAttributeGroups(
     ThreadState* thread, const ReadOptions& read_opts,
     const std::vector<int>& rand_column_families,
     const std::vector<int64_t>& rand_keys) {
+  DBUG_TRACE;
   auto new_iter_func = [&rand_column_families, this](const ReadOptions& ro) {
     assert(FLAGS_use_multi_cf_iterator);
     std::vector<ColumnFamilyHandle*> cfhs;
@@ -1786,35 +1812,41 @@ Status StressTest::TestIterateImpl(ThreadState* thread,
 }
 
 Status StressTest::TestGetLiveFiles() const {
+  DBUG_TRACE;
   std::vector<std::string> live_file;
   uint64_t manifest_size = 0;
   return db_->GetLiveFiles(live_file, &manifest_size);
 }
 
 Status StressTest::TestGetLiveFilesMetaData() const {
+  DBUG_TRACE;
   std::vector<LiveFileMetaData> live_file_metadata;
   db_->GetLiveFilesMetaData(&live_file_metadata);
   return Status::OK();
 }
 
 Status StressTest::TestGetLiveFilesStorageInfo() const {
+  DBUG_TRACE;
   std::vector<LiveFileStorageInfo> live_file_storage_info;
   return db_->GetLiveFilesStorageInfo(LiveFilesStorageInfoOptions(),
                                       &live_file_storage_info);
 }
 
 Status StressTest::TestGetAllColumnFamilyMetaData() const {
+  DBUG_TRACE;
   std::vector<ColumnFamilyMetaData> all_cf_metadata;
   db_->GetAllColumnFamilyMetaData(&all_cf_metadata);
   return Status::OK();
 }
 
 Status StressTest::TestGetSortedWalFiles() const {
+  DBUG_TRACE;
   VectorWalPtr log_ptr;
   return db_->GetSortedWalFiles(log_ptr);
 }
 
 Status StressTest::TestGetCurrentWalFile() const {
+  DBUG_TRACE;
   std::unique_ptr<WalFile> cur_wal_file;
   return db_->GetCurrentWalFile(&cur_wal_file);
 }
@@ -2001,6 +2033,7 @@ void StressTest::VerifyIterator(
 Status StressTest::TestBackupRestore(
     ThreadState* thread, const std::vector<int>& rand_column_families,
     const std::vector<int64_t>& rand_keys) {
+  DBUG_TRACE;
   std::vector<std::unique_ptr<MutexLock>> locks;
   if (ShouldAcquireMutexOnKey()) {
     for (int rand_column_family : rand_column_families) {
@@ -2344,6 +2377,7 @@ Status StressTest::TestBackupRestore(
 }
 
 void InitializeMergeOperator(Options& options) {
+  DBUG_TRACE;
   if (FLAGS_use_full_merge_v1) {
     options.merge_operator = MergeOperators::CreateDeprecatedPutOperator();
   } else {
@@ -2356,6 +2390,7 @@ void InitializeMergeOperator(Options& options) {
 }
 
 Status StressTest::PrepareOptionsForRestoredDB(Options* options) {
+  DBUG_TRACE;
   assert(options);
   // To avoid race with other threads' operations (e.g, SetOptions())
   // on the same pointer sub-option (e.g, `std::shared_ptr<const FilterPolicy>
@@ -2409,6 +2444,7 @@ Status StressTest::TestApproximateSize(
     ThreadState* thread, uint64_t iteration,
     const std::vector<int>& rand_column_families,
     const std::vector<int64_t>& rand_keys) {
+  DBUG_TRACE;
   // rand_keys likely only has one key. Just use the first one.
   assert(!rand_keys.empty());
   assert(!rand_column_families.empty());
@@ -2450,6 +2486,7 @@ Status StressTest::TestApproximateSize(
 Status StressTest::TestCheckpoint(ThreadState* thread,
                                   const std::vector<int>& rand_column_families,
                                   const std::vector<int64_t>& rand_keys) {
+  DBUG_TRACE;
   std::vector<std::unique_ptr<MutexLock>> locks;
   if (ShouldAcquireMutexOnKey()) {
     for (int rand_column_family : rand_column_families) {
@@ -2599,6 +2636,7 @@ Status StressTest::TestCheckpoint(ThreadState* thread,
 }
 
 void StressTest::TestGetProperty(ThreadState* thread) const {
+  DBUG_TRACE;
   std::unordered_set<std::string> levelPropertyNames = {
       DB::Properties::kAggregatedTablePropertiesAtLevel,
       DB::Properties::kCompressionRatioAtLevelPrefix,
@@ -2677,12 +2715,14 @@ void StressTest::TestGetProperty(ThreadState* thread) const {
 }
 
 Status StressTest::TestGetPropertiesOfAllTables() const {
+  DBUG_TRACE;
   TablePropertiesCollection props;
   return db_->GetPropertiesOfAllTables(&props);
 }
 
 void StressTest::TestCompactFiles(ThreadState* thread,
                                   ColumnFamilyHandle* column_family) {
+  DBUG_TRACE;
   ROCKSDB_NAMESPACE::ColumnFamilyMetaData cf_meta_data;
   db_->GetColumnFamilyMetaData(column_family, &cf_meta_data);
 
@@ -2752,6 +2792,7 @@ void StressTest::TestCompactFiles(ThreadState* thread,
 
 void StressTest::TestPromoteL0(ThreadState* thread,
                                ColumnFamilyHandle* column_family) {
+  DBUG_TRACE;
   int target_level = thread->rand.Next() % options_.num_levels;
   Status s = db_->PromoteL0(column_family, target_level);
   if (!s.ok()) {
@@ -2775,6 +2816,7 @@ void StressTest::TestPromoteL0(ThreadState* thread,
 }
 
 Status StressTest::TestFlush(const std::vector<int>& rand_column_families) {
+  DBUG_TRACE;
   FlushOptions flush_opts;
   assert(flush_opts.wait);
   if (FLAGS_atomic_flush) {
@@ -2786,9 +2828,10 @@ Status StressTest::TestFlush(const std::vector<int>& rand_column_families) {
   return db_->Flush(flush_opts, cfhs);
 }
 
-Status StressTest::TestResetStats() { return db_->ResetStats(); }
+Status StressTest::TestResetStats() { DBUG_TRACE; return db_->ResetStats(); }
 
 Status StressTest::TestPauseBackground(ThreadState* thread) {
+  DBUG_TRACE;
   Status status = db_->PauseBackgroundWork();
   if (!status.ok()) {
     return status;
@@ -2805,6 +2848,7 @@ Status StressTest::TestPauseBackground(ThreadState* thread) {
 }
 
 Status StressTest::TestDisableFileDeletions(ThreadState* thread) {
+  DBUG_TRACE;
   Status status = db_->DisableFileDeletions();
   if (!status.ok()) {
     return status;
@@ -2817,6 +2861,7 @@ Status StressTest::TestDisableFileDeletions(ThreadState* thread) {
 }
 
 Status StressTest::TestDisableManualCompaction(ThreadState* thread) {
+  DBUG_TRACE;
   db_->DisableManualCompaction();
   // Similar to TestPauseBackground()
   int pwr2_micros =
@@ -2829,6 +2874,7 @@ Status StressTest::TestDisableManualCompaction(ThreadState* thread) {
 void StressTest::TestAcquireSnapshot(ThreadState* thread,
                                      int rand_column_family,
                                      const std::string& keystr, uint64_t i) {
+  DBUG_TRACE;
   Slice key = keystr;
   ColumnFamilyHandle* column_family = column_families_[rand_column_family];
   // This `ReadOptions` is for validation purposes. Ignore
@@ -2903,6 +2949,7 @@ void StressTest::TestAcquireSnapshot(ThreadState* thread,
 }
 
 Status StressTest::MaybeReleaseSnapshots(ThreadState* thread, uint64_t i) {
+  DBUG_TRACE;
   while (!thread->snapshot_queue.empty() &&
          i >= thread->snapshot_queue.front().first) {
     auto snap_state = thread->snapshot_queue.front().second;
@@ -2924,6 +2971,7 @@ Status StressTest::MaybeReleaseSnapshots(ThreadState* thread, uint64_t i) {
 void StressTest::TestCompactRange(ThreadState* thread, int64_t rand_key,
                                   const Slice& start_key,
                                   ColumnFamilyHandle* column_family) {
+  DBUG_TRACE;
   int64_t end_key_num;
   if (std::numeric_limits<int64_t>::max() - rand_key <
       FLAGS_compact_range_width) {
@@ -3091,6 +3139,7 @@ uint32_t StressTest::GetRangeHash(ThreadState* thread, const Snapshot* snapshot,
 }
 
 void StressTest::PrintEnv() const {
+  DBUG_TRACE;
   fprintf(stdout, "RocksDB version           : %d.%d\n", kMajorVersion,
           kMinorVersion);
   fprintf(stdout, "Format version            : %d\n", FLAGS_format_version);
@@ -3295,6 +3344,7 @@ void StressTest::PrintEnv() const {
 }
 
 void StressTest::Open(SharedState* shared, bool reopen) {
+  DBUG_TRACE;
   assert(db_ == nullptr);
   assert(txn_db_ == nullptr);
   assert(optimistic_txn_db_ == nullptr);
@@ -3653,6 +3703,7 @@ void StressTest::Open(SharedState* shared, bool reopen) {
 }
 
 void StressTest::Reopen(ThreadState* thread) {
+  DBUG_TRACE;
   // BG jobs in WritePrepared must be canceled first because i) they can access
   // the db via a callbac ii) they hold on to a snapshot and the upcoming
   // ::Close would complain about it.
@@ -3728,6 +3779,7 @@ bool StressTest::MaybeUseOlderTimestampForPointLookup(ThreadState* thread,
                                                       std::string& ts_str,
                                                       Slice& ts_slice,
                                                       ReadOptions& read_opts) {
+  DBUG_TRACE;
   if (FLAGS_user_timestamp_size == 0) {
     return false;
   }
@@ -3762,6 +3814,7 @@ void StressTest::MaybeUseOlderTimestampForRangeScan(ThreadState* thread,
                                                     std::string& ts_str,
                                                     Slice& ts_slice,
                                                     ReadOptions& read_opts) {
+  DBUG_TRACE;
   if (FLAGS_user_timestamp_size == 0) {
     return;
   }
@@ -3806,6 +3859,7 @@ void StressTest::MaybeUseOlderTimestampForRangeScan(ThreadState* thread,
 }
 
 void CheckAndSetOptionsForUserTimestamp(Options& options) {
+  DBUG_TRACE;
   assert(FLAGS_user_timestamp_size > 0);
   const Comparator* const cmp = test::BytewiseComparatorWithU64TsWrapper();
   assert(cmp);
@@ -3835,6 +3889,7 @@ void CheckAndSetOptionsForUserTimestamp(Options& options) {
 }
 
 bool InitializeOptionsFromFile(Options& options) {
+  DBUG_TRACE;
   DBOptions db_options;
   ConfigOptions config_options;
   config_options.ignore_unknown_options = false;
@@ -3860,6 +3915,7 @@ void InitializeOptionsFromFlags(
     const std::shared_ptr<Cache>& cache,
     const std::shared_ptr<const FilterPolicy>& filter_policy,
     Options& options) {
+  DBUG_TRACE;
   BlockBasedTableOptions block_based_options;
   block_based_options.block_cache = cache;
   block_based_options.cache_index_and_filter_blocks =
@@ -4192,6 +4248,7 @@ void InitializeOptionsGeneral(
     const std::shared_ptr<const FilterPolicy>& filter_policy,
     const std::shared_ptr<SstQueryFilterConfigsManager::Factory>& sqfc_factory,
     Options& options) {
+  DBUG_TRACE;
   options.create_missing_column_families = true;
   options.create_if_missing = true;
 

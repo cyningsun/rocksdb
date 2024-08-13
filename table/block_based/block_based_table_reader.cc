@@ -6,6 +6,7 @@
 // Copyright (c) 2011 The LevelDB Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
+#include "rocksdb/util/dbug.h"
 #include "table/block_based/block_based_table_reader.h"
 
 #include <algorithm>
@@ -78,6 +79,7 @@ namespace ROCKSDB_NAMESPACE {
 namespace {
 
 CacheAllocationPtr CopyBufferToHeap(MemoryAllocator* allocator, Slice& buf) {
+  DBUG_TRACE;
   CacheAllocationPtr heap_buf;
   heap_buf = AllocateBlock(buf.size(), allocator);
   memcpy(heap_buf.get(), buf.data(), buf.size());
@@ -222,6 +224,7 @@ Status ReadAndParseBlockFromFile(
 inline bool PrefixExtractorChangedHelper(
     const TableProperties* table_properties,
     const SliceTransform* prefix_extractor) {
+  DBUG_TRACE;
   // BlockBasedTableOptions::kHashSearch requires prefix_extractor to be set.
   // Turn off hash index in prefix_extractor is not set; if  prefix_extractor
   // is set but prefix_extractor_block is not set, also disable hash index
@@ -253,6 +256,7 @@ uint32_t GetBlockNumRestarts(const TBlocklike& block) {
 void BlockBasedTable::UpdateCacheHitMetrics(BlockType block_type,
                                             GetContext* get_context,
                                             size_t usage) const {
+  DBUG_TRACE;
   Statistics* const statistics = rep_->ioptions.stats;
 
   PERF_COUNTER_ADD(block_cache_hit_count, 1);
@@ -316,6 +320,7 @@ void BlockBasedTable::UpdateCacheHitMetrics(BlockType block_type,
 
 void BlockBasedTable::UpdateCacheMissMetrics(BlockType block_type,
                                              GetContext* get_context) const {
+  DBUG_TRACE;
   Statistics* const statistics = rep_->ioptions.stats;
 
   // TODO: introduce aggregate (not per-level) block cache miss count
@@ -370,6 +375,7 @@ void BlockBasedTable::UpdateCacheMissMetrics(BlockType block_type,
 void BlockBasedTable::UpdateCacheInsertionMetrics(
     BlockType block_type, GetContext* get_context, size_t usage, bool redundant,
     Statistics* const statistics) {
+  DBUG_TRACE;
   // TODO: introduce perf counters for block cache insertions
   if (get_context) {
     ++get_context->get_context_stats_.num_cache_add;
@@ -463,6 +469,7 @@ namespace {
 // or it doesn't contain this property (for backward compatible).
 bool IsFeatureSupported(const TableProperties& table_properties,
                         const std::string& user_prop_name, Logger* info_log) {
+  DBUG_TRACE;
   auto& props = table_properties.user_collected_properties;
   auto pos = props.find(user_prop_name);
   // Older version doesn't have this value set. Skip this check.
@@ -482,6 +489,7 @@ bool IsFeatureSupported(const TableProperties& table_properties,
 Status GetGlobalSequenceNumber(const TableProperties& table_properties,
                                SequenceNumber largest_seqno,
                                SequenceNumber* seqno) {
+  DBUG_TRACE;
   const auto& props = table_properties.user_collected_properties;
   const auto version_pos = props.find(ExternalSstFilePropertyNames::kVersion);
   const auto seqno_pos = props.find(ExternalSstFilePropertyNames::kGlobalSeqno);
@@ -563,6 +571,7 @@ void BlockBasedTable::SetupBaseCacheKey(const TableProperties* properties,
                                         uint64_t cur_file_number,
                                         OffsetableCacheKey* out_base_cache_key,
                                         bool* out_is_stable) {
+  DBUG_TRACE;
   // Use a stable cache key if sufficient data is in table properties
   std::string db_session_id;
   uint64_t file_num;
@@ -609,6 +618,7 @@ void BlockBasedTable::SetupBaseCacheKey(const TableProperties* properties,
 
 CacheKey BlockBasedTable::GetCacheKey(const OffsetableCacheKey& base_cache_key,
                                       const BlockHandle& handle) {
+  DBUG_TRACE;
   // Minimum block size is 5 bytes; therefore we can trim off two lower bits
   // from offet.
   return base_cache_key.WithOffset(handle.offset() >> 2);
@@ -631,6 +641,7 @@ Status BlockBasedTable::Open(
     size_t max_file_size_for_l0_meta_pin, const std::string& cur_db_session_id,
     uint64_t cur_file_num, UniqueId64x2 expected_unique_id,
     const bool user_defined_timestamps_persisted) {
+  DBUG_TRACE;
   table_reader->reset();
 
   Status s;
@@ -885,6 +896,7 @@ Status BlockBasedTable::PrefetchTail(
     const bool prefetch_all, const bool preload_all,
     std::unique_ptr<FilePrefetchBuffer>* prefetch_buffer, Statistics* stats,
     uint64_t tail_size, Logger* const logger) {
+  DBUG_TRACE;
   assert(tail_size <= file_size);
 
   size_t tail_prefetch_size = 0;
@@ -964,6 +976,7 @@ Status BlockBasedTable::PrefetchTail(
 Status BlockBasedTable::ReadPropertiesBlock(
     const ReadOptions& ro, FilePrefetchBuffer* prefetch_buffer,
     InternalIterator* meta_iter, const SequenceNumber largest_seqno) {
+  DBUG_TRACE;
   Status s;
   BlockHandle handle;
   s = FindOptionalMetaBlock(meta_iter, kPropertiesBlockName, &handle);
@@ -1060,6 +1073,7 @@ Status BlockBasedTable::ReadRangeDelBlock(
     InternalIterator* meta_iter,
     const InternalKeyComparator& internal_comparator,
     BlockCacheLookupContext* lookup_context) {
+  DBUG_TRACE;
   Status s;
   BlockHandle range_del_handle;
   s = FindOptionalMetaBlock(meta_iter, kRangeDelBlockName, &range_del_handle);
@@ -1106,6 +1120,7 @@ Status BlockBasedTable::PrefetchIndexAndFilterBlocks(
     const BlockBasedTableOptions& table_options, const int level,
     size_t file_size, size_t max_file_size_for_l0_meta_pin,
     BlockCacheLookupContext* lookup_context) {
+  DBUG_TRACE;
   // Find filter handle and filter type
   if (rep_->filter_policy) {
     auto name = rep_->filter_policy->CompatibilityName();
@@ -1306,18 +1321,21 @@ Status BlockBasedTable::PrefetchIndexAndFilterBlocks(
   return s;
 }
 
-void BlockBasedTable::SetupForCompaction() {}
+void BlockBasedTable::SetupForCompaction() {DBUG_TRACE;}
 
 std::shared_ptr<const TableProperties> BlockBasedTable::GetTableProperties()
     const {
+  DBUG_TRACE;
   return rep_->table_properties;
 }
 
 const SeqnoToTimeMapping& BlockBasedTable::GetSeqnoToTimeMapping() const {
+  DBUG_TRACE;
   return rep_->seqno_to_time_mapping;
 }
 
 size_t BlockBasedTable::ApproximateMemoryUsage() const {
+  DBUG_TRACE;
   size_t usage = 0;
   if (rep_) {
     usage += rep_->ApproximateMemoryUsage();
@@ -1346,6 +1364,7 @@ Status BlockBasedTable::ReadMetaIndexBlock(
     const ReadOptions& ro, FilePrefetchBuffer* prefetch_buffer,
     std::unique_ptr<Block>* metaindex_block,
     std::unique_ptr<InternalIterator>* iter) {
+  DBUG_TRACE;
   // TODO(sanjay): Skip this if footer.metaindex_handle() size indicates
   // it is an empty block.
   std::unique_ptr<Block_kMetaIndex> metaindex;
@@ -1495,6 +1514,7 @@ WithBlocklikeCheck<Status, TBlocklike> BlockBasedTable::PutDataBlockToCache(
 std::unique_ptr<FilterBlockReader> BlockBasedTable::CreateFilterBlockReader(
     const ReadOptions& ro, FilePrefetchBuffer* prefetch_buffer, bool use_cache,
     bool prefetch, bool pin, BlockCacheLookupContext* lookup_context) {
+  DBUG_TRACE;
   auto& rep = rep_;
   auto filter_type = rep->filter_type;
   if (filter_type == Rep::FilterType::kNoFilter) {
@@ -1526,6 +1546,7 @@ InternalIteratorBase<IndexValue>* BlockBasedTable::NewIndexIterator(
     const ReadOptions& read_options, bool disable_prefix_seek,
     IndexBlockIter* input_iter, GetContext* get_context,
     BlockCacheLookupContext* lookup_context) const {
+  DBUG_TRACE;
   assert(rep_ != nullptr);
   assert(rep_->index_reader != nullptr);
 
@@ -1541,6 +1562,7 @@ template <>
 DataBlockIter* BlockBasedTable::InitBlockIterator<DataBlockIter>(
     const Rep* rep, Block* block, BlockType block_type,
     DataBlockIter* input_iter, bool block_contents_pinned) {
+  DBUG_TRACE;
   return block->NewDataIterator(rep->internal_comparator.user_comparator(),
                                 rep->get_global_seqno(block_type), input_iter,
                                 rep->ioptions.stats, block_contents_pinned,
@@ -1552,6 +1574,7 @@ template <>
 IndexBlockIter* BlockBasedTable::InitBlockIterator<IndexBlockIter>(
     const Rep* rep, Block* block, BlockType block_type,
     IndexBlockIter* input_iter, bool block_contents_pinned) {
+  DBUG_TRACE;
   return block->NewIndexIterator(
       rep->internal_comparator.user_comparator(),
       rep->get_global_seqno(block_type), input_iter, rep->ioptions.stats,
@@ -1859,6 +1882,7 @@ void BlockBasedTable::FinishTraceRecord(
     const BlockCacheLookupContext& lookup_context, const Slice& block_key,
     const Slice& referenced_key, bool does_referenced_key_exist,
     uint64_t referenced_data_size) const {
+  DBUG_TRACE;
   // Avoid making copy of referenced_key if it doesn't need to be saved in
   // BlockCacheLookupContext
   BlockCacheTraceRecord access_record(
@@ -1962,6 +1986,7 @@ BlockBasedTable::PartitionedIndexIteratorState::PartitionedIndexIteratorState(
 InternalIteratorBase<IndexValue>*
 BlockBasedTable::PartitionedIndexIteratorState::NewSecondaryIterator(
     const BlockHandle& handle) {
+  DBUG_TRACE;
   // Return a block iterator on the index partition
   auto block = block_map_->find(handle.offset());
   // block_map_ must be exhaustive
@@ -2003,6 +2028,7 @@ bool BlockBasedTable::PrefixRangeMayMatch(
     const SliceTransform* options_prefix_extractor,
     const bool need_upper_bound_check, BlockCacheLookupContext* lookup_context,
     bool* filter_checked) const {
+  DBUG_TRACE;
   if (!rep_->filter_policy) {
     return true;
   }
@@ -2041,6 +2067,7 @@ bool BlockBasedTable::PrefixRangeMayMatch(
 
 bool BlockBasedTable::PrefixExtractorChanged(
     const SliceTransform* prefix_extractor) const {
+  DBUG_TRACE;
   if (prefix_extractor == nullptr) {
     return true;
   } else if (prefix_extractor == rep_->table_prefix_extractor.get()) {
@@ -2052,9 +2079,11 @@ bool BlockBasedTable::PrefixExtractorChanged(
 }
 
 Statistics* BlockBasedTable::GetStatistics() const {
+  DBUG_TRACE;
   return rep_->ioptions.stats;
 }
 bool BlockBasedTable::IsLastLevel() const {
+  DBUG_TRACE;
   return rep_->level == rep_->ioptions.num_levels - 1;
 }
 
@@ -2062,6 +2091,7 @@ InternalIterator* BlockBasedTable::NewIterator(
     const ReadOptions& read_options, const SliceTransform* prefix_extractor,
     Arena* arena, bool skip_filters, TableReaderCaller caller,
     size_t compaction_readahead_size, bool allow_unprepared_value) {
+  DBUG_TRACE;
   BlockCacheLookupContext lookup_context{caller};
   bool need_upper_bound_check =
       read_options.auto_prefix_mode || PrefixExtractorChanged(prefix_extractor);
@@ -2090,6 +2120,7 @@ InternalIterator* BlockBasedTable::NewIterator(
 
 FragmentedRangeTombstoneIterator* BlockBasedTable::NewRangeTombstoneIterator(
     const ReadOptions& read_options) {
+  DBUG_TRACE;
   if (rep_->fragmented_range_dels == nullptr) {
     return nullptr;
   }
@@ -2104,6 +2135,7 @@ FragmentedRangeTombstoneIterator* BlockBasedTable::NewRangeTombstoneIterator(
 
 FragmentedRangeTombstoneIterator* BlockBasedTable::NewRangeTombstoneIterator(
     SequenceNumber read_seqno, const Slice* timestamp) {
+  DBUG_TRACE;
   if (rep_->fragmented_range_dels == nullptr) {
     return nullptr;
   }
@@ -2117,6 +2149,7 @@ bool BlockBasedTable::FullFilterKeyMayMatch(
     const SliceTransform* prefix_extractor, GetContext* get_context,
     BlockCacheLookupContext* lookup_context,
     const ReadOptions& read_options) const {
+  DBUG_TRACE;
   if (filter == nullptr) {
     return true;
   }
@@ -2160,6 +2193,7 @@ void BlockBasedTable::FullFilterKeysMayMatch(
     const SliceTransform* prefix_extractor,
     BlockCacheLookupContext* lookup_context,
     const ReadOptions& read_options) const {
+  DBUG_TRACE;
   if (filter == nullptr) {
     return;
   }
@@ -2204,6 +2238,7 @@ void BlockBasedTable::FullFilterKeysMayMatch(
 
 Status BlockBasedTable::ApproximateKeyAnchors(const ReadOptions& read_options,
                                               std::vector<Anchor>& anchors) {
+  DBUG_TRACE;
   // We iterator the whole index block here. More efficient implementation
   // is possible if we push this operation into IndexReader. For example, we
   // can directly sample from restart block entries in the index block and
@@ -2264,6 +2299,7 @@ Status BlockBasedTable::ApproximateKeyAnchors(const ReadOptions& read_options,
 }
 
 bool BlockBasedTable::TimestampMayMatch(const ReadOptions& read_options) const {
+  DBUG_TRACE;
   if (read_options.timestamp != nullptr && !rep_->min_timestamp.empty()) {
     RecordTick(rep_->ioptions.stats, TIMESTAMP_FILTER_TABLE_CHECKED);
     auto read_ts = read_options.timestamp;
@@ -2280,6 +2316,7 @@ Status BlockBasedTable::Get(const ReadOptions& read_options, const Slice& key,
                             GetContext* get_context,
                             const SliceTransform* prefix_extractor,
                             bool skip_filters) {
+  DBUG_TRACE;
   // Similar to Bloom filter !may_match
   // If timestamp is beyond the range of the table, skip
   if (!TimestampMayMatch(read_options)) {
@@ -2456,6 +2493,7 @@ Status BlockBasedTable::Get(const ReadOptions& read_options, const Slice& key,
 Status BlockBasedTable::MultiGetFilter(const ReadOptions& read_options,
                                        const SliceTransform* prefix_extractor,
                                        MultiGetRange* mget_range) {
+  DBUG_TRACE;
   if (mget_range->empty()) {
     // Caller should ensure non-empty (performance bug)
     assert(false);
@@ -2485,6 +2523,7 @@ Status BlockBasedTable::MultiGetFilter(const ReadOptions& read_options,
 Status BlockBasedTable::Prefetch(const ReadOptions& read_options,
                                  const Slice* const begin,
                                  const Slice* const end) {
+  DBUG_TRACE;
   auto& comparator = rep_->internal_comparator;
   UserComparatorWrapper user_comparator(comparator.user_comparator());
   // pre-condition
@@ -2546,6 +2585,7 @@ Status BlockBasedTable::Prefetch(const ReadOptions& read_options,
 
 Status BlockBasedTable::VerifyChecksum(const ReadOptions& read_options,
                                        TableReaderCaller caller) {
+  DBUG_TRACE;
   Status s;
   // Check Meta blocks
   std::unique_ptr<Block> metaindex;
@@ -2581,6 +2621,7 @@ Status BlockBasedTable::VerifyChecksum(const ReadOptions& read_options,
 Status BlockBasedTable::VerifyChecksumInBlocks(
     const ReadOptions& read_options,
     InternalIteratorBase<IndexValue>* index_iter) {
+  DBUG_TRACE;
   Status s;
   // We are scanning the whole file, so no need to do exponential
   // increasing of the buffer size.
@@ -2623,6 +2664,7 @@ Status BlockBasedTable::VerifyChecksumInBlocks(
 
 BlockType BlockBasedTable::GetBlockTypeForMetaBlockByName(
     const Slice& meta_block_name) {
+  DBUG_TRACE;
   if (meta_block_name.starts_with(kFullFilterBlockPrefix)) {
     return BlockType::kFilter;
   }
@@ -2666,6 +2708,7 @@ BlockType BlockBasedTable::GetBlockTypeForMetaBlockByName(
 
 Status BlockBasedTable::VerifyChecksumInMetaBlocks(
     const ReadOptions& read_options, InternalIteratorBase<Slice>* index_iter) {
+  DBUG_TRACE;
   Status s;
   for (index_iter->SeekToFirst(); index_iter->Valid(); index_iter->Next()) {
     s = index_iter->status();
@@ -2711,6 +2754,7 @@ Status BlockBasedTable::VerifyChecksumInMetaBlocks(
 }
 
 bool BlockBasedTable::EraseFromCache(const BlockHandle& handle) const {
+  DBUG_TRACE;
   assert(rep_ != nullptr);
 
   Cache* const cache = rep_->table_options.block_cache.get();
@@ -2729,6 +2773,7 @@ bool BlockBasedTable::EraseFromCache(const BlockHandle& handle) const {
 }
 
 bool BlockBasedTable::TEST_BlockInCache(const BlockHandle& handle) const {
+  DBUG_TRACE;
   assert(rep_ != nullptr);
 
   Cache* const cache = rep_->table_options.block_cache.get();
@@ -2750,6 +2795,7 @@ bool BlockBasedTable::TEST_BlockInCache(const BlockHandle& handle) const {
 
 bool BlockBasedTable::TEST_KeyInCache(const ReadOptions& options,
                                       const Slice& key) {
+  DBUG_TRACE;
   std::unique_ptr<InternalIteratorBase<IndexValue>> iiter(NewIndexIterator(
       options, /*need_upper_bound_check=*/false, /*input_iter=*/nullptr,
       /*get_context=*/nullptr, /*lookup_context=*/nullptr));
@@ -2763,6 +2809,7 @@ bool BlockBasedTable::TEST_KeyInCache(const ReadOptions& options,
 void BlockBasedTable::TEST_GetDataBlockHandle(const ReadOptions& options,
                                               const Slice& key,
                                               BlockHandle& handle) {
+  DBUG_TRACE;
   std::unique_ptr<InternalIteratorBase<IndexValue>> iiter(NewIndexIterator(
       options, /*disable_prefix_seek=*/false, /*input_iter=*/nullptr,
       /*get_context=*/nullptr, /*lookup_context=*/nullptr));
@@ -2782,6 +2829,7 @@ Status BlockBasedTable::CreateIndexReader(
     InternalIterator* meta_iter, bool use_cache, bool prefetch, bool pin,
     BlockCacheLookupContext* lookup_context,
     std::unique_ptr<IndexReader>* index_reader) {
+  DBUG_TRACE;
   if (FormatVersionUsesIndexHandleInFooter(rep_->footer.format_version())) {
     rep_->index_handle = rep_->footer.index_handle();
   } else {
@@ -2829,6 +2877,7 @@ Status BlockBasedTable::CreateIndexReader(
 uint64_t BlockBasedTable::ApproximateDataOffsetOf(
     const InternalIteratorBase<IndexValue>& index_iter,
     uint64_t data_size) const {
+  DBUG_TRACE;
   assert(index_iter.status().ok());
   if (index_iter.Valid()) {
     BlockHandle handle = index_iter.value().handle;
@@ -2840,6 +2889,7 @@ uint64_t BlockBasedTable::ApproximateDataOffsetOf(
 }
 
 uint64_t BlockBasedTable::GetApproximateDataSize() {
+  DBUG_TRACE;
   // Should be in table properties unless super old version
   if (rep_->table_properties) {
     return rep_->table_properties->data_size;
@@ -2851,6 +2901,7 @@ uint64_t BlockBasedTable::GetApproximateDataSize() {
 uint64_t BlockBasedTable::ApproximateOffsetOf(const ReadOptions& read_options,
                                               const Slice& key,
                                               TableReaderCaller caller) {
+  DBUG_TRACE;
   uint64_t data_size = GetApproximateDataSize();
   if (UNLIKELY(data_size == 0)) {
     // Hmm. Let's just split in half to avoid skewing one way or another,
@@ -2892,6 +2943,7 @@ uint64_t BlockBasedTable::ApproximateOffsetOf(const ReadOptions& read_options,
 uint64_t BlockBasedTable::ApproximateSize(const ReadOptions& read_options,
                                           const Slice& start, const Slice& end,
                                           TableReaderCaller caller) {
+  DBUG_TRACE;
   assert(rep_->internal_comparator.Compare(start, end) <= 0);
 
   uint64_t data_size = GetApproximateDataSize();
@@ -2944,12 +2996,14 @@ uint64_t BlockBasedTable::ApproximateSize(const ReadOptions& read_options,
 }
 
 bool BlockBasedTable::TEST_FilterBlockInCache() const {
+  DBUG_TRACE;
   assert(rep_ != nullptr);
   return rep_->filter_type != Rep::FilterType::kNoFilter &&
          TEST_BlockInCache(rep_->filter_handle);
 }
 
 bool BlockBasedTable::TEST_IndexBlockInCache() const {
+  DBUG_TRACE;
   assert(rep_ != nullptr);
 
   return TEST_BlockInCache(rep_->index_handle);
@@ -2957,6 +3011,7 @@ bool BlockBasedTable::TEST_IndexBlockInCache() const {
 
 Status BlockBasedTable::GetKVPairsFromDataBlocks(
     const ReadOptions& read_options, std::vector<KVPairBlock>* kv_pair_blocks) {
+  DBUG_TRACE;
   std::unique_ptr<InternalIteratorBase<IndexValue>> blockhandles_iter(
       NewIndexIterator(read_options, /*need_upper_bound_check=*/false,
                        /*input_iter=*/nullptr, /*get_context=*/nullptr,
@@ -3013,6 +3068,7 @@ Status BlockBasedTable::GetKVPairsFromDataBlocks(
 }
 
 Status BlockBasedTable::DumpTable(WritableFile* out_file) {
+  DBUG_TRACE;
   WritableFileStringStreamAdapter out_file_wrapper(out_file);
   std::ostream out_stream(&out_file_wrapper);
   // Output Footer
@@ -3126,6 +3182,7 @@ Status BlockBasedTable::DumpTable(WritableFile* out_file) {
 }
 
 Status BlockBasedTable::DumpIndexBlock(std::ostream& out_stream) {
+  DBUG_TRACE;
   out_stream << "Index Details:\n"
                 "--------------------------------------\n";
   // TODO: plumb Env::IOActivity, Env::IOPriority
@@ -3179,6 +3236,7 @@ Status BlockBasedTable::DumpIndexBlock(std::ostream& out_stream) {
 }
 
 Status BlockBasedTable::DumpDataBlocks(std::ostream& out_stream) {
+  DBUG_TRACE;
   // TODO: plumb Env::IOActivity, Env::IOPriority
   const ReadOptions read_options;
   std::unique_ptr<InternalIteratorBase<IndexValue>> blockhandles_iter(
@@ -3258,6 +3316,7 @@ Status BlockBasedTable::DumpDataBlocks(std::ostream& out_stream) {
 
 void BlockBasedTable::DumpKeyValue(const Slice& key, const Slice& value,
                                    std::ostream& out_stream) {
+  DBUG_TRACE;
   InternalKey ikey;
   ikey.DecodeFrom(key);
 
@@ -3290,6 +3349,7 @@ void BlockBasedTable::DumpKeyValue(const Slice& key, const Slice& value,
 }
 
 void BlockBasedTable::MarkObsolete(uint32_t uncache_aggressiveness) {
+  DBUG_TRACE;
   rep_->uncache_aggressiveness.StoreRelaxed(uncache_aggressiveness);
 }
 

@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "db/version_builder.h"
 
 #include <algorithm>
@@ -43,6 +44,7 @@ class VersionBuilder::Rep {
 
    public:
     bool operator()(const FileMetaData* lhs, const FileMetaData* rhs) const {
+      DBUG_TRACE;
       assert(lhs);
       assert(rhs);
 
@@ -58,6 +60,7 @@ class VersionBuilder::Rep {
     explicit BySmallestKey(const InternalKeyComparator* cmp) : cmp_(cmp) {}
 
     bool operator()(const FileMetaData* lhs, const FileMetaData* rhs) const {
+      DBUG_TRACE;
       assert(lhs);
       assert(rhs);
       assert(cmp_);
@@ -87,32 +90,39 @@ class VersionBuilder::Rep {
   class BlobFileMetaDataDelta {
    public:
     bool IsEmpty() const {
+      DBUG_TRACE;
       return !additional_garbage_count_ && !additional_garbage_bytes_ &&
              newly_linked_ssts_.empty() && newly_unlinked_ssts_.empty();
     }
 
     uint64_t GetAdditionalGarbageCount() const {
+      DBUG_TRACE;
       return additional_garbage_count_;
     }
 
     uint64_t GetAdditionalGarbageBytes() const {
+      DBUG_TRACE;
       return additional_garbage_bytes_;
     }
 
     const std::unordered_set<uint64_t>& GetNewlyLinkedSsts() const {
+      DBUG_TRACE;
       return newly_linked_ssts_;
     }
 
     const std::unordered_set<uint64_t>& GetNewlyUnlinkedSsts() const {
+      DBUG_TRACE;
       return newly_unlinked_ssts_;
     }
 
     void AddGarbage(uint64_t count, uint64_t bytes) {
+      DBUG_TRACE;
       additional_garbage_count_ += count;
       additional_garbage_bytes_ += bytes;
     }
 
     void LinkSst(uint64_t sst_file_number) {
+      DBUG_TRACE;
       assert(newly_linked_ssts_.find(sst_file_number) ==
              newly_linked_ssts_.end());
 
@@ -129,6 +139,7 @@ class VersionBuilder::Rep {
     }
 
     void UnlinkSst(uint64_t sst_file_number) {
+      DBUG_TRACE;
       assert(newly_unlinked_ssts_.find(sst_file_number) ==
              newly_unlinked_ssts_.end());
 
@@ -172,25 +183,29 @@ class VersionBuilder::Rep {
           garbage_blob_bytes_(meta->GetGarbageBlobBytes()) {}
 
     const std::shared_ptr<SharedBlobFileMetaData>& GetSharedMeta() const {
+      DBUG_TRACE;
       return shared_meta_;
     }
 
     uint64_t GetBlobFileNumber() const {
+      DBUG_TRACE;
       assert(shared_meta_);
       return shared_meta_->GetBlobFileNumber();
     }
 
-    bool HasDelta() const { return !delta_.IsEmpty(); }
+    bool HasDelta() const { DBUG_TRACE; return !delta_.IsEmpty(); }
 
     const std::unordered_set<uint64_t>& GetLinkedSsts() const {
+      DBUG_TRACE;
       return linked_ssts_;
     }
 
-    uint64_t GetGarbageBlobCount() const { return garbage_blob_count_; }
+    uint64_t GetGarbageBlobCount() const { DBUG_TRACE; return garbage_blob_count_; }
 
-    uint64_t GetGarbageBlobBytes() const { return garbage_blob_bytes_; }
+    uint64_t GetGarbageBlobBytes() const { DBUG_TRACE; return garbage_blob_bytes_; }
 
     bool AddGarbage(uint64_t count, uint64_t bytes) {
+      DBUG_TRACE;
       assert(shared_meta_);
 
       if (garbage_blob_count_ + count > shared_meta_->GetTotalBlobCount() ||
@@ -207,6 +222,7 @@ class VersionBuilder::Rep {
     }
 
     void LinkSst(uint64_t sst_file_number) {
+      DBUG_TRACE;
       delta_.LinkSst(sst_file_number);
 
       assert(linked_ssts_.find(sst_file_number) == linked_ssts_.end());
@@ -214,6 +230,7 @@ class VersionBuilder::Rep {
     }
 
     void UnlinkSst(uint64_t sst_file_number) {
+      DBUG_TRACE;
       delta_.UnlinkSst(sst_file_number);
 
       assert(linked_ssts_.find(sst_file_number) != linked_ssts_.end());
@@ -290,6 +307,7 @@ class VersionBuilder::Rep {
   }
 
   void UnrefFile(FileMetaData* f) {
+    DBUG_TRACE;
     f->refs--;
     if (f->refs <= 0) {
       if (f->table_reader_handle) {
@@ -319,6 +337,7 @@ class VersionBuilder::Rep {
   static void UpdateExpectedLinkedSsts(
       uint64_t table_file_number, uint64_t blob_file_number,
       ExpectedLinkedSsts* expected_linked_ssts) {
+    DBUG_TRACE;
     assert(expected_linked_ssts);
 
     if (blob_file_number == kInvalidBlobFileNumber) {
@@ -378,6 +397,7 @@ class VersionBuilder::Rep {
   // Make sure table files are sorted correctly and that the links between
   // table files and blob files are consistent.
   Status CheckConsistencyDetails(const VersionStorageInfo* vstorage) const {
+    DBUG_TRACE;
     assert(vstorage);
 
     ExpectedLinkedSsts expected_linked_ssts;
@@ -524,6 +544,7 @@ class VersionBuilder::Rep {
   }
 
   Status CheckConsistency(const VersionStorageInfo* vstorage) const {
+    DBUG_TRACE;
     assert(vstorage);
 
     // Always run consistency checks in debug build
@@ -550,6 +571,7 @@ class VersionBuilder::Rep {
   }
 
   bool CheckConsistencyForNumLevels() const {
+    DBUG_TRACE;
     // Make sure there are no files on or beyond num_levels().
     if (has_invalid_levels_) {
       return false;
@@ -566,6 +588,7 @@ class VersionBuilder::Rep {
   }
 
   bool IsBlobFileInVersion(uint64_t blob_file_number) const {
+    DBUG_TRACE;
     auto mutable_it = mutable_blob_file_metas_.find(blob_file_number);
     if (mutable_it != mutable_blob_file_metas_.end()) {
       return true;
@@ -579,6 +602,7 @@ class VersionBuilder::Rep {
 
   MutableBlobFileMetaData* GetOrCreateMutableBlobFileMetaData(
       uint64_t blob_file_number) {
+    DBUG_TRACE;
     auto mutable_it = mutable_blob_file_metas_.find(blob_file_number);
     if (mutable_it != mutable_blob_file_metas_.end()) {
       return &mutable_it->second;
@@ -598,6 +622,7 @@ class VersionBuilder::Rep {
   }
 
   Status ApplyBlobFileAddition(const BlobFileAddition& blob_file_addition) {
+    DBUG_TRACE;
     const uint64_t blob_file_number = blob_file_addition.GetBlobFileNumber();
 
     if (IsBlobFileInVersion(blob_file_number)) {
@@ -638,6 +663,7 @@ class VersionBuilder::Rep {
   }
 
   Status ApplyBlobFileGarbage(const BlobFileGarbage& blob_file_garbage) {
+    DBUG_TRACE;
     const uint64_t blob_file_number = blob_file_garbage.GetBlobFileNumber();
 
     MutableBlobFileMetaData* const mutable_meta =
@@ -661,6 +687,7 @@ class VersionBuilder::Rep {
   }
 
   int GetCurrentLevelForTableFile(uint64_t file_number) const {
+    DBUG_TRACE;
     auto it = table_file_levels_.find(file_number);
     if (it != table_file_levels_.end()) {
       return it->second;
@@ -672,6 +699,7 @@ class VersionBuilder::Rep {
 
   uint64_t GetOldestBlobFileNumberForTableFile(int level,
                                                uint64_t file_number) const {
+    DBUG_TRACE;
     assert(level < num_levels_);
 
     const auto& added_files = levels_[level].added_files;
@@ -693,6 +721,7 @@ class VersionBuilder::Rep {
   }
 
   Status ApplyFileDeletion(int level, uint64_t file_number) {
+    DBUG_TRACE;
     assert(level != VersionStorageInfo::FileLocation::Invalid().GetLevel());
 
     const int current_level = GetCurrentLevelForTableFile(file_number);
@@ -756,6 +785,7 @@ class VersionBuilder::Rep {
   }
 
   Status ApplyFileAddition(int level, const FileMetaData& meta) {
+    DBUG_TRACE;
     assert(level != VersionStorageInfo::FileLocation::Invalid().GetLevel());
 
     const uint64_t file_number = meta.fd.GetNumber();
@@ -829,6 +859,7 @@ class VersionBuilder::Rep {
 
   Status ApplyCompactCursors(int level,
                              const InternalKey& smallest_uncompacted_key) {
+    DBUG_TRACE;
     if (level < 0) {
       std::ostringstream oss;
       oss << "Cannot add compact cursor (" << level << ","
@@ -845,6 +876,7 @@ class VersionBuilder::Rep {
 
   // Apply all of the edits in *edit to the current state.
   Status Apply(const VersionEdit* edit) {
+    DBUG_TRACE;
     {
       const Status s = CheckConsistency(base_vstorage_);
       if (!s.ok()) {
@@ -1004,6 +1036,7 @@ class VersionBuilder::Rep {
 
   // Find the oldest blob file that has linked SSTs.
   uint64_t GetMinOldestBlobFileNumber() const {
+    DBUG_TRACE;
     uint64_t min_oldest_blob_file_num = kInvalidBlobFileNumber;
 
     auto process_base =
@@ -1041,6 +1074,7 @@ class VersionBuilder::Rep {
 
   static std::shared_ptr<BlobFileMetaData> CreateBlobFileMetaData(
       const MutableBlobFileMetaData& mutable_meta) {
+    DBUG_TRACE;
     return BlobFileMetaData::Create(
         mutable_meta.GetSharedMeta(), mutable_meta.GetLinkedSsts(),
         mutable_meta.GetGarbageBlobCount(), mutable_meta.GetGarbageBlobBytes());
@@ -1064,6 +1098,7 @@ class VersionBuilder::Rep {
   // Merge the blob file metadata from the base version with the changes (edits)
   // applied, and save the result into *vstorage.
   void SaveBlobFilesTo(VersionStorageInfo* vstorage) const {
+    DBUG_TRACE;
     assert(vstorage);
 
     assert(base_vstorage_);
@@ -1124,6 +1159,7 @@ class VersionBuilder::Rep {
 
   void MaybeAddFile(VersionStorageInfo* vstorage, int level,
                     FileMetaData* f) const {
+    DBUG_TRACE;
     const uint64_t file_number = f->fd.GetNumber();
 
     const auto& level_state = levels_[level];
@@ -1180,6 +1216,7 @@ class VersionBuilder::Rep {
 
   bool PromoteEpochNumberRequirementIfNeeded(
       VersionStorageInfo* vstorage) const {
+    DBUG_TRACE;
     if (vstorage->HasMissingEpochNumber()) {
       return false;
     }
@@ -1198,6 +1235,7 @@ class VersionBuilder::Rep {
   }
 
   void SaveSSTFilesTo(VersionStorageInfo* vstorage) const {
+    DBUG_TRACE;
     assert(vstorage);
 
     if (!num_levels_) {
@@ -1226,6 +1264,7 @@ class VersionBuilder::Rep {
   }
 
   void SaveCompactCursorsTo(VersionStorageInfo* vstorage) const {
+    DBUG_TRACE;
     for (auto iter = updated_compact_cursors_.begin();
          iter != updated_compact_cursors_.end(); iter++) {
       vstorage->AddCursorForOneLevel(iter->first, iter->second);
@@ -1234,6 +1273,7 @@ class VersionBuilder::Rep {
 
   // Save the current state in *vstorage.
   Status SaveTo(VersionStorageInfo* vstorage) const {
+    DBUG_TRACE;
     Status s;
 
 #ifndef NDEBUG
@@ -1265,6 +1305,7 @@ class VersionBuilder::Rep {
       const std::shared_ptr<const SliceTransform>& prefix_extractor,
       size_t max_file_size_for_l0_meta_pin, const ReadOptions& read_options,
       uint8_t block_protection_bytes_per_key) {
+    DBUG_TRACE;
     assert(table_cache_ != nullptr);
 
     size_t table_cache_capacity =
@@ -1376,14 +1417,17 @@ VersionBuilder::VersionBuilder(
 VersionBuilder::~VersionBuilder() = default;
 
 bool VersionBuilder::CheckConsistencyForNumLevels() {
+  DBUG_TRACE;
   return rep_->CheckConsistencyForNumLevels();
 }
 
 Status VersionBuilder::Apply(const VersionEdit* edit) {
+  DBUG_TRACE;
   return rep_->Apply(edit);
 }
 
 Status VersionBuilder::SaveTo(VersionStorageInfo* vstorage) const {
+  DBUG_TRACE;
   return rep_->SaveTo(vstorage);
 }
 
@@ -1393,6 +1437,7 @@ Status VersionBuilder::LoadTableHandlers(
     const std::shared_ptr<const SliceTransform>& prefix_extractor,
     size_t max_file_size_for_l0_meta_pin, const ReadOptions& read_options,
     uint8_t block_protection_bytes_per_key) {
+  DBUG_TRACE;
   return rep_->LoadTableHandlers(
       internal_stats, max_threads, prefetch_index_and_filter_in_cache,
       is_initial_load, prefix_extractor, max_file_size_for_l0_meta_pin,
@@ -1400,6 +1445,7 @@ Status VersionBuilder::LoadTableHandlers(
 }
 
 uint64_t VersionBuilder::GetMinOldestBlobFileNumber() const {
+  DBUG_TRACE;
   return rep_->GetMinOldestBlobFileNumber();
 }
 

@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "cache/compressed_secondary_cache.h"
 
 #include <algorithm>
@@ -32,6 +33,7 @@ std::unique_ptr<SecondaryCacheResultHandle> CompressedSecondaryCache::Lookup(
     const Slice& key, const Cache::CacheItemHelper* helper,
     Cache::CreateContext* create_context, bool /*wait*/, bool advise_erase,
     Statistics* stats, bool& kept_in_sec_cache) {
+  DBUG_TRACE;
   assert(helper);
   // This is a minor optimization. Its ok to skip it in TSAN in order to
   // avoid a false positive.
@@ -143,6 +145,7 @@ std::unique_ptr<SecondaryCacheResultHandle> CompressedSecondaryCache::Lookup(
 }
 
 bool CompressedSecondaryCache::MaybeInsertDummy(const Slice& key) {
+  DBUG_TRACE;
   auto internal_helper = GetHelper(cache_options_.enable_custom_split_merge);
   Cache::Handle* lru_handle = cache_->Lookup(key);
   if (lru_handle == nullptr) {
@@ -162,6 +165,7 @@ Status CompressedSecondaryCache::InsertInternal(
     const Slice& key, Cache::ObjectPtr value,
     const Cache::CacheItemHelper* helper, CompressionType type,
     CacheTier source) {
+  DBUG_TRACE;
   if (source != CacheTier::kVolatileCompressedTier &&
       cache_options_.enable_custom_split_merge) {
     // We don't support custom split/merge for the tiered case
@@ -237,6 +241,7 @@ Status CompressedSecondaryCache::Insert(const Slice& key,
                                         Cache::ObjectPtr value,
                                         const Cache::CacheItemHelper* helper,
                                         bool force_insert) {
+  DBUG_TRACE;
   if (value == nullptr) {
     return Status::InvalidArgument();
   }
@@ -252,6 +257,7 @@ Status CompressedSecondaryCache::Insert(const Slice& key,
 Status CompressedSecondaryCache::InsertSaved(
     const Slice& key, const Slice& saved, CompressionType type = kNoCompression,
     CacheTier source = CacheTier::kVolatileTier) {
+  DBUG_TRACE;
   if (type == kNoCompression) {
     return Status::OK();
   }
@@ -266,9 +272,10 @@ Status CompressedSecondaryCache::InsertSaved(
       slice_helper, type, source);
 }
 
-void CompressedSecondaryCache::Erase(const Slice& key) { cache_->Erase(key); }
+void CompressedSecondaryCache::Erase(const Slice& key) { DBUG_TRACE; cache_->Erase(key); }
 
 Status CompressedSecondaryCache::SetCapacity(size_t capacity) {
+  DBUG_TRACE;
   MutexLock l(&capacity_mutex_);
   cache_options_.capacity = capacity;
   cache_->SetCapacity(capacity);
@@ -277,12 +284,14 @@ Status CompressedSecondaryCache::SetCapacity(size_t capacity) {
 }
 
 Status CompressedSecondaryCache::GetCapacity(size_t& capacity) {
+  DBUG_TRACE;
   MutexLock l(&capacity_mutex_);
   capacity = cache_options_.capacity;
   return Status::OK();
 }
 
 std::string CompressedSecondaryCache::GetPrintableOptions() const {
+  DBUG_TRACE;
   std::string ret;
   ret.reserve(20000);
   const int kBufferSize{200};
@@ -306,6 +315,7 @@ CompressedSecondaryCache::CacheValueChunk*
 CompressedSecondaryCache::SplitValueIntoChunks(const Slice& value,
                                                CompressionType compression_type,
                                                size_t& charge) {
+  DBUG_TRACE;
   assert(!value.empty());
   const char* src_ptr = value.data();
   size_t src_size{value.size()};
@@ -350,6 +360,7 @@ CompressedSecondaryCache::SplitValueIntoChunks(const Slice& value,
 
 CacheAllocationPtr CompressedSecondaryCache::MergeChunksIntoValue(
     const void* chunks_head, size_t& charge) {
+  DBUG_TRACE;
   const CacheValueChunk* head =
       reinterpret_cast<const CacheValueChunk*>(chunks_head);
   const CacheValueChunk* current_chunk = head;
@@ -374,6 +385,7 @@ CacheAllocationPtr CompressedSecondaryCache::MergeChunksIntoValue(
 
 const Cache::CacheItemHelper* CompressedSecondaryCache::GetHelper(
     bool enable_custom_split_merge) const {
+  DBUG_TRACE;
   if (enable_custom_split_merge) {
     static const Cache::CacheItemHelper kHelper{
         CacheEntryRole::kMisc,
@@ -400,14 +412,17 @@ const Cache::CacheItemHelper* CompressedSecondaryCache::GetHelper(
 
 std::shared_ptr<SecondaryCache>
 CompressedSecondaryCacheOptions::MakeSharedSecondaryCache() const {
+  DBUG_TRACE;
   return std::make_shared<CompressedSecondaryCache>(*this);
 }
 
 Status CompressedSecondaryCache::Deflate(size_t decrease) {
+  DBUG_TRACE;
   return cache_res_mgr_->UpdateCacheReservation(decrease, /*increase=*/true);
 }
 
 Status CompressedSecondaryCache::Inflate(size_t increase) {
+  DBUG_TRACE;
   return cache_res_mgr_->UpdateCacheReservation(increase, /*increase=*/false);
 }
 

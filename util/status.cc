@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/status.h"
 
 #include <cstdio>
@@ -20,6 +21,7 @@
 namespace ROCKSDB_NAMESPACE {
 
 std::unique_ptr<const char[]> Status::CopyState(const char* s) {
+  DBUG_TRACE;
   const size_t cch = std::strlen(s) + 1;  // +1 for the null terminator
   char* rv = new char[cch];
   std::strncpy(rv, s, cch);
@@ -73,12 +75,14 @@ Status::Status(Code _code, SubCode _subcode, const Slice& msg,
 
 Status Status::CopyAppendMessage(const Status& s, const Slice& delim,
                                  const Slice& msg) {
+  DBUG_TRACE;
   // (No attempt at efficiency)
   return Status(s.code(), s.subcode(), s.severity(),
                 std::string(s.getState()) + delim.ToString() + msg.ToString());
 }
 
 std::string Status::ToString() const {
+DBUG_TRACE;
 #ifdef ROCKSDB_ASSERT_STATUS_CHECKED
   checked_ = true;
 #endif  // ROCKSDB_ASSERT_STATUS_CHECKED

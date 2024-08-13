@@ -5,6 +5,7 @@
 //
 
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/convenience.h"
 
 #include "db/convenience_impl.h"
@@ -14,6 +15,7 @@
 namespace ROCKSDB_NAMESPACE {
 
 void CancelAllBackgroundWork(DB* db, bool wait) {
+  DBUG_TRACE;
   (static_cast_with_check<DBImpl>(db->GetRootDB()))
       ->CancelAllBackgroundWork(wait);
 }
@@ -21,12 +23,14 @@ void CancelAllBackgroundWork(DB* db, bool wait) {
 Status DeleteFilesInRange(DB* db, ColumnFamilyHandle* column_family,
                           const Slice* begin, const Slice* end,
                           bool include_end) {
+  DBUG_TRACE;
   RangePtr range(begin, end);
   return DeleteFilesInRanges(db, column_family, &range, 1, include_end);
 }
 
 Status DeleteFilesInRanges(DB* db, ColumnFamilyHandle* column_family,
                            const RangePtr* ranges, size_t n, bool include_end) {
+  DBUG_TRACE;
   return (static_cast_with_check<DBImpl>(db->GetRootDB()))
       ->DeleteFilesInRanges(column_family, ranges, n, include_end);
 }
@@ -34,6 +38,7 @@ Status DeleteFilesInRanges(DB* db, ColumnFamilyHandle* column_family,
 Status VerifySstFileChecksum(const Options& options,
                              const EnvOptions& env_options,
                              const std::string& file_path) {
+  DBUG_TRACE;
   // TODO: plumb Env::IOActivity, Env::IOPriority
   const ReadOptions read_options;
   return VerifySstFileChecksum(options, env_options, read_options, file_path);
@@ -43,6 +48,7 @@ Status VerifySstFileChecksum(const Options& options,
                              const ReadOptions& _read_options,
                              const std::string& file_path,
                              const SequenceNumber& largest_seqno) {
+  DBUG_TRACE;
   if (_read_options.io_activity != Env::IOActivity::kUnknown) {
     return Status::InvalidArgument(
         "Can only call VerifySstFileChecksum with `ReadOptions::io_activity` "
@@ -59,6 +65,7 @@ Status VerifySstFileChecksumInternal(const Options& options,
                                      const ReadOptions& read_options,
                                      const std::string& file_path,
                                      const SequenceNumber& largest_seqno) {
+  DBUG_TRACE;
   std::unique_ptr<FSRandomAccessFile> file;
   uint64_t file_size;
   InternalKeyComparator internal_comparator(options.comparator);

@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "db/db_info_dumper.h"
 
 #include <algorithm>
@@ -19,6 +20,7 @@ namespace ROCKSDB_NAMESPACE {
 void DumpDBFileSummary(const ImmutableDBOptions& options,
                        const std::string& dbname,
                        const std::string& session_id) {
+  DBUG_TRACE;
   if (options.info_log == nullptr) {
     return;
   }

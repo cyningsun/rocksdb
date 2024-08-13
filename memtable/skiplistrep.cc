@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 //
+#include "rocksdb/util/dbug.h"
 #include <random>
 
 #include "db/memtable.h"
@@ -33,6 +34,7 @@ class SkipListRep : public MemTableRep {
         lookahead_(lookahead) {}
 
   KeyHandle Allocate(const size_t len, char** buf) override {
+    DBUG_TRACE;
     *buf = skip_list_.AllocateKey(len);
     return static_cast<KeyHandle>(*buf);
   }
@@ -40,50 +42,61 @@ class SkipListRep : public MemTableRep {
   // Insert key into the list.
   // REQUIRES: nothing that compares equal to key is currently in the list.
   void Insert(KeyHandle handle) override {
+    DBUG_TRACE;
     skip_list_.Insert(static_cast<char*>(handle));
   }
 
   bool InsertKey(KeyHandle handle) override {
+    DBUG_TRACE;
     return skip_list_.Insert(static_cast<char*>(handle));
   }
 
   void InsertWithHint(KeyHandle handle, void** hint) override {
+    DBUG_TRACE;
     skip_list_.InsertWithHint(static_cast<char*>(handle), hint);
   }
 
   bool InsertKeyWithHint(KeyHandle handle, void** hint) override {
+    DBUG_TRACE;
     return skip_list_.InsertWithHint(static_cast<char*>(handle), hint);
   }
 
   void InsertWithHintConcurrently(KeyHandle handle, void** hint) override {
+    DBUG_TRACE;
     skip_list_.InsertWithHintConcurrently(static_cast<char*>(handle), hint);
   }
 
   bool InsertKeyWithHintConcurrently(KeyHandle handle, void** hint) override {
+    DBUG_TRACE;
     return skip_list_.InsertWithHintConcurrently(static_cast<char*>(handle),
                                                  hint);
   }
 
   void InsertConcurrently(KeyHandle handle) override {
+    DBUG_TRACE;
     skip_list_.InsertConcurrently(static_cast<char*>(handle));
   }
 
   bool InsertKeyConcurrently(KeyHandle handle) override {
+    DBUG_TRACE;
     return skip_list_.InsertConcurrently(static_cast<char*>(handle));
   }
 
   // Returns true iff an entry that compares equal to key is in the list.
   bool Contains(const char* key) const override {
+    DBUG_TRACE;
     return skip_list_.Contains(key);
   }
 
   size_t ApproximateMemoryUsage() override {
+    DBUG_TRACE;
     // All memory is allocated through allocator; nothing to report here
     return 0;
   }
 
   void Get(const LookupKey& k, void* callback_args,
            bool (*callback_func)(void* arg, const char* entry)) override {
+    DBUG_TRACE;
     SkipListRep::Iterator iter(&skip_list_);
     Slice dummy_slice;
     for (iter.Seek(dummy_slice, k.memtable_key().data());
@@ -94,6 +107,7 @@ class SkipListRep : public MemTableRep {
 
   uint64_t ApproximateNumEntries(const Slice& start_ikey,
                                  const Slice& end_ikey) override {
+    DBUG_TRACE;
     std::string tmp;
     uint64_t start_count =
         skip_list_.EstimateCount(EncodeKey(&tmp, start_ikey));
@@ -104,6 +118,7 @@ class SkipListRep : public MemTableRep {
   void UniqueRandomSample(const uint64_t num_entries,
                           const uint64_t target_sample_size,
                           std::unordered_set<const char*>* entries) override {
+    DBUG_TRACE;
     entries->clear();
     // Avoid divide-by-0.
     assert(target_sample_size > 0);
@@ -177,22 +192,23 @@ class SkipListRep : public MemTableRep {
     ~Iterator() override = default;
 
     // Returns true iff the iterator is positioned at a valid node.
-    bool Valid() const override { return iter_.Valid(); }
+    bool Valid() const override { DBUG_TRACE; return iter_.Valid(); }
 
     // Returns the key at the current position.
     // REQUIRES: Valid()
-    const char* key() const override { return iter_.key(); }
+    const char* key() const override { DBUG_TRACE; return iter_.key(); }
 
     // Advances to the next position.
     // REQUIRES: Valid()
-    void Next() override { iter_.Next(); }
+    void Next() override { DBUG_TRACE; iter_.Next(); }
 
     // Advances to the previous position.
     // REQUIRES: Valid()
-    void Prev() override { iter_.Prev(); }
+    void Prev() override { DBUG_TRACE; iter_.Prev(); }
 
     // Advance to the first entry with a key >= target
     void Seek(const Slice& user_key, const char* memtable_key) override {
+      DBUG_TRACE;
       if (memtable_key != nullptr) {
         iter_.Seek(memtable_key);
       } else {
@@ -202,6 +218,7 @@ class SkipListRep : public MemTableRep {
 
     // Retreat to the last entry with a key <= target
     void SeekForPrev(const Slice& user_key, const char* memtable_key) override {
+      DBUG_TRACE;
       if (memtable_key != nullptr) {
         iter_.SeekForPrev(memtable_key);
       } else {
@@ -209,15 +226,15 @@ class SkipListRep : public MemTableRep {
       }
     }
 
-    void RandomSeek() override { iter_.RandomSeek(); }
+    void RandomSeek() override { DBUG_TRACE; iter_.RandomSeek(); }
 
     // Position at the first entry in list.
     // Final state of iterator is Valid() iff list is not empty.
-    void SeekToFirst() override { iter_.SeekToFirst(); }
+    void SeekToFirst() override { DBUG_TRACE; iter_.SeekToFirst(); }
 
     // Position at the last entry in list.
     // Final state of iterator is Valid() iff list is not empty.
-    void SeekToLast() override { iter_.SeekToLast(); }
+    void SeekToLast() override { DBUG_TRACE; iter_.SeekToLast(); }
 
    protected:
     std::string tmp_;  // For passing to EncodeKey
@@ -234,14 +251,16 @@ class SkipListRep : public MemTableRep {
 
     ~LookaheadIterator() override = default;
 
-    bool Valid() const override { return iter_.Valid(); }
+    bool Valid() const override { DBUG_TRACE; return iter_.Valid(); }
 
     const char* key() const override {
+      DBUG_TRACE;
       assert(Valid());
       return iter_.key();
     }
 
     void Next() override {
+      DBUG_TRACE;
       assert(Valid());
 
       bool advance_prev = true;
@@ -267,12 +286,14 @@ class SkipListRep : public MemTableRep {
     }
 
     void Prev() override {
+      DBUG_TRACE;
       assert(Valid());
       iter_.Prev();
       prev_ = iter_;
     }
 
     void Seek(const Slice& internal_key, const char* memtable_key) override {
+      DBUG_TRACE;
       const char* encoded_key = (memtable_key != nullptr)
                                     ? memtable_key
                                     : EncodeKey(&tmp_, internal_key);
@@ -297,6 +318,7 @@ class SkipListRep : public MemTableRep {
 
     void SeekForPrev(const Slice& internal_key,
                      const char* memtable_key) override {
+      DBUG_TRACE;
       const char* encoded_key = (memtable_key != nullptr)
                                     ? memtable_key
                                     : EncodeKey(&tmp_, internal_key);
@@ -305,11 +327,13 @@ class SkipListRep : public MemTableRep {
     }
 
     void SeekToFirst() override {
+      DBUG_TRACE;
       iter_.SeekToFirst();
       prev_ = iter_;
     }
 
     void SeekToLast() override {
+      DBUG_TRACE;
       iter_.SeekToLast();
       prev_ = iter_;
     }
@@ -324,6 +348,7 @@ class SkipListRep : public MemTableRep {
   };
 
   MemTableRep::Iterator* GetIterator(Arena* arena = nullptr) override {
+    DBUG_TRACE;
     if (lookahead_ > 0) {
       void* mem =
           arena ? arena->AllocateAligned(sizeof(SkipListRep::LookaheadIterator))
@@ -352,6 +377,7 @@ SkipListFactory::SkipListFactory(size_t lookahead) : lookahead_(lookahead) {
 }
 
 std::string SkipListFactory::GetId() const {
+  DBUG_TRACE;
   std::string id = Name();
   if (lookahead_ > 0) {
     id.append(":").append(std::to_string(lookahead_));
@@ -362,6 +388,7 @@ std::string SkipListFactory::GetId() const {
 MemTableRep* SkipListFactory::CreateMemTableRep(
     const MemTableRep::KeyComparator& compare, Allocator* allocator,
     const SliceTransform* transform, Logger* /*logger*/) {
+  DBUG_TRACE;
   return new SkipListRep(compare, allocator, transform, lookahead_);
 }
 

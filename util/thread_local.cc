@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "util/thread_local.h"
 
 #include <cstdlib>
@@ -104,7 +105,7 @@ class ThreadLocalPtr::StaticMeta {
   // Mutex() should be used instead of this one.  However, in case where
   // the static variable inside Instance() goes out of scope, MemberMutex()
   // should be used.  One example is OnThreadExit() function.
-  port::Mutex* MemberMutex() { return &mutex_; }
+  port::Mutex* MemberMutex() { DBUG_TRACE; return &mutex_; }
 
  private:
   // Get UnrefHandler for id with acquiring mutex
@@ -237,9 +238,10 @@ BOOL WINAPI DllMain(HINSTANCE h, DWORD dwReason, PVOID pv) {
 
 #endif  // OS_WIN
 
-void ThreadLocalPtr::InitSingletons() { ThreadLocalPtr::Instance(); }
+void ThreadLocalPtr::InitSingletons() { DBUG_TRACE; ThreadLocalPtr::Instance(); }
 
 ThreadLocalPtr::StaticMeta* ThreadLocalPtr::Instance() {
+  DBUG_TRACE;
   // Here we prefer function static variable instead of global
   // static variable as function static variable is initialized
   // when the function is first call.  As a result, we can properly
@@ -265,9 +267,10 @@ ThreadLocalPtr::StaticMeta* ThreadLocalPtr::Instance() {
   return inst;
 }
 
-port::Mutex* ThreadLocalPtr::StaticMeta::Mutex() { return &Instance()->mutex_; }
+port::Mutex* ThreadLocalPtr::StaticMeta::Mutex() { DBUG_TRACE; return &Instance()->mutex_; }
 
 void ThreadLocalPtr::StaticMeta::OnThreadExit(void* ptr) {
+  DBUG_TRACE;
   auto* tls = static_cast<ThreadData*>(ptr);
   assert(tls != nullptr);
 
@@ -335,6 +338,7 @@ ThreadLocalPtr::StaticMeta::StaticMeta()
 }
 
 void ThreadLocalPtr::StaticMeta::AddThreadData(ThreadData* d) {
+  DBUG_TRACE;
   Mutex()->AssertHeld();
   d->next = &head_;
   d->prev = head_.prev;
@@ -343,6 +347,7 @@ void ThreadLocalPtr::StaticMeta::AddThreadData(ThreadData* d) {
 }
 
 void ThreadLocalPtr::StaticMeta::RemoveThreadData(ThreadData* d) {
+  DBUG_TRACE;
   Mutex()->AssertHeld();
   d->next->prev = d->prev;
   d->prev->next = d->next;
@@ -350,6 +355,7 @@ void ThreadLocalPtr::StaticMeta::RemoveThreadData(ThreadData* d) {
 }
 
 ThreadData* ThreadLocalPtr::StaticMeta::GetThreadLocal() {
+  DBUG_TRACE;
   if (UNLIKELY(tls_ == nullptr)) {
     auto* inst = Instance();
     tls_ = new ThreadData(inst);
@@ -374,6 +380,7 @@ ThreadData* ThreadLocalPtr::StaticMeta::GetThreadLocal() {
 }
 
 void* ThreadLocalPtr::StaticMeta::Get(uint32_t id) const {
+  DBUG_TRACE;
   auto* tls = GetThreadLocal();
   if (UNLIKELY(id >= tls->entries.size())) {
     return nullptr;
@@ -382,6 +389,7 @@ void* ThreadLocalPtr::StaticMeta::Get(uint32_t id) const {
 }
 
 void ThreadLocalPtr::StaticMeta::Reset(uint32_t id, void* ptr) {
+  DBUG_TRACE;
   auto* tls = GetThreadLocal();
   if (UNLIKELY(id >= tls->entries.size())) {
     // Need mutex to protect entries access within ReclaimId
@@ -392,6 +400,7 @@ void ThreadLocalPtr::StaticMeta::Reset(uint32_t id, void* ptr) {
 }
 
 void* ThreadLocalPtr::StaticMeta::Swap(uint32_t id, void* ptr) {
+  DBUG_TRACE;
   auto* tls = GetThreadLocal();
   if (UNLIKELY(id >= tls->entries.size())) {
     // Need mutex to protect entries access within ReclaimId
@@ -403,6 +412,7 @@ void* ThreadLocalPtr::StaticMeta::Swap(uint32_t id, void* ptr) {
 
 bool ThreadLocalPtr::StaticMeta::CompareAndSwap(uint32_t id, void* ptr,
                                                 void*& expected) {
+  DBUG_TRACE;
   auto* tls = GetThreadLocal();
   if (UNLIKELY(id >= tls->entries.size())) {
     // Need mutex to protect entries access within ReclaimId
@@ -415,6 +425,7 @@ bool ThreadLocalPtr::StaticMeta::CompareAndSwap(uint32_t id, void* ptr,
 
 void ThreadLocalPtr::StaticMeta::Scrape(uint32_t id, autovector<void*>* ptrs,
                                         void* const replacement) {
+  DBUG_TRACE;
   MutexLock l(Mutex());
   for (ThreadData* t = head_.next; t != &head_; t = t->next) {
     if (id < t->entries.size()) {
@@ -428,6 +439,7 @@ void ThreadLocalPtr::StaticMeta::Scrape(uint32_t id, autovector<void*>* ptrs,
 }
 
 void ThreadLocalPtr::StaticMeta::Fold(uint32_t id, FoldFunc func, void* res) {
+  DBUG_TRACE;
   MutexLock l(Mutex());
   for (ThreadData* t = head_.next; t != &head_; t = t->next) {
     if (id < t->entries.size()) {
@@ -439,14 +451,16 @@ void ThreadLocalPtr::StaticMeta::Fold(uint32_t id, FoldFunc func, void* res) {
   }
 }
 
-uint32_t ThreadLocalPtr::TEST_PeekId() { return Instance()->PeekId(); }
+uint32_t ThreadLocalPtr::TEST_PeekId() { DBUG_TRACE; return Instance()->PeekId(); }
 
 void ThreadLocalPtr::StaticMeta::SetHandler(uint32_t id, UnrefHandler handler) {
+  DBUG_TRACE;
   MutexLock l(Mutex());
   handler_map_[id] = handler;
 }
 
 UnrefHandler ThreadLocalPtr::StaticMeta::GetHandler(uint32_t id) {
+  DBUG_TRACE;
   Mutex()->AssertHeld();
   auto iter = handler_map_.find(id);
   if (iter == handler_map_.end()) {
@@ -456,6 +470,7 @@ UnrefHandler ThreadLocalPtr::StaticMeta::GetHandler(uint32_t id) {
 }
 
 uint32_t ThreadLocalPtr::StaticMeta::GetId() {
+  DBUG_TRACE;
   MutexLock l(Mutex());
   if (free_instance_ids_.empty()) {
     return next_instance_id_++;
@@ -467,6 +482,7 @@ uint32_t ThreadLocalPtr::StaticMeta::GetId() {
 }
 
 uint32_t ThreadLocalPtr::StaticMeta::PeekId() const {
+  DBUG_TRACE;
   MutexLock l(Mutex());
   if (!free_instance_ids_.empty()) {
     return free_instance_ids_.back();
@@ -475,6 +491,7 @@ uint32_t ThreadLocalPtr::StaticMeta::PeekId() const {
 }
 
 void ThreadLocalPtr::StaticMeta::ReclaimId(uint32_t id) {
+  DBUG_TRACE;
   // This id is not used, go through all thread local data and release
   // corresponding value
   MutexLock l(Mutex());
@@ -500,21 +517,24 @@ ThreadLocalPtr::ThreadLocalPtr(UnrefHandler handler)
 
 ThreadLocalPtr::~ThreadLocalPtr() { Instance()->ReclaimId(id_); }
 
-void* ThreadLocalPtr::Get() const { return Instance()->Get(id_); }
+void* ThreadLocalPtr::Get() const { DBUG_TRACE; return Instance()->Get(id_); }
 
-void ThreadLocalPtr::Reset(void* ptr) { Instance()->Reset(id_, ptr); }
+void ThreadLocalPtr::Reset(void* ptr) { DBUG_TRACE; Instance()->Reset(id_, ptr); }
 
-void* ThreadLocalPtr::Swap(void* ptr) { return Instance()->Swap(id_, ptr); }
+void* ThreadLocalPtr::Swap(void* ptr) { DBUG_TRACE; return Instance()->Swap(id_, ptr); }
 
 bool ThreadLocalPtr::CompareAndSwap(void* ptr, void*& expected) {
+  DBUG_TRACE;
   return Instance()->CompareAndSwap(id_, ptr, expected);
 }
 
 void ThreadLocalPtr::Scrape(autovector<void*>* ptrs, void* const replacement) {
+  DBUG_TRACE;
   Instance()->Scrape(id_, ptrs, replacement);
 }
 
 void ThreadLocalPtr::Fold(FoldFunc func, void* res) {
+  DBUG_TRACE;
   Instance()->Fold(id_, func, res);
 }
 

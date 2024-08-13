@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "db/compaction/compaction_picker.h"
 
 #include <cinttypes>
@@ -32,6 +33,7 @@ bool FindIntraL0Compaction(const std::vector<FileMetaData*>& level_files,
                            uint64_t max_compact_bytes_per_del_file,
                            uint64_t max_compaction_bytes,
                            CompactionInputFiles* comp_inputs) {
+  DBUG_TRACE;
   TEST_SYNC_POINT("FindIntraL0Compaction");
 
   size_t start = 0;
@@ -79,6 +81,7 @@ CompressionType GetCompressionType(const VersionStorageInfo* vstorage,
                                    const MutableCFOptions& mutable_cf_options,
                                    int level, int base_level,
                                    const bool enable_compression) {
+  DBUG_TRACE;
   if (!enable_compression) {
     // disable compression
     return kNoCompression;
@@ -114,6 +117,7 @@ CompressionOptions GetCompressionOptions(const MutableCFOptions& cf_options,
                                          const VersionStorageInfo* vstorage,
                                          int level,
                                          const bool enable_compression) {
+  DBUG_TRACE;
   if (!enable_compression) {
     return cf_options.compression_opts;
   }
@@ -134,6 +138,7 @@ CompactionPicker::~CompactionPicker() = default;
 
 // Delete this compaction from the list of running compactions.
 void CompactionPicker::ReleaseCompactionFiles(Compaction* c, Status status) {
+  DBUG_TRACE;
   UnregisterCompaction(c);
   if (!status.ok()) {
     c->ResetNextCompactionIndex();
@@ -143,6 +148,7 @@ void CompactionPicker::ReleaseCompactionFiles(Compaction* c, Status status) {
 void CompactionPicker::GetRange(const CompactionInputFiles& inputs,
                                 InternalKey* smallest,
                                 InternalKey* largest) const {
+  DBUG_TRACE;
   const int level = inputs.level;
   assert(!inputs.empty());
   smallest->Clear();
@@ -173,6 +179,7 @@ void CompactionPicker::GetRange(const CompactionInputFiles& inputs1,
                                 const CompactionInputFiles& inputs2,
                                 InternalKey* smallest,
                                 InternalKey* largest) const {
+  DBUG_TRACE;
   assert(!inputs1.empty() || !inputs2.empty());
   if (inputs1.empty()) {
     GetRange(inputs2, smallest, largest);
@@ -191,6 +198,7 @@ void CompactionPicker::GetRange(const CompactionInputFiles& inputs1,
 void CompactionPicker::GetRange(const std::vector<CompactionInputFiles>& inputs,
                                 InternalKey* smallest, InternalKey* largest,
                                 int exclude_level) const {
+  DBUG_TRACE;
   InternalKey current_smallest;
   InternalKey current_largest;
   bool initialized = false;
@@ -219,6 +227,7 @@ bool CompactionPicker::ExpandInputsToCleanCut(const std::string& /*cf_name*/,
                                               VersionStorageInfo* vstorage,
                                               CompactionInputFiles* inputs,
                                               InternalKey** next_smallest) {
+  DBUG_TRACE;
   // This isn't good compaction
   assert(!inputs->empty());
 
@@ -260,6 +269,7 @@ bool CompactionPicker::ExpandInputsToCleanCut(const std::string& /*cf_name*/,
 bool CompactionPicker::RangeOverlapWithCompaction(
     const Slice& smallest_user_key, const Slice& largest_user_key,
     int level) const {
+  DBUG_TRACE;
   const Comparator* ucmp = icmp_->user_comparator();
   for (Compaction* c : compactions_in_progress_) {
     if (c->output_level() == level &&
@@ -284,6 +294,7 @@ bool CompactionPicker::RangeOverlapWithCompaction(
 bool CompactionPicker::FilesRangeOverlapWithCompaction(
     const std::vector<CompactionInputFiles>& inputs, int level,
     int penultimate_level) const {
+  DBUG_TRACE;
   bool is_empty = true;
   for (auto& in : inputs) {
     if (!in.empty()) {
@@ -324,6 +335,7 @@ bool CompactionPicker::FilesRangeOverlapWithCompaction(
 // Returns true if any one of specified files are being compacted
 bool CompactionPicker::AreFilesInCompaction(
     const std::vector<FileMetaData*>& files) {
+  DBUG_TRACE;
   for (size_t i = 0; i < files.size(); i++) {
     if (files[i]->being_compacted) {
       return true;
@@ -337,6 +349,7 @@ Compaction* CompactionPicker::CompactFiles(
     const std::vector<CompactionInputFiles>& input_files, int output_level,
     VersionStorageInfo* vstorage, const MutableCFOptions& mutable_cf_options,
     const MutableDBOptions& mutable_db_options, uint32_t output_path_id) {
+DBUG_TRACE;
 #ifndef NDEBUG
   assert(input_files.size());
   // This compaction output should not overlap with a running compaction as
@@ -388,6 +401,7 @@ Status CompactionPicker::GetCompactionInputsFromFileNumbers(
     std::vector<CompactionInputFiles>* input_files,
     std::unordered_set<uint64_t>* input_set, const VersionStorageInfo* vstorage,
     const CompactionOptions& /*compact_options*/) const {
+  DBUG_TRACE;
   if (input_set->size() == 0U) {
     return Status::InvalidArgument(
         "Compaction must include at least one file.");
@@ -438,6 +452,7 @@ bool CompactionPicker::IsRangeInCompaction(VersionStorageInfo* vstorage,
                                            const InternalKey* smallest,
                                            const InternalKey* largest,
                                            int level, int* level_index) {
+  DBUG_TRACE;
   std::vector<FileMetaData*> inputs;
   assert(level < NumberLevels());
 
@@ -461,6 +476,7 @@ bool CompactionPicker::SetupOtherInputs(
     VersionStorageInfo* vstorage, CompactionInputFiles* inputs,
     CompactionInputFiles* output_level_inputs, int* parent_index,
     int base_index, bool only_expand_towards_right) {
+  DBUG_TRACE;
   assert(!inputs->empty());
   assert(output_level_inputs->empty());
   const int input_level = inputs->level;
@@ -585,6 +601,7 @@ void CompactionPicker::GetGrandparents(
     VersionStorageInfo* vstorage, const CompactionInputFiles& inputs,
     const CompactionInputFiles& output_level_inputs,
     std::vector<FileMetaData*>* grandparents) {
+  DBUG_TRACE;
   InternalKey start, limit;
   GetRange(inputs, output_level_inputs, &start, &limit);
   // Compute the set of grandparent files that overlap this compaction
@@ -606,6 +623,7 @@ Compaction* CompactionPicker::CompactRange(
     const CompactRangeOptions& compact_range_options, const InternalKey* begin,
     const InternalKey* end, InternalKey** compaction_end, bool* manual_conflict,
     uint64_t max_file_num_to_ignore, const std::string& trim_ts) {
+  DBUG_TRACE;
   // CompactionPickerFIFO has its own implementation of compact range
   assert(ioptions_.compaction_style != kCompactionStyleFIFO);
 
@@ -887,6 +905,7 @@ namespace {
 // Test whether two files have overlapping key-ranges.
 bool HaveOverlappingKeyRanges(const Comparator* c, const SstFileMetaData& a,
                               const SstFileMetaData& b) {
+  DBUG_TRACE;
   if (c->CompareWithoutTimestamp(a.smallestkey, b.smallestkey) >= 0) {
     if (c->CompareWithoutTimestamp(a.smallestkey, b.largestkey) <= 0) {
       // b.smallestkey <= a.smallestkey <= b.largestkey
@@ -912,6 +931,7 @@ bool HaveOverlappingKeyRanges(const Comparator* c, const SstFileMetaData& a,
 Status CompactionPicker::SanitizeCompactionInputFilesForAllLevels(
     std::unordered_set<uint64_t>* input_files,
     const ColumnFamilyMetaData& cf_meta, const int output_level) const {
+  DBUG_TRACE;
   auto& levels = cf_meta.levels;
   auto comparator = icmp_->user_comparator();
 
@@ -1048,6 +1068,7 @@ Status CompactionPicker::SanitizeAndConvertCompactionInputFiles(
     const ColumnFamilyMetaData& cf_meta, const int output_level,
     const VersionStorageInfo* vstorage,
     std::vector<CompactionInputFiles>* converted_input_files) const {
+  DBUG_TRACE;
   assert(static_cast<int>(cf_meta.levels.size()) - 1 ==
          cf_meta.levels[cf_meta.levels.size() - 1].level);
   assert(converted_input_files);
@@ -1137,6 +1158,7 @@ Status CompactionPicker::SanitizeAndConvertCompactionInputFiles(
 }
 
 void CompactionPicker::RegisterCompaction(Compaction* c) {
+  DBUG_TRACE;
   if (c == nullptr) {
     return;
   }
@@ -1158,6 +1180,7 @@ void CompactionPicker::RegisterCompaction(Compaction* c) {
 }
 
 void CompactionPicker::UnregisterCompaction(Compaction* c) {
+  DBUG_TRACE;
   if (c == nullptr) {
     return;
   }
@@ -1171,6 +1194,7 @@ void CompactionPicker::UnregisterCompaction(Compaction* c) {
 void CompactionPicker::PickFilesMarkedForCompaction(
     const std::string& cf_name, VersionStorageInfo* vstorage, int* start_level,
     int* output_level, CompactionInputFiles* start_level_inputs) {
+  DBUG_TRACE;
   if (vstorage->FilesMarkedForCompaction().empty()) {
     return;
   }
@@ -1217,6 +1241,7 @@ void CompactionPicker::PickFilesMarkedForCompaction(
 bool CompactionPicker::GetOverlappingL0Files(
     VersionStorageInfo* vstorage, CompactionInputFiles* start_level_inputs,
     int output_level, int* parent_index) {
+  DBUG_TRACE;
   // Two level 0 compaction won't run at the same time, so don't need to worry
   // about files on level 0 being compacted.
   assert(level0_compactions_in_progress()->empty());

@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #ifdef GFLAGS
 #include "db_stress_tool/multi_ops_txns_stress.h"
 
@@ -40,6 +41,7 @@ DEFINE_int32(clear_wp_commit_cache_one_in, 0,
              "write-unprepared transactions.");
 
 extern "C" bool rocksdb_write_prepared_TEST_ShouldClearCommitCache(void) {
+  DBUG_TRACE;
   static Random rand(static_cast<uint32_t>(db_stress_env->NowMicros()));
   return FLAGS_clear_wp_commit_cache_one_in > 0 &&
          rand.OneIn(FLAGS_clear_wp_commit_cache_one_in);
@@ -75,6 +77,7 @@ extern "C" bool rocksdb_write_prepared_TEST_ShouldClearCommitCache(void) {
 // any test thread is spawned.
 
 void MultiOpsTxnsStressTest::KeyGenerator::FinishInit() {
+  DBUG_TRACE;
   assert(existing_.empty());
   assert(!existing_uniq_.empty());
   assert(low_ < high_);
@@ -98,6 +101,7 @@ void MultiOpsTxnsStressTest::KeyGenerator::FinishInit() {
 
 std::pair<uint32_t, uint32_t>
 MultiOpsTxnsStressTest::KeyGenerator::ChooseExisting() {
+  DBUG_TRACE;
   assert(initialized_);
   const size_t N = existing_.size();
   assert(N > 0);
@@ -107,6 +111,7 @@ MultiOpsTxnsStressTest::KeyGenerator::ChooseExisting() {
 }
 
 uint32_t MultiOpsTxnsStressTest::KeyGenerator::Allocate() {
+  DBUG_TRACE;
   assert(initialized_);
   auto it = non_existing_uniq_.begin();
   assert(non_existing_uniq_.end() != it);
@@ -120,6 +125,7 @@ uint32_t MultiOpsTxnsStressTest::KeyGenerator::Allocate() {
 void MultiOpsTxnsStressTest::KeyGenerator::Replace(uint32_t old_val,
                                                    uint32_t old_pos,
                                                    uint32_t new_val) {
+  DBUG_TRACE;
   assert(initialized_);
   {
     auto it = existing_uniq_.find(old_val);
@@ -140,12 +146,14 @@ void MultiOpsTxnsStressTest::KeyGenerator::Replace(uint32_t old_val,
 }
 
 void MultiOpsTxnsStressTest::KeyGenerator::UndoAllocation(uint32_t new_val) {
+  DBUG_TRACE;
   assert(initialized_);
   assert(0 == non_existing_uniq_.count(new_val));
   non_existing_uniq_.insert(new_val);
 }
 
 std::string MultiOpsTxnsStressTest::Record::EncodePrimaryKey(uint32_t a) {
+  DBUG_TRACE;
   std::string ret;
   PutFixed32(&ret, kPrimaryIndexId);
   PutFixed32(&ret, a);
@@ -158,6 +166,7 @@ std::string MultiOpsTxnsStressTest::Record::EncodePrimaryKey(uint32_t a) {
 }
 
 std::string MultiOpsTxnsStressTest::Record::EncodeSecondaryKey(uint32_t c) {
+  DBUG_TRACE;
   std::string ret;
   PutFixed32(&ret, kSecondaryIndexId);
   PutFixed32(&ret, c);
@@ -171,6 +180,7 @@ std::string MultiOpsTxnsStressTest::Record::EncodeSecondaryKey(uint32_t c) {
 
 std::string MultiOpsTxnsStressTest::Record::EncodeSecondaryKey(uint32_t c,
                                                                uint32_t a) {
+  DBUG_TRACE;
   std::string ret;
   PutFixed32(&ret, kSecondaryIndexId);
   PutFixed32(&ret, c);
@@ -188,6 +198,7 @@ std::string MultiOpsTxnsStressTest::Record::EncodeSecondaryKey(uint32_t c,
 std::tuple<Status, uint32_t, uint32_t>
 MultiOpsTxnsStressTest::Record::DecodePrimaryIndexValue(
     Slice primary_index_value) {
+  DBUG_TRACE;
   if (primary_index_value.size() != 8) {
     return std::tuple<Status, uint32_t, uint32_t>{Status::Corruption(""), 0, 0};
   }
@@ -204,6 +215,7 @@ MultiOpsTxnsStressTest::Record::DecodePrimaryIndexValue(
 std::pair<Status, uint32_t>
 MultiOpsTxnsStressTest::Record::DecodeSecondaryIndexValue(
     Slice secondary_index_value) {
+  DBUG_TRACE;
   if (secondary_index_value.size() != 4) {
     return std::make_pair(Status::Corruption(""), 0);
   }
@@ -216,16 +228,19 @@ MultiOpsTxnsStressTest::Record::DecodeSecondaryIndexValue(
 
 std::pair<std::string, std::string>
 MultiOpsTxnsStressTest::Record::EncodePrimaryIndexEntry() const {
+  DBUG_TRACE;
   std::string primary_index_key = EncodePrimaryKey();
   std::string primary_index_value = EncodePrimaryIndexValue();
   return std::make_pair(primary_index_key, primary_index_value);
 }
 
 std::string MultiOpsTxnsStressTest::Record::EncodePrimaryKey() const {
+  DBUG_TRACE;
   return EncodePrimaryKey(a_);
 }
 
 std::string MultiOpsTxnsStressTest::Record::EncodePrimaryIndexValue() const {
+  DBUG_TRACE;
   std::string ret;
   PutFixed32(&ret, b_);
   PutFixed32(&ret, c_);
@@ -234,6 +249,7 @@ std::string MultiOpsTxnsStressTest::Record::EncodePrimaryIndexValue() const {
 
 std::pair<std::string, std::string>
 MultiOpsTxnsStressTest::Record::EncodeSecondaryIndexEntry() const {
+  DBUG_TRACE;
   std::string secondary_index_key = EncodeSecondaryKey(c_, a_);
 
   // Secondary index value is always 4-byte crc32 of the secondary key
@@ -245,11 +261,13 @@ MultiOpsTxnsStressTest::Record::EncodeSecondaryIndexEntry() const {
 }
 
 std::string MultiOpsTxnsStressTest::Record::EncodeSecondaryKey() const {
+  DBUG_TRACE;
   return EncodeSecondaryKey(c_, a_);
 }
 
 Status MultiOpsTxnsStressTest::Record::DecodePrimaryIndexEntry(
     Slice primary_index_key, Slice primary_index_value) {
+  DBUG_TRACE;
   if (primary_index_key.size() != 8) {
     assert(false);
     return Status::Corruption("Primary index key length is not 8");
@@ -282,6 +300,7 @@ Status MultiOpsTxnsStressTest::Record::DecodePrimaryIndexEntry(
 
 Status MultiOpsTxnsStressTest::Record::DecodeSecondaryIndexEntry(
     Slice secondary_index_key, Slice secondary_index_value) {
+  DBUG_TRACE;
   if (secondary_index_key.size() != 12) {
     return Status::Corruption("Secondary index key length is not 12");
   }
@@ -326,6 +345,7 @@ Status MultiOpsTxnsStressTest::Record::DecodeSecondaryIndexEntry(
 }
 
 void MultiOpsTxnsStressTest::FinishInitDb(SharedState* shared) {
+  DBUG_TRACE;
   if (FLAGS_enable_compaction_filter) {
     // TODO (yanqin) enable compaction filter
   }
@@ -345,6 +365,7 @@ void MultiOpsTxnsStressTest::FinishInitDb(SharedState* shared) {
 }
 
 void MultiOpsTxnsStressTest::ReopenAndPreloadDbIfNeeded(SharedState* shared) {
+  DBUG_TRACE;
   (void)shared;
   bool db_empty = false;
   {
@@ -373,6 +394,7 @@ Status MultiOpsTxnsStressTest::TestGet(
     ThreadState* thread, const ReadOptions& read_opts,
     const std::vector<int>& /*rand_column_families*/,
     const std::vector<int64_t>& /*rand_keys*/) {
+  DBUG_TRACE;
   ThreadStatus::OperationType cur_op_type =
       ThreadStatusUtil::GetThreadOperation();
   ThreadStatusUtil::SetThreadOperation(ThreadStatus::OperationType::OP_UNKNOWN);
@@ -389,6 +411,7 @@ std::vector<Status> MultiOpsTxnsStressTest::TestMultiGet(
     ThreadState* /*thread*/, const ReadOptions& /*read_opts*/,
     const std::vector<int>& /*rand_column_families*/,
     const std::vector<int64_t>& /*rand_keys*/) {
+  DBUG_TRACE;
   return std::vector<Status>{Status::NotSupported()};
 }
 
@@ -396,18 +419,19 @@ std::vector<Status> MultiOpsTxnsStressTest::TestMultiGet(
 void MultiOpsTxnsStressTest::TestGetEntity(
     ThreadState* /* thread */, const ReadOptions& /* read_opts */,
     const std::vector<int>& /* rand_column_families */,
-    const std::vector<int64_t>& /* rand_keys */) {}
+    const std::vector<int64_t>& /* rand_keys */) {DBUG_TRACE;}
 
 // Wide columns are currently not supported by transactions.
 void MultiOpsTxnsStressTest::TestMultiGetEntity(
     ThreadState* /* thread */, const ReadOptions& /* read_opts */,
     const std::vector<int>& /* rand_column_families */,
-    const std::vector<int64_t>& /* rand_keys */) {}
+    const std::vector<int64_t>& /* rand_keys */) {DBUG_TRACE;}
 
 Status MultiOpsTxnsStressTest::TestPrefixScan(
     ThreadState* thread, const ReadOptions& read_opts,
     const std::vector<int>& rand_column_families,
     const std::vector<int64_t>& rand_keys) {
+  DBUG_TRACE;
   (void)thread;
   (void)read_opts;
   (void)rand_column_families;
@@ -421,6 +445,7 @@ Status MultiOpsTxnsStressTest::TestIterate(
     ThreadState* thread, const ReadOptions& read_opts,
     const std::vector<int>& /*rand_column_families*/,
     const std::vector<int64_t>& /*rand_keys*/) {
+  DBUG_TRACE;
   ThreadStatus::OperationType cur_op_type =
       ThreadStatusUtil::GetThreadOperation();
   ThreadStatusUtil::SetThreadOperation(ThreadStatus::OperationType::OP_UNKNOWN);
@@ -436,6 +461,7 @@ Status MultiOpsTxnsStressTest::TestIterateAttributeGroups(
     ThreadState* /*thread*/, const ReadOptions& /*read_opts*/,
     const std::vector<int>& /*rand_column_families*/,
     const std::vector<int64_t>& /*rand_keys*/) {
+  DBUG_TRACE;
   return Status::NotSupported();
 }
 
@@ -446,6 +472,7 @@ Status MultiOpsTxnsStressTest::TestPut(ThreadState* /*thread*/,
                                        const std::vector<int>& /*cf_ids*/,
                                        const std::vector<int64_t>& /*keys*/,
                                        char (&value)[100]) {
+  DBUG_TRACE;
   (void)value;
   return Status::NotSupported();
 }
@@ -455,6 +482,7 @@ Status MultiOpsTxnsStressTest::TestDelete(
     ThreadState* /*thread*/, WriteOptions& /*write_opts*/,
     const std::vector<int>& /*rand_column_families*/,
     const std::vector<int64_t>& /*rand_keys*/) {
+  DBUG_TRACE;
   return Status::NotSupported();
 }
 
@@ -463,12 +491,14 @@ Status MultiOpsTxnsStressTest::TestDeleteRange(
     ThreadState* /*thread*/, WriteOptions& /*write_opts*/,
     const std::vector<int>& /*rand_column_families*/,
     const std::vector<int64_t>& /*rand_keys*/) {
+  DBUG_TRACE;
   return Status::NotSupported();
 }
 
 void MultiOpsTxnsStressTest::TestIngestExternalFile(
     ThreadState* thread, const std::vector<int>& rand_column_families,
     const std::vector<int64_t>& /*rand_keys*/) {
+  DBUG_TRACE;
   // TODO (yanqin)
   (void)thread;
   (void)rand_column_families;
@@ -477,6 +507,7 @@ void MultiOpsTxnsStressTest::TestIngestExternalFile(
 void MultiOpsTxnsStressTest::TestCompactRange(
     ThreadState* thread, int64_t /*rand_key*/, const Slice& /*start_key*/,
     ColumnFamilyHandle* column_family) {
+  DBUG_TRACE;
   // TODO (yanqin).
   // May use GetRangeHash() for validation before and after DB::CompactRange()
   // completes.
@@ -487,6 +518,7 @@ void MultiOpsTxnsStressTest::TestCompactRange(
 Status MultiOpsTxnsStressTest::TestBackupRestore(
     ThreadState* thread, const std::vector<int>& rand_column_families,
     const std::vector<int64_t>& /*rand_keys*/) {
+  DBUG_TRACE;
   // TODO (yanqin)
   (void)thread;
   (void)rand_column_families;
@@ -496,6 +528,7 @@ Status MultiOpsTxnsStressTest::TestBackupRestore(
 Status MultiOpsTxnsStressTest::TestCheckpoint(
     ThreadState* thread, const std::vector<int>& rand_column_families,
     const std::vector<int64_t>& /*rand_keys*/) {
+  DBUG_TRACE;
   // TODO (yanqin)
   (void)thread;
   (void)rand_column_families;
@@ -506,6 +539,7 @@ Status MultiOpsTxnsStressTest::TestApproximateSize(
     ThreadState* thread, uint64_t iteration,
     const std::vector<int>& rand_column_families,
     const std::vector<int64_t>& /*rand_keys*/) {
+  DBUG_TRACE;
   // TODO (yanqin)
   (void)thread;
   (void)iteration;
@@ -515,6 +549,7 @@ Status MultiOpsTxnsStressTest::TestApproximateSize(
 
 Status MultiOpsTxnsStressTest::TestCustomOperations(
     ThreadState* thread, const std::vector<int>& rand_column_families) {
+  DBUG_TRACE;
   (void)rand_column_families;
   // Randomly choose from 0, 1, and 2.
   // TODO (yanqin) allow user to configure probability of each operation.
@@ -549,11 +584,13 @@ Status MultiOpsTxnsStressTest::TestCustomOperations(
 }
 
 void MultiOpsTxnsStressTest::RegisterAdditionalListeners() {
+  DBUG_TRACE;
   options_.listeners.emplace_back(new MultiOpsTxnsStressListener(this));
 }
 
 void MultiOpsTxnsStressTest::PrepareTxnDbOptions(
     SharedState* /*shared*/, TransactionDBOptions& txn_db_opts) {
+  DBUG_TRACE;
   // MultiOpsTxnStressTest uses SingleDelete to delete secondary keys, thus we
   // register this callback to let TxnDb know that when rolling back
   // a transaction, use only SingleDelete to cancel prior Put from the same
@@ -575,6 +612,7 @@ Status MultiOpsTxnsStressTest::PrimaryKeyUpdateTxn(ThreadState* thread,
                                                    uint32_t old_a,
                                                    uint32_t old_a_pos,
                                                    uint32_t new_a) {
+  DBUG_TRACE;
   std::string old_pk = Record::EncodePrimaryKey(old_a);
   std::string new_pk = Record::EncodePrimaryKey(new_a);
   std::unique_ptr<Transaction> txn;
@@ -697,6 +735,7 @@ Status MultiOpsTxnsStressTest::SecondaryKeyUpdateTxn(ThreadState* thread,
                                                      uint32_t old_c,
                                                      uint32_t old_c_pos,
                                                      uint32_t new_c) {
+  DBUG_TRACE;
   std::unique_ptr<Transaction> txn;
   WriteOptions wopts;
   Status s = NewTxn(wopts, &txn);
@@ -898,6 +937,7 @@ Status MultiOpsTxnsStressTest::SecondaryKeyUpdateTxn(ThreadState* thread,
 Status MultiOpsTxnsStressTest::UpdatePrimaryIndexValueTxn(ThreadState* thread,
                                                           uint32_t a,
                                                           uint32_t b_delta) {
+  DBUG_TRACE;
   std::string pk_str = Record::EncodePrimaryKey(a);
   std::unique_ptr<Transaction> txn;
   WriteOptions wopts;
@@ -976,6 +1016,7 @@ Status MultiOpsTxnsStressTest::UpdatePrimaryIndexValueTxn(ThreadState* thread,
 
 Status MultiOpsTxnsStressTest::PointLookupTxn(ThreadState* thread,
                                               ReadOptions ropts, uint32_t a) {
+  DBUG_TRACE;
   std::string pk_str = Record::EncodePrimaryKey(a);
   // pk may or may not exist
   PinnableSlice value;
@@ -1073,6 +1114,7 @@ Status MultiOpsTxnsStressTest::RangeScanTxn(ThreadState* thread,
 }
 
 void MultiOpsTxnsStressTest::VerifyDb(ThreadState* thread) const {
+  DBUG_TRACE;
   if (thread->shared->HasVerificationFailedYet()) {
     return;
   }
@@ -1238,6 +1280,7 @@ void MultiOpsTxnsStressTest::VerifyDb(ThreadState* thread) const {
 // Caller has to make sure that the race condition does not happen.
 void MultiOpsTxnsStressTest::VerifyPkSkFast(const ReadOptions& read_options,
                                             int job_id) {
+  DBUG_TRACE;
   DB* const db = db_aptr_.load(std::memory_order_acquire);
   if (db == nullptr) {
     return;
@@ -1321,12 +1364,14 @@ void MultiOpsTxnsStressTest::VerifyPkSkFast(const ReadOptions& read_options,
 
 std::pair<uint32_t, uint32_t> MultiOpsTxnsStressTest::ChooseExistingA(
     ThreadState* thread) {
+  DBUG_TRACE;
   uint32_t tid = thread->tid;
   auto& key_gen = key_gen_for_a_.at(tid);
   return key_gen->ChooseExisting();
 }
 
 uint32_t MultiOpsTxnsStressTest::GenerateNextA(ThreadState* thread) {
+  DBUG_TRACE;
   uint32_t tid = thread->tid;
   auto& key_gen = key_gen_for_a_.at(tid);
   return key_gen->Allocate();
@@ -1334,12 +1379,14 @@ uint32_t MultiOpsTxnsStressTest::GenerateNextA(ThreadState* thread) {
 
 std::pair<uint32_t, uint32_t> MultiOpsTxnsStressTest::ChooseExistingC(
     ThreadState* thread) {
+  DBUG_TRACE;
   uint32_t tid = thread->tid;
   auto& key_gen = key_gen_for_c_.at(tid);
   return key_gen->ChooseExisting();
 }
 
 uint32_t MultiOpsTxnsStressTest::GenerateNextC(ThreadState* thread) {
+  DBUG_TRACE;
   uint32_t tid = thread->tid;
   auto& key_gen = key_gen_for_c_.at(tid);
   return key_gen->Allocate();
@@ -1347,6 +1394,7 @@ uint32_t MultiOpsTxnsStressTest::GenerateNextC(ThreadState* thread) {
 
 void MultiOpsTxnsStressTest::ProcessRecoveredPreparedTxnsHelper(
     Transaction* txn, SharedState* shared) {
+  DBUG_TRACE;
   thread_local Random rand(static_cast<uint32_t>(FLAGS_seed));
   if (rand.OneIn(2)) {
     Status s = txn->Commit();
@@ -1397,6 +1445,7 @@ Status MultiOpsTxnsStressTest::CommitAndCreateTimestampedSnapshotIfNeeded(
 void MultiOpsTxnsStressTest::SetupSnapshot(
     ThreadState* thread, ReadOptions& read_opts, Transaction& txn,
     std::shared_ptr<const Snapshot>& snapshot) {
+  DBUG_TRACE;
   if (thread->rand.OneInOpt(2)) {
     snapshot = txn_db_->GetLatestTimestampedSnapshot();
   }
@@ -1410,6 +1459,7 @@ void MultiOpsTxnsStressTest::SetupSnapshot(
 }
 
 std::string MultiOpsTxnsStressTest::KeySpaces::EncodeTo() const {
+  DBUG_TRACE;
   std::string result;
   PutFixed32(&result, lb_a);
   PutFixed32(&result, ub_a);
@@ -1419,6 +1469,7 @@ std::string MultiOpsTxnsStressTest::KeySpaces::EncodeTo() const {
 }
 
 bool MultiOpsTxnsStressTest::KeySpaces::DecodeFrom(Slice data) {
+  DBUG_TRACE;
   if (!GetFixed32(&data, &lb_a) || !GetFixed32(&data, &ub_a) ||
       !GetFixed32(&data, &lb_c) || !GetFixed32(&data, &ub_c)) {
     return false;
@@ -1429,6 +1480,7 @@ bool MultiOpsTxnsStressTest::KeySpaces::DecodeFrom(Slice data) {
 void MultiOpsTxnsStressTest::PersistKeySpacesDesc(
     const std::string& key_spaces_path, uint32_t lb_a, uint32_t ub_a,
     uint32_t lb_c, uint32_t ub_c) {
+  DBUG_TRACE;
   KeySpaces key_spaces(lb_a, ub_a, lb_c, ub_c);
   std::string key_spaces_rep = key_spaces.EncodeTo();
 
@@ -1443,6 +1495,7 @@ void MultiOpsTxnsStressTest::PersistKeySpacesDesc(
 
 MultiOpsTxnsStressTest::KeySpaces MultiOpsTxnsStressTest::ReadKeySpacesDesc(
     const std::string& key_spaces_path) {
+  DBUG_TRACE;
   KeySpaces key_spaces;
   std::unique_ptr<SequentialFile> sfile;
   Status s1 =
@@ -1478,6 +1531,7 @@ MultiOpsTxnsStressTest::KeySpaces MultiOpsTxnsStressTest::ReadKeySpacesDesc(
 void MultiOpsTxnsStressTest::PreloadDb(SharedState* shared, int threads,
                                        uint32_t lb_a, uint32_t ub_a,
                                        uint32_t lb_c, uint32_t ub_c) {
+  DBUG_TRACE;
   key_gen_for_a_.resize(threads);
   key_gen_for_c_.resize(threads);
 
@@ -1591,6 +1645,7 @@ void MultiOpsTxnsStressTest::PreloadDb(SharedState* shared, int threads,
 // and non-existing keys. We currently require the non-existing keys be
 // non-empty after initialization.
 void MultiOpsTxnsStressTest::ScanExistingDb(SharedState* shared, int threads) {
+  DBUG_TRACE;
   key_gen_for_a_.resize(threads);
   key_gen_for_c_.resize(threads);
 
@@ -1720,10 +1775,12 @@ void MultiOpsTxnsStressTest::ScanExistingDb(SharedState* shared, int threads) {
 }
 
 StressTest* CreateMultiOpsTxnsStressTest() {
+  DBUG_TRACE;
   return new MultiOpsTxnsStressTest();
 }
 
 void CheckAndSetOptionsForMultiOpsTxnStressTest() {
+  DBUG_TRACE;
   if (FLAGS_test_batches_snapshots || FLAGS_test_cf_consistency) {
     fprintf(stderr,
             "-test_multi_ops_txns is not compatible with "

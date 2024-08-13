@@ -4,6 +4,7 @@
 //  (found in the LICENSE.Apache file in the root directory).
 
 
+#include "rocksdb/util/dbug.h"
 #include "utilities/transactions/write_unprepared_txn_db.h"
 
 #include "db/arena_wrapped_db_iter.h"
@@ -17,6 +18,7 @@ namespace ROCKSDB_NAMESPACE {
 // unnecessary steps (eg. updating CommitMap, reconstructing keyset)
 Status WriteUnpreparedTxnDB::RollbackRecoveredTransaction(
     const DBImpl::RecoveredTransaction* rtxn) {
+  DBUG_TRACE;
   // TODO(lth): Reduce duplicate code with WritePrepared rollback logic.
   assert(rtxn->unprepared_);
   auto cf_map_shared_ptr = WritePreparedTxnDB::GetCFHandleMap();
@@ -46,6 +48,7 @@ Status WriteUnpreparedTxnDB::RollbackRecoveredTransaction(
         : ReadCallback(snapshot) {}
 
     inline bool IsVisibleFullCheck(SequenceNumber) override {
+      DBUG_TRACE;
       // The seq provided as snapshot is the seq right before we have locked and
       // wrote to it, so whatever is there, it is committed.
       return true;
@@ -53,7 +56,7 @@ Status WriteUnpreparedTxnDB::RollbackRecoveredTransaction(
 
     // Ignore the refresh request since we are confident that our snapshot seq
     // is not going to be affected by concurrent compactions (not enabled yet.)
-    void Refresh(SequenceNumber) override {}
+    void Refresh(SequenceNumber) override {DBUG_TRACE;}
   };
 
   // Iterate starting with largest sequence number.
@@ -199,6 +202,7 @@ Status WriteUnpreparedTxnDB::RollbackRecoveredTransaction(
 Status WriteUnpreparedTxnDB::Initialize(
     const std::vector<size_t>& compaction_enabled_cf_indices,
     const std::vector<ColumnFamilyHandle*>& handles) {
+  DBUG_TRACE;
   // TODO(lth): Reduce code duplication in this function.
   auto dbimpl = static_cast_with_check<DBImpl>(GetRootDB());
   assert(dbimpl != nullptr);
@@ -212,6 +216,7 @@ Status WriteUnpreparedTxnDB::Initialize(
     Status Callback(SequenceNumber commit_seq,
                     bool is_mem_disabled __attribute__((__unused__)), uint64_t,
                     size_t /*index*/, size_t /*total*/) override {
+      DBUG_TRACE;
       assert(!is_mem_disabled);
       db_->AddCommitted(commit_seq, commit_seq);
       return Status::OK();
@@ -360,6 +365,7 @@ Status WriteUnpreparedTxnDB::Initialize(
 Transaction* WriteUnpreparedTxnDB::BeginTransaction(
     const WriteOptions& write_options, const TransactionOptions& txn_options,
     Transaction* old_txn) {
+  DBUG_TRACE;
   if (old_txn != nullptr) {
     ReinitializeTransaction(old_txn, write_options, txn_options);
     return old_txn;
@@ -376,7 +382,7 @@ struct WriteUnpreparedTxnDB::IteratorState {
       : callback(txn_db, sequence, min_uncommitted, txn->unprep_seqs_,
                  kBackedByDBSnapshot),
         snapshot(s) {}
-  SequenceNumber MaxVisibleSeq() { return callback.max_visible_seq(); }
+  SequenceNumber MaxVisibleSeq() { DBUG_TRACE; return callback.max_visible_seq(); }
 
   WriteUnpreparedTxnReadCallback callback;
   std::shared_ptr<ManagedSnapshot> snapshot;
@@ -384,6 +390,7 @@ struct WriteUnpreparedTxnDB::IteratorState {
 
 namespace {
 static void CleanupWriteUnpreparedTxnDBIterator(void* arg1, void* /*arg2*/) {
+  DBUG_TRACE;
   delete static_cast<WriteUnpreparedTxnDB::IteratorState*>(arg1);
 }
 }  // anonymous namespace

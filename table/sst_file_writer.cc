@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/sst_file_writer.h"
 
 #include <vector>
@@ -126,6 +127,7 @@ struct SstFileWriter::Rep {
   }
 
   Status Add(const Slice& user_key, const Slice& value, ValueType value_type) {
+    DBUG_TRACE;
     if (internal_comparator.user_comparator()->timestamp_size() != 0) {
       return Status::InvalidArgument("Timestamp size mismatch");
     }
@@ -135,6 +137,7 @@ struct SstFileWriter::Rep {
 
   Status Add(const Slice& user_key, const Slice& timestamp, const Slice& value,
              ValueType value_type) {
+    DBUG_TRACE;
     const size_t timestamp_size = timestamp.size();
 
     if (internal_comparator.user_comparator()->timestamp_size() !=
@@ -158,6 +161,7 @@ struct SstFileWriter::Rep {
   }
 
   Status AddEntity(const Slice& user_key, const WideColumns& columns) {
+    DBUG_TRACE;
     WideColumns sorted_columns(columns);
     WideColumnsHelper::SortColumns(sorted_columns);
 
@@ -173,6 +177,7 @@ struct SstFileWriter::Rep {
   }
 
   Status DeleteRangeImpl(const Slice& begin_key, const Slice& end_key) {
+    DBUG_TRACE;
     if (!builder) {
       return Status::InvalidArgument("File is not opened");
     }
@@ -240,6 +245,7 @@ struct SstFileWriter::Rep {
   }
 
   Status DeleteRange(const Slice& begin_key, const Slice& end_key) {
+    DBUG_TRACE;
     if (internal_comparator.user_comparator()->timestamp_size() != 0) {
       return Status::InvalidArgument("Timestamp size mismatch");
     }
@@ -249,6 +255,7 @@ struct SstFileWriter::Rep {
   // begin_key and end_key should be users keys without timestamp.
   Status DeleteRange(const Slice& begin_key, const Slice& end_key,
                      const Slice& timestamp) {
+    DBUG_TRACE;
     const size_t timestamp_size = timestamp.size();
 
     if (internal_comparator.user_comparator()->timestamp_size() !=
@@ -279,6 +286,7 @@ struct SstFileWriter::Rep {
   }
 
   Status InvalidatePageCache(bool closing) {
+    DBUG_TRACE;
     Status s = Status::OK();
     if (invalidate_page_cache == false) {
       // Fadvise disabled
@@ -328,6 +336,7 @@ SstFileWriter::~SstFileWriter() {
 }
 
 Status SstFileWriter::Open(const std::string& file_path, Temperature temp) {
+  DBUG_TRACE;
   Rep* r = rep_.get();
   Status s;
   std::unique_ptr<FSWritableFile> sst_file;
@@ -426,47 +435,57 @@ Status SstFileWriter::Open(const std::string& file_path, Temperature temp) {
 }
 
 Status SstFileWriter::Add(const Slice& user_key, const Slice& value) {
+  DBUG_TRACE;
   return rep_->Add(user_key, value, ValueType::kTypeValue);
 }
 
 Status SstFileWriter::Put(const Slice& user_key, const Slice& value) {
+  DBUG_TRACE;
   return rep_->Add(user_key, value, ValueType::kTypeValue);
 }
 
 Status SstFileWriter::Put(const Slice& user_key, const Slice& timestamp,
                           const Slice& value) {
+  DBUG_TRACE;
   return rep_->Add(user_key, timestamp, value, ValueType::kTypeValue);
 }
 
 Status SstFileWriter::PutEntity(const Slice& user_key,
                                 const WideColumns& columns) {
+  DBUG_TRACE;
   return rep_->AddEntity(user_key, columns);
 }
 
 Status SstFileWriter::Merge(const Slice& user_key, const Slice& value) {
+  DBUG_TRACE;
   return rep_->Add(user_key, value, ValueType::kTypeMerge);
 }
 
 Status SstFileWriter::Delete(const Slice& user_key) {
+  DBUG_TRACE;
   return rep_->Add(user_key, Slice(), ValueType::kTypeDeletion);
 }
 
 Status SstFileWriter::Delete(const Slice& user_key, const Slice& timestamp) {
+  DBUG_TRACE;
   return rep_->Add(user_key, timestamp, Slice(),
                    ValueType::kTypeDeletionWithTimestamp);
 }
 
 Status SstFileWriter::DeleteRange(const Slice& begin_key,
                                   const Slice& end_key) {
+  DBUG_TRACE;
   return rep_->DeleteRange(begin_key, end_key);
 }
 
 Status SstFileWriter::DeleteRange(const Slice& begin_key, const Slice& end_key,
                                   const Slice& timestamp) {
+  DBUG_TRACE;
   return rep_->DeleteRange(begin_key, end_key, timestamp);
 }
 
 Status SstFileWriter::Finish(ExternalSstFileInfo* file_info) {
+  DBUG_TRACE;
   Rep* r = rep_.get();
   if (!r->builder) {
     return Status::InvalidArgument("File is not opened");
@@ -531,6 +550,6 @@ Status SstFileWriter::Finish(ExternalSstFileInfo* file_info) {
   return s;
 }
 
-uint64_t SstFileWriter::FileSize() { return rep_->file_info.file_size; }
+uint64_t SstFileWriter::FileSize() { DBUG_TRACE; return rep_->file_info.file_size; }
 
 }  // namespace ROCKSDB_NAMESPACE

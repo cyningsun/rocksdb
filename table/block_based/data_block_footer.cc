@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "table/block_based/data_block_footer.h"
 
 #include "rocksdb/table.h"
@@ -24,6 +25,7 @@ const uint32_t kNumRestartsMask = (1u << kDataBlockIndexTypeBitShift) - 1u;
 uint32_t PackIndexTypeAndNumRestarts(
     BlockBasedTableOptions::DataBlockIndexType index_type,
     uint32_t num_restarts) {
+  DBUG_TRACE;
   if (num_restarts > kMaxNumRestarts) {
     assert(0);  // mute travis "unused" warning
   }
@@ -42,6 +44,7 @@ void UnPackIndexTypeAndNumRestarts(
     uint32_t block_footer,
     BlockBasedTableOptions::DataBlockIndexType* index_type,
     uint32_t* num_restarts) {
+  DBUG_TRACE;
   if (index_type) {
     if (block_footer & 1u << kDataBlockIndexTypeBitShift) {
       *index_type = BlockBasedTableOptions::kDataBlockBinaryAndHash;

@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/slice.h"
 
 #include <algorithm>
@@ -32,12 +33,13 @@ class FixedPrefixTransform : public SliceTransform {
     id_ = std::string(kClassName()) + "." + std::to_string(prefix_len_);
   }
 
-  static const char* kClassName() { return "rocksdb.FixedPrefix"; }
-  static const char* kNickName() { return "fixed"; }
-  const char* Name() const override { return kClassName(); }
-  const char* NickName() const override { return kNickName(); }
+  static const char* kClassName() { DBUG_TRACE; return "rocksdb.FixedPrefix"; }
+  static const char* kNickName() { DBUG_TRACE; return "fixed"; }
+  const char* Name() const override { DBUG_TRACE; return kClassName(); }
+  const char* NickName() const override { DBUG_TRACE; return kNickName(); }
 
   bool IsInstanceOf(const std::string& name) const override {
+    DBUG_TRACE;
     if (name == id_) {
       return true;
     } else if (StartsWith(name, kNickName())) {
@@ -50,27 +52,32 @@ class FixedPrefixTransform : public SliceTransform {
     return SliceTransform::IsInstanceOf(name);
   }
 
-  std::string GetId() const override { return id_; }
+  std::string GetId() const override { DBUG_TRACE; return id_; }
 
   Slice Transform(const Slice& src) const override {
+    DBUG_TRACE;
     assert(InDomain(src));
     return Slice(src.data(), prefix_len_);
   }
 
   bool InDomain(const Slice& src) const override {
+    DBUG_TRACE;
     return (src.size() >= prefix_len_);
   }
 
   bool InRange(const Slice& dst) const override {
+    DBUG_TRACE;
     return (dst.size() == prefix_len_);
   }
 
   bool FullLengthEnabled(size_t* len) const override {
+    DBUG_TRACE;
     *len = prefix_len_;
     return true;
   }
 
   bool SameResultWhenAppended(const Slice& prefix) const override {
+    DBUG_TRACE;
     return InDomain(prefix);
   }
 };
@@ -85,13 +92,14 @@ class CappedPrefixTransform : public SliceTransform {
     id_ = std::string(kClassName()) + "." + std::to_string(cap_len_);
   }
 
-  static const char* kClassName() { return "rocksdb.CappedPrefix"; }
-  static const char* kNickName() { return "capped"; }
-  const char* Name() const override { return kClassName(); }
-  const char* NickName() const override { return kNickName(); }
-  std::string GetId() const override { return id_; }
+  static const char* kClassName() { DBUG_TRACE; return "rocksdb.CappedPrefix"; }
+  static const char* kNickName() { DBUG_TRACE; return "capped"; }
+  const char* Name() const override { DBUG_TRACE; return kClassName(); }
+  const char* NickName() const override { DBUG_TRACE; return kNickName(); }
+  std::string GetId() const override { DBUG_TRACE; return id_; }
 
   bool IsInstanceOf(const std::string& name) const override {
+    DBUG_TRACE;
     if (name == id_) {
       return true;
     } else if (StartsWith(name, kNickName())) {
@@ -105,22 +113,26 @@ class CappedPrefixTransform : public SliceTransform {
   }
 
   Slice Transform(const Slice& src) const override {
+    DBUG_TRACE;
     assert(InDomain(src));
     return Slice(src.data(), std::min(cap_len_, src.size()));
   }
 
-  bool InDomain(const Slice& /*src*/) const override { return true; }
+  bool InDomain(const Slice& /*src*/) const override { DBUG_TRACE; return true; }
 
   bool InRange(const Slice& dst) const override {
+    DBUG_TRACE;
     return (dst.size() <= cap_len_);
   }
 
   bool FullLengthEnabled(size_t* len) const override {
+    DBUG_TRACE;
     *len = cap_len_;
     return true;
   }
 
   bool SameResultWhenAppended(const Slice& prefix) const override {
+    DBUG_TRACE;
     return prefix.size() >= cap_len_;
   }
 };
@@ -129,16 +141,17 @@ class NoopTransform : public SliceTransform {
  public:
   explicit NoopTransform() = default;
 
-  static const char* kClassName() { return "rocksdb.Noop"; }
-  const char* Name() const override { return kClassName(); }
+  static const char* kClassName() { DBUG_TRACE; return "rocksdb.Noop"; }
+  const char* Name() const override { DBUG_TRACE; return kClassName(); }
 
-  Slice Transform(const Slice& src) const override { return src; }
+  Slice Transform(const Slice& src) const override { DBUG_TRACE; return src; }
 
-  bool InDomain(const Slice& /*src*/) const override { return true; }
+  bool InDomain(const Slice& /*src*/) const override { DBUG_TRACE; return true; }
 
-  bool InRange(const Slice& /*dst*/) const override { return true; }
+  bool InRange(const Slice& /*dst*/) const override { DBUG_TRACE; return true; }
 
   bool SameResultWhenAppended(const Slice& /*prefix*/) const override {
+    DBUG_TRACE;
     return false;
   }
 };
@@ -146,17 +159,20 @@ class NoopTransform : public SliceTransform {
 }  // end namespace
 
 const SliceTransform* NewFixedPrefixTransform(size_t prefix_len) {
+  DBUG_TRACE;
   return new FixedPrefixTransform(prefix_len);
 }
 
 const SliceTransform* NewCappedPrefixTransform(size_t cap_len) {
+  DBUG_TRACE;
   return new CappedPrefixTransform(cap_len);
 }
 
-const SliceTransform* NewNoopTransform() { return new NoopTransform; }
+const SliceTransform* NewNoopTransform() { DBUG_TRACE; return new NoopTransform; }
 
 static int RegisterBuiltinSliceTransform(ObjectLibrary& library,
                                          const std::string& /*arg*/) {
+  DBUG_TRACE;
   // For the builtin transforms, the format is typically
   // [Name].[0-9]+ or [NickName]:[0-9]+
   library.AddFactory<const SliceTransform>(
@@ -214,6 +230,7 @@ static int RegisterBuiltinSliceTransform(ObjectLibrary& library,
 Status SliceTransform::CreateFromString(
     const ConfigOptions& config_options, const std::string& value,
     std::shared_ptr<const SliceTransform>* result) {
+  DBUG_TRACE;
   static std::once_flag once;
   std::call_once(once, [&]() {
     RegisterBuiltinSliceTransform(*(ObjectLibrary::Default().get()), "");
@@ -240,6 +257,7 @@ Status SliceTransform::CreateFromString(
 }
 
 std::string SliceTransform::AsString() const {
+  DBUG_TRACE;
   if (HasRegisteredOptions()) {
     ConfigOptions opts;
     opts.delimiter = ";";
@@ -253,6 +271,7 @@ std::string SliceTransform::AsString() const {
 // Originally from wdt/util/EncryptionUtils.cpp - for
 // std::to_string(true)/DecodeHex:
 char toHex(unsigned char v) {
+  DBUG_TRACE;
   if (v <= 9) {
     return '0' + v;
   }
@@ -260,6 +279,7 @@ char toHex(unsigned char v) {
 }
 // most of the code is for validation/error check
 int fromHex(char c) {
+  DBUG_TRACE;
   // toupper:
   if (c >= 'a' && c <= 'f') {
     c -= ('a' - 'A');  // aka 0x20
@@ -290,6 +310,7 @@ Slice::Slice(const SliceParts& parts, std::string* buf) {
 
 // Return a string that contains the copy of the referenced data.
 std::string Slice::ToString(bool hex) const {
+  DBUG_TRACE;
   std::string result;  // RVO/NRVO/move
   if (hex) {
     result.reserve(2 * size_);
@@ -307,6 +328,7 @@ std::string Slice::ToString(bool hex) const {
 
 // Originally from rocksdb/utilities/ldb_cmd.h
 bool Slice::DecodeHex(std::string* result) const {
+  DBUG_TRACE;
   std::string::size_type len = size_;
   if (len % 2) {
     // Hex string must be even number of hex digits to get complete bytes back
@@ -337,6 +359,7 @@ PinnableSlice::PinnableSlice(PinnableSlice&& other) {
 }
 
 PinnableSlice& PinnableSlice::operator=(PinnableSlice&& other) {
+  DBUG_TRACE;
   if (this != &other) {
     Cleanable::Reset();
     Cleanable::operator=(std::move(other));

@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "db/arena_wrapped_db_iter.h"
 
 #include "memory/arena.h"
@@ -20,6 +21,7 @@
 namespace ROCKSDB_NAMESPACE {
 
 inline static SequenceNumber GetSeqNum(const DBImpl* db, const Snapshot* s) {
+  DBUG_TRACE;
   if (s) {
     return s->GetSequenceNumber();
   } else {
@@ -29,6 +31,7 @@ inline static SequenceNumber GetSeqNum(const DBImpl* db, const Snapshot* s) {
 
 Status ArenaWrappedDBIter::GetProperty(std::string prop_name,
                                        std::string* prop) {
+  DBUG_TRACE;
   if (prop_name == "rocksdb.iterator.super-version-number") {
     // First try to pass the value returned from inner iterator.
     if (!db_iter_->GetProperty(prop_name, prop).ok()) {
@@ -45,6 +48,7 @@ void ArenaWrappedDBIter::Init(
     const SequenceNumber& sequence, uint64_t max_sequential_skip_in_iteration,
     uint64_t version_number, ReadCallback* read_callback,
     ColumnFamilyHandleImpl* cfh, bool expose_blob_index, bool allow_refresh) {
+  DBUG_TRACE;
   auto mem = arena_.AllocateAligned(sizeof(DBIter));
   db_iter_ = new (mem) DBIter(
       env, read_options, ioptions, mutable_cf_options, ioptions.user_comparator,
@@ -61,9 +65,10 @@ void ArenaWrappedDBIter::Init(
   }
 }
 
-Status ArenaWrappedDBIter::Refresh() { return Refresh(nullptr); }
+Status ArenaWrappedDBIter::Refresh() { DBUG_TRACE; return Refresh(nullptr); }
 
 Status ArenaWrappedDBIter::Refresh(const Snapshot* snapshot) {
+  DBUG_TRACE;
   if (cfh_ == nullptr || !allow_refresh_) {
     return Status::NotSupported("Creating renew iterator is not allowed.");
   }
@@ -168,6 +173,7 @@ ArenaWrappedDBIter* NewArenaWrappedDbIterator(
     const SequenceNumber& sequence, uint64_t max_sequential_skip_in_iterations,
     uint64_t version_number, ReadCallback* read_callback,
     ColumnFamilyHandleImpl* cfh, bool expose_blob_index, bool allow_refresh) {
+  DBUG_TRACE;
   ArenaWrappedDBIter* iter = new ArenaWrappedDBIter();
   iter->Init(env, read_options, ioptions, mutable_cf_options, version, sequence,
              max_sequential_skip_in_iterations, version_number, read_callback,

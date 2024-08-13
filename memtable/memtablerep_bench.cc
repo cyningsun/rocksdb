@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #ifndef GFLAGS
 #include <cstdio>
 int main() {
@@ -148,6 +149,7 @@ class RandomGenerator {
   }
 
   Slice Generate(unsigned int len) {
+    DBUG_TRACE;
     assert(len <= data_.size());
     if (pos_ + len > data_.size()) {
       pos_ = 0;
@@ -178,6 +180,7 @@ class KeyGenerator {
   }
 
   uint64_t Next() {
+    DBUG_TRACE;
     switch (mode_) {
       case SEQUENTIAL:
         return next_++;
@@ -235,6 +238,7 @@ class FillBenchmarkThread : public BenchmarkThread {
                         num_ops, read_hits) {}
 
   void FillOne() {
+    DBUG_TRACE;
     char* buf = nullptr;
     auto internal_key_size = 16;
     auto encoded_len =
@@ -256,6 +260,7 @@ class FillBenchmarkThread : public BenchmarkThread {
   }
 
   void operator()() override {
+    DBUG_TRACE;
     for (unsigned int i = 0; i < num_ops_; ++i) {
       FillOne();
     }
@@ -275,6 +280,7 @@ class ConcurrentFillBenchmarkThread : public FillBenchmarkThread {
   }
 
   void operator()() override {
+    DBUG_TRACE;
     // # of read threads will be total threads - write threads (always 1). Loop
     // while all reads complete.
     while ((*threads_done_).load() < (FLAGS_num_threads - 1)) {
@@ -295,6 +301,7 @@ class ReadBenchmarkThread : public BenchmarkThread {
                         num_ops, read_hits) {}
 
   static bool callback(void* arg, const char* entry) {
+    DBUG_TRACE;
     CallbackVerifyArgs* callback_args = static_cast<CallbackVerifyArgs*>(arg);
     assert(callback_args != nullptr);
     uint32_t key_length;
@@ -309,6 +316,7 @@ class ReadBenchmarkThread : public BenchmarkThread {
   }
 
   void ReadOne() {
+    DBUG_TRACE;
     std::string user_key;
     auto key = key_gen_->Next();
     PutFixed64(&user_key, key);
@@ -326,6 +334,7 @@ class ReadBenchmarkThread : public BenchmarkThread {
     }
   }
   void operator()() override {
+    DBUG_TRACE;
     for (unsigned int i = 0; i < num_ops_; ++i) {
       ReadOne();
     }
@@ -342,6 +351,7 @@ class SeqReadBenchmarkThread : public BenchmarkThread {
                         num_ops, read_hits) {}
 
   void ReadOneSeq() {
+    DBUG_TRACE;
     std::unique_ptr<MemTableRep::Iterator> iter(table_->GetIterator());
     for (iter->SeekToFirst(); iter->Valid(); iter->Next()) {
       // pretend to read the value
@@ -351,6 +361,7 @@ class SeqReadBenchmarkThread : public BenchmarkThread {
   }
 
   void operator()() override {
+    DBUG_TRACE;
     for (unsigned int i = 0; i < num_ops_; ++i) {
       { ReadOneSeq(); }
     }
@@ -370,6 +381,7 @@ class ConcurrentReadBenchmarkThread : public ReadBenchmarkThread {
   }
 
   void operator()() override {
+    DBUG_TRACE;
     for (unsigned int i = 0; i < num_ops_; ++i) {
       ReadOne();
     }
@@ -393,6 +405,7 @@ class SeqConcurrentReadBenchmarkThread : public SeqReadBenchmarkThread {
   }
 
   void operator()() override {
+    DBUG_TRACE;
     for (unsigned int i = 0; i < num_ops_; ++i) {
       ReadOneSeq();
     }
@@ -414,6 +427,7 @@ class Benchmark {
 
   virtual ~Benchmark() {}
   virtual void Run() {
+    DBUG_TRACE;
     std::cout << "Number of threads: " << num_threads_ << std::endl;
     std::vector<port::Thread> threads;
     uint64_t bytes_written = 0;
@@ -470,6 +484,7 @@ class FillBenchmark : public Benchmark {
   void RunThreads(std::vector<port::Thread>* /*threads*/,
                   uint64_t* bytes_written, uint64_t* bytes_read, bool /*write*/,
                   uint64_t* read_hits) override {
+    DBUG_TRACE;
     FillBenchmarkThread(table_, key_gen_, bytes_written, bytes_read, sequence_,
                         num_write_ops_per_thread_, read_hits)();
   }
@@ -486,6 +501,7 @@ class ReadBenchmark : public Benchmark {
   void RunThreads(std::vector<port::Thread>* threads, uint64_t* bytes_written,
                   uint64_t* bytes_read, bool /*write*/,
                   uint64_t* read_hits) override {
+    DBUG_TRACE;
     for (int i = 0; i < FLAGS_num_threads; ++i) {
       threads->emplace_back(
           ReadBenchmarkThread(table_, key_gen_, bytes_written, bytes_read,
@@ -510,6 +526,7 @@ class SeqReadBenchmark : public Benchmark {
   void RunThreads(std::vector<port::Thread>* threads, uint64_t* bytes_written,
                   uint64_t* bytes_read, bool /*write*/,
                   uint64_t* read_hits) override {
+    DBUG_TRACE;
     for (int i = 0; i < FLAGS_num_threads; ++i) {
       threads->emplace_back(SeqReadBenchmarkThread(
           table_, key_gen_, bytes_written, bytes_read, sequence_,
@@ -537,6 +554,7 @@ class ReadWriteBenchmark : public Benchmark {
   void RunThreads(std::vector<port::Thread>* threads, uint64_t* bytes_written,
                   uint64_t* bytes_read, bool /*write*/,
                   uint64_t* read_hits) override {
+    DBUG_TRACE;
     std::atomic_int threads_done;
     threads_done.store(0);
     threads->emplace_back(ConcurrentFillBenchmarkThread(
@@ -556,6 +574,7 @@ class ReadWriteBenchmark : public Benchmark {
 }  // namespace ROCKSDB_NAMESPACE
 
 void PrintWarnings() {
+DBUG_TRACE;
 #if defined(__GNUC__) && !defined(__OPTIMIZE__)
   fprintf(stdout,
           "WARNING: Optimization is disabled: benchmarks unnecessarily slow\n");
@@ -567,6 +586,7 @@ void PrintWarnings() {
 }
 
 int main(int argc, char** argv) {
+  DBUG_TRACE;
   ROCKSDB_NAMESPACE::port::InstallStackTraceHandler();
   SetUsageMessage(std::string("\nUSAGE:\n") + std::string(argv[0]) +
                   " [OPTIONS]...");

@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include <atomic>
 
 #include "monitoring/thread_status_updater.h"
@@ -17,10 +18,12 @@ static std::atomic<int> states_delay[ThreadStatus::NUM_STATE_TYPES];
 
 void ThreadStatusUtil::TEST_SetStateDelay(const ThreadStatus::StateType state,
                                           int micro) {
+  DBUG_TRACE;
   states_delay[state].store(micro, std::memory_order_relaxed);
 }
 
 void ThreadStatusUtil::TEST_StateDelay(const ThreadStatus::StateType state) {
+  DBUG_TRACE;
   auto delay = states_delay[state].load(std::memory_order_relaxed);
   if (delay > 0) {
     SystemClock::Default()->SleepForMicroseconds(delay);
@@ -29,6 +32,7 @@ void ThreadStatusUtil::TEST_StateDelay(const ThreadStatus::StateType state) {
 
 Env::IOActivity ThreadStatusUtil::TEST_GetExpectedIOActivity(
     ThreadStatus::OperationType thread_op) {
+  DBUG_TRACE;
   switch (thread_op) {
     case ThreadStatus::OperationType::OP_FLUSH:
       return Env::IOActivity::kFlush;

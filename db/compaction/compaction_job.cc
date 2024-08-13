@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "db/compaction/compaction_job.h"
 
 #include <algorithm>
@@ -60,6 +61,7 @@
 namespace ROCKSDB_NAMESPACE {
 
 const char* GetCompactionReasonString(CompactionReason compaction_reason) {
+  DBUG_TRACE;
   switch (compaction_reason) {
     case CompactionReason::kUnknown:
       return "Unknown";
@@ -111,6 +113,7 @@ const char* GetCompactionReasonString(CompactionReason compaction_reason) {
 
 const char* GetCompactionPenultimateOutputRangeTypeString(
     Compaction::PenultimateOutputRangeType range_type) {
+  DBUG_TRACE;
   switch (range_type) {
     case Compaction::PenultimateOutputRangeType::kNotSupported:
       return "NotSupported";
@@ -207,6 +210,7 @@ CompactionJob::~CompactionJob() {
 }
 
 void CompactionJob::ReportStartedCompaction(Compaction* compaction) {
+  DBUG_TRACE;
   ThreadStatusUtil::SetThreadOperationProperty(ThreadStatus::COMPACTION_JOB_ID,
                                                job_id_);
 
@@ -246,6 +250,7 @@ void CompactionJob::ReportStartedCompaction(Compaction* compaction) {
 }
 
 void CompactionJob::Prepare() {
+  DBUG_TRACE;
   AutoThreadOperationStageUpdater stage_updater(
       ThreadStatus::STAGE_COMPACTION_PREPARE);
 
@@ -343,6 +348,7 @@ void CompactionJob::Prepare() {
 }
 
 uint64_t CompactionJob::GetSubcompactionsLimit() {
+  DBUG_TRACE;
   return extra_num_subcompaction_threads_reserved_ +
          std::max(
              std::uint64_t(1),
@@ -351,6 +357,7 @@ uint64_t CompactionJob::GetSubcompactionsLimit() {
 
 void CompactionJob::AcquireSubcompactionResources(
     int num_extra_required_subcompactions) {
+  DBUG_TRACE;
   TEST_SYNC_POINT("CompactionJob::AcquireSubcompactionResources:0");
   TEST_SYNC_POINT("CompactionJob::AcquireSubcompactionResources:1");
   int max_db_compactions =
@@ -390,6 +397,7 @@ void CompactionJob::AcquireSubcompactionResources(
 }
 
 void CompactionJob::ShrinkSubcompactionResources(uint64_t num_extra_resources) {
+  DBUG_TRACE;
   // Do nothing when we have zero resources to shrink
   if (num_extra_resources == 0) {
     return;
@@ -419,6 +427,7 @@ void CompactionJob::ShrinkSubcompactionResources(uint64_t num_extra_resources) {
 }
 
 void CompactionJob::ReleaseSubcompactionResources() {
+  DBUG_TRACE;
   if (extra_num_subcompaction_threads_reserved_ == 0) {
     return;
   }
@@ -440,6 +449,7 @@ void CompactionJob::ReleaseSubcompactionResources() {
 }
 
 void CompactionJob::GenSubcompactionBoundaries() {
+  DBUG_TRACE;
   // The goal is to find some boundary keys so that we can evenly partition
   // the compaction input data into max_subcompactions ranges.
   // For every input file, we ask TableReader to estimate 128 anchor points
@@ -1020,6 +1030,7 @@ Status CompactionJob::Install(const MutableCFOptions& mutable_cf_options,
 
 void CompactionJob::NotifyOnSubcompactionBegin(
     SubcompactionState* sub_compact) {
+  DBUG_TRACE;
   Compaction* c = compact_->compaction;
 
   if (db_options_.listeners.empty()) {
@@ -1049,6 +1060,7 @@ void CompactionJob::NotifyOnSubcompactionBegin(
 
 void CompactionJob::NotifyOnSubcompactionCompleted(
     SubcompactionState* sub_compact) {
+DBUG_TRACE;
 
   if (db_options_.listeners.empty()) {
     return;
@@ -1494,12 +1506,14 @@ void CompactionJob::ProcessKeyValueCompaction(SubcompactionState* sub_compact) {
 }
 
 uint64_t CompactionJob::GetCompactionId(SubcompactionState* sub_compact) const {
+  DBUG_TRACE;
   return (uint64_t)job_id_ << 32 | sub_compact->sub_job_id;
 }
 
 void CompactionJob::RecordDroppedKeys(
     const CompactionIterationStats& c_iter_stats,
     CompactionJobStats* compaction_job_stats) {
+  DBUG_TRACE;
   if (c_iter_stats.num_record_drop_user > 0) {
     RecordTick(stats_, COMPACTION_KEY_DROP_USER,
                c_iter_stats.num_record_drop_user);
@@ -1538,6 +1552,7 @@ Status CompactionJob::FinishCompactionOutputFile(
     const Status& input_status, SubcompactionState* sub_compact,
     CompactionOutputs& outputs, const Slice& next_table_min_key,
     const Slice* comp_start_user_key, const Slice* comp_end_user_key) {
+  DBUG_TRACE;
   AutoThreadOperationStageUpdater stage_updater(
       ThreadStatus::STAGE_COMPACTION_SYNC_FILE);
   assert(sub_compact != nullptr);
@@ -1707,6 +1722,7 @@ Status CompactionJob::FinishCompactionOutputFile(
 
 Status CompactionJob::InstallCompactionResults(
     const MutableCFOptions& mutable_cf_options, bool* compaction_released) {
+  DBUG_TRACE;
   assert(compact_);
 
   db_mutex_->AssertHeld();
@@ -1803,6 +1819,7 @@ Status CompactionJob::InstallCompactionResults(
 }
 
 void CompactionJob::RecordCompactionIOStats() {
+  DBUG_TRACE;
   RecordTick(stats_, COMPACT_READ_BYTES, IOSTATS(bytes_read));
   RecordTick(stats_, COMPACT_WRITE_BYTES, IOSTATS(bytes_written));
   CompactionReason compaction_reason =
@@ -1827,6 +1844,7 @@ void CompactionJob::RecordCompactionIOStats() {
 
 Status CompactionJob::OpenCompactionOutputFile(SubcompactionState* sub_compact,
                                                CompactionOutputs& outputs) {
+  DBUG_TRACE;
   assert(sub_compact != nullptr);
 
   // no need to lock because VersionSet::next_file_number_ is atomic
@@ -1975,6 +1993,7 @@ Status CompactionJob::OpenCompactionOutputFile(SubcompactionState* sub_compact,
 }
 
 void CompactionJob::CleanupCompaction() {
+  DBUG_TRACE;
   for (SubcompactionState& sub_compact : compact_->sub_compact_states) {
     sub_compact.Cleanup(table_cache_.get());
   }
@@ -1984,6 +2003,7 @@ void CompactionJob::CleanupCompaction() {
 
 namespace {
 void CopyPrefix(const Slice& src, size_t prefix_length, std::string* dst) {
+  DBUG_TRACE;
   assert(prefix_length > 0);
   size_t length = src.size() > prefix_length ? prefix_length : src.size();
   dst->assign(src.data(), length);
@@ -1991,6 +2011,7 @@ void CopyPrefix(const Slice& src, size_t prefix_length, std::string* dst) {
 }  // namespace
 
 bool CompactionJob::UpdateCompactionStats(uint64_t* num_input_range_del) {
+  DBUG_TRACE;
   assert(compact_);
 
   Compaction* compaction = compact_->compaction;
@@ -2051,6 +2072,7 @@ bool CompactionJob::UpdateCompactionStats(uint64_t* num_input_range_del) {
 
 void CompactionJob::UpdateCompactionJobStats(
     const InternalStats::CompactionStats& stats) const {
+  DBUG_TRACE;
   compaction_job_stats_->elapsed_micros = stats.micros;
 
   // input information
@@ -2080,6 +2102,7 @@ void CompactionJob::UpdateCompactionJobStats(
 }
 
 void CompactionJob::LogCompaction() {
+  DBUG_TRACE;
   Compaction* compaction = compact_->compaction;
   ColumnFamilyData* cfd = compaction->column_family_data();
 
@@ -2135,11 +2158,13 @@ void CompactionJob::LogCompaction() {
 }
 
 std::string CompactionJob::GetTableFileName(uint64_t file_number) {
+  DBUG_TRACE;
   return TableFileName(compact_->compaction->immutable_options()->cf_paths,
                        file_number, compact_->compaction->output_path_id());
 }
 
 Env::IOPriority CompactionJob::GetRateLimiterPriority() {
+  DBUG_TRACE;
   if (versions_ && versions_->GetColumnFamilySet() &&
       versions_->GetColumnFamilySet()->write_controller()) {
     WriteController* write_controller =

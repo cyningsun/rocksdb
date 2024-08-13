@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "utilities/write_batch_with_index/write_batch_with_index_internal.h"
 
 #include "db/column_family.h"
@@ -39,10 +40,12 @@ BaseDeltaIterator::BaseDeltaIterator(ColumnFamilyHandle* column_family,
 BaseDeltaIterator::~BaseDeltaIterator() = default;
 
 bool BaseDeltaIterator::Valid() const {
+  DBUG_TRACE;
   return status_.ok() ? (current_at_base_ ? BaseValid() : DeltaValid()) : false;
 }
 
 void BaseDeltaIterator::SeekToFirst() {
+  DBUG_TRACE;
   forward_ = true;
   base_iterator_->SeekToFirst();
   delta_iterator_->SeekToFirst();
@@ -50,6 +53,7 @@ void BaseDeltaIterator::SeekToFirst() {
 }
 
 void BaseDeltaIterator::SeekToLast() {
+  DBUG_TRACE;
   forward_ = false;
   base_iterator_->SeekToLast();
   delta_iterator_->SeekToLast();
@@ -57,6 +61,7 @@ void BaseDeltaIterator::SeekToLast() {
 }
 
 void BaseDeltaIterator::Seek(const Slice& k) {
+  DBUG_TRACE;
   forward_ = true;
   base_iterator_->Seek(k);
   delta_iterator_->Seek(k);
@@ -64,6 +69,7 @@ void BaseDeltaIterator::Seek(const Slice& k) {
 }
 
 void BaseDeltaIterator::SeekForPrev(const Slice& k) {
+  DBUG_TRACE;
   forward_ = false;
   base_iterator_->SeekForPrev(k);
   delta_iterator_->SeekForPrev(k);
@@ -71,6 +77,7 @@ void BaseDeltaIterator::SeekForPrev(const Slice& k) {
 }
 
 void BaseDeltaIterator::Next() {
+  DBUG_TRACE;
   if (!Valid()) {
     status_ = Status::NotSupported("Next() on invalid iterator");
     return;
@@ -108,6 +115,7 @@ void BaseDeltaIterator::Next() {
 }
 
 void BaseDeltaIterator::Prev() {
+  DBUG_TRACE;
   if (!Valid()) {
     status_ = Status::NotSupported("Prev() on invalid iterator");
     return;
@@ -146,15 +154,18 @@ void BaseDeltaIterator::Prev() {
 }
 
 Slice BaseDeltaIterator::key() const {
+  DBUG_TRACE;
   return current_at_base_ ? base_iterator_->key()
                           : delta_iterator_->Entry().key;
 }
 
 Slice BaseDeltaIterator::timestamp() const {
+  DBUG_TRACE;
   return current_at_base_ ? base_iterator_->timestamp() : Slice();
 }
 
 Status BaseDeltaIterator::status() const {
+  DBUG_TRACE;
   if (!status_.ok()) {
     return status_;
   }
@@ -164,9 +175,10 @@ Status BaseDeltaIterator::status() const {
   return delta_iterator_->status();
 }
 
-void BaseDeltaIterator::Invalidate(Status s) { status_ = s; }
+void BaseDeltaIterator::Invalidate(Status s) { DBUG_TRACE; status_ = s; }
 
 void BaseDeltaIterator::AssertInvariants() {
+DBUG_TRACE;
 #ifndef NDEBUG
   bool not_ok = false;
   if (!base_iterator_->status().ok()) {
@@ -217,6 +229,7 @@ void BaseDeltaIterator::AssertInvariants() {
 }
 
 void BaseDeltaIterator::Advance() {
+  DBUG_TRACE;
   if (equal_keys_) {
     assert(BaseValid() && DeltaValid());
     AdvanceBase();
@@ -234,6 +247,7 @@ void BaseDeltaIterator::Advance() {
 }
 
 void BaseDeltaIterator::AdvanceDelta() {
+  DBUG_TRACE;
   if (forward_) {
     delta_iterator_->NextKey();
   } else {
@@ -241,6 +255,7 @@ void BaseDeltaIterator::AdvanceDelta() {
   }
 }
 void BaseDeltaIterator::AdvanceBase() {
+  DBUG_TRACE;
   if (forward_) {
     base_iterator_->Next();
   } else {
@@ -248,15 +263,17 @@ void BaseDeltaIterator::AdvanceBase() {
   }
 }
 
-bool BaseDeltaIterator::BaseValid() const { return base_iterator_->Valid(); }
-bool BaseDeltaIterator::DeltaValid() const { return delta_iterator_->Valid(); }
+bool BaseDeltaIterator::BaseValid() const { DBUG_TRACE; return base_iterator_->Valid(); }
+bool BaseDeltaIterator::DeltaValid() const { DBUG_TRACE; return delta_iterator_->Valid(); }
 
 void BaseDeltaIterator::ResetValueAndColumns() {
+  DBUG_TRACE;
   value_.clear();
   columns_.clear();
 }
 
 void BaseDeltaIterator::SetValueAndColumnsFromBase() {
+  DBUG_TRACE;
   assert(current_at_base_);
   assert(BaseValid());
   assert(value_.empty());
@@ -267,6 +284,7 @@ void BaseDeltaIterator::SetValueAndColumnsFromBase() {
 }
 
 void BaseDeltaIterator::SetValueAndColumnsFromDelta() {
+  DBUG_TRACE;
   assert(!current_at_base_);
   assert(DeltaValid());
   assert(value_.empty());
@@ -361,6 +379,7 @@ void BaseDeltaIterator::SetValueAndColumnsFromDelta() {
 }
 
 void BaseDeltaIterator::UpdateCurrent() {
+DBUG_TRACE;
 // Suppress false positive clang analyzer warnings.
 #ifndef __clang_analyzer__
   status_ = Status::OK();
@@ -437,6 +456,7 @@ void BaseDeltaIterator::UpdateCurrent() {
 }
 
 void WBWIIteratorImpl::AdvanceKey(bool forward) {
+  DBUG_TRACE;
   if (Valid()) {
     Slice key = Entry().key;
     do {
@@ -449,9 +469,10 @@ void WBWIIteratorImpl::AdvanceKey(bool forward) {
   }
 }
 
-void WBWIIteratorImpl::NextKey() { AdvanceKey(true); }
+void WBWIIteratorImpl::NextKey() { DBUG_TRACE; AdvanceKey(true); }
 
 void WBWIIteratorImpl::PrevKey() {
+  DBUG_TRACE;
   AdvanceKey(false);  // Move to the tail of the previous key
   if (Valid()) {
     AdvanceKey(false);  // Move back another key.  Now we are at the start of
@@ -466,6 +487,7 @@ void WBWIIteratorImpl::PrevKey() {
 
 WBWIIteratorImpl::Result WBWIIteratorImpl::FindLatestUpdate(
     MergeContext* merge_context) {
+  DBUG_TRACE;
   if (Valid()) {
     Slice key = Entry().key;
     return FindLatestUpdate(key, merge_context);
@@ -477,6 +499,7 @@ WBWIIteratorImpl::Result WBWIIteratorImpl::FindLatestUpdate(
 
 WBWIIteratorImpl::Result WBWIIteratorImpl::FindLatestUpdate(
     const Slice& key, MergeContext* merge_context) {
+  DBUG_TRACE;
   Result result = WBWIIteratorImpl::kNotFound;
   merge_context->Clear();  // Clear any entries in the MergeContext
   // TODO(agiardullo): consider adding support for reverse iteration
@@ -542,6 +565,7 @@ Status ReadableWriteBatch::GetEntryFromDataOffset(size_t data_offset,
                                                   WriteType* type, Slice* key,
                                                   Slice* value, Slice* blob,
                                                   Slice* xid) const {
+  DBUG_TRACE;
   if (type == nullptr || key == nullptr || value == nullptr ||
       blob == nullptr || xid == nullptr) {
     return Status::InvalidArgument("Output parameters cannot be null");
@@ -632,6 +656,7 @@ Status ReadableWriteBatch::GetEntryFromDataOffset(size_t data_offset,
 int WriteBatchEntryComparator::operator()(
     const WriteBatchIndexEntry* entry1,
     const WriteBatchIndexEntry* entry2) const {
+  DBUG_TRACE;
   if (entry1->column_family > entry2->column_family) {
     return 1;
   } else if (entry1->column_family < entry2->column_family) {
@@ -673,6 +698,7 @@ int WriteBatchEntryComparator::operator()(
 int WriteBatchEntryComparator::CompareKey(uint32_t column_family,
                                           const Slice& key1,
                                           const Slice& key2) const {
+  DBUG_TRACE;
   if (column_family < cf_comparators_.size() &&
       cf_comparators_[column_family] != nullptr) {
     return cf_comparators_[column_family]->CompareWithoutTimestamp(
@@ -685,11 +711,13 @@ int WriteBatchEntryComparator::CompareKey(uint32_t column_family,
 
 const Comparator* WriteBatchEntryComparator::GetComparator(
     const ColumnFamilyHandle* column_family) const {
+  DBUG_TRACE;
   return column_family ? column_family->GetComparator() : default_comparator_;
 }
 
 const Comparator* WriteBatchEntryComparator::GetComparator(
     uint32_t column_family) const {
+  DBUG_TRACE;
   if (column_family < cf_comparators_.size() &&
       cf_comparators_[column_family]) {
     return cf_comparators_[column_family];
@@ -698,6 +726,7 @@ const Comparator* WriteBatchEntryComparator::GetComparator(
 }
 
 WriteEntry WBWIIteratorImpl::Entry() const {
+  DBUG_TRACE;
   WriteEntry ret;
   Slice blob, xid;
   const WriteBatchIndexEntry* iter_entry = skip_list_iter_.key();
@@ -720,6 +749,7 @@ WriteEntry WBWIIteratorImpl::Entry() const {
 }
 
 bool WBWIIteratorImpl::MatchesKey(uint32_t cf_id, const Slice& key) {
+  DBUG_TRACE;
   if (Valid()) {
     return comparator_->CompareKey(cf_id, key, Entry().key) == 0;
   } else {
@@ -729,6 +759,7 @@ bool WBWIIteratorImpl::MatchesKey(uint32_t cf_id, const Slice& key) {
 
 Status WriteBatchWithIndexInternal::CheckAndGetImmutableOptions(
     ColumnFamilyHandle* column_family, const ImmutableOptions** ioptions) {
+  DBUG_TRACE;
   assert(ioptions);
   assert(!*ioptions);
 
@@ -860,15 +891,18 @@ WBWIIteratorImpl::Result WriteBatchWithIndexInternal::GetFromBatchImpl(
 WBWIIteratorImpl::Result WriteBatchWithIndexInternal::GetFromBatch(
     WriteBatchWithIndex* batch, ColumnFamilyHandle* column_family,
     const Slice& key, MergeContext* context, std::string* value, Status* s) {
+  DBUG_TRACE;
   struct Traits {
     using OutputType = std::string;
 
     static void ClearOutput(OutputType* output) {
+      DBUG_TRACE;
       assert(output);
       output->clear();
     }
 
     static Status SetPlainValue(const Slice& value, OutputType* output) {
+      DBUG_TRACE;
       assert(output);
       output->assign(value.data(), value.size());
 
@@ -876,6 +910,7 @@ WBWIIteratorImpl::Result WriteBatchWithIndexInternal::GetFromBatch(
     }
 
     static Status SetWideColumnValue(const Slice& entity, OutputType* output) {
+      DBUG_TRACE;
       assert(output);
 
       Slice entity_copy = entity;
@@ -899,15 +934,18 @@ WBWIIteratorImpl::Result WriteBatchWithIndexInternal::GetEntityFromBatch(
     WriteBatchWithIndex* batch, ColumnFamilyHandle* column_family,
     const Slice& key, MergeContext* context, PinnableWideColumns* columns,
     Status* s) {
+  DBUG_TRACE;
   struct Traits {
     using OutputType = PinnableWideColumns;
 
     static void ClearOutput(OutputType* output) {
+      DBUG_TRACE;
       assert(output);
       output->Reset();
     }
 
     static Status SetPlainValue(const Slice& value, OutputType* output) {
+      DBUG_TRACE;
       assert(output);
       output->SetPlainValue(value);
 
@@ -915,6 +953,7 @@ WBWIIteratorImpl::Result WriteBatchWithIndexInternal::GetEntityFromBatch(
     }
 
     static Status SetWideColumnValue(const Slice& entity, OutputType* output) {
+      DBUG_TRACE;
       assert(output);
 
       const Status s = output->SetWideColumnValue(entity);

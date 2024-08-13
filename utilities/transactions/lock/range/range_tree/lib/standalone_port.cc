@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #ifndef OS_WIN
 /*
   This is a dump ground to make Lock Tree work without the rest of TokuDB.
@@ -16,20 +17,21 @@
 
 // portability/os_malloc.cc
 
-void toku_free(void *p) { free(p); }
+void toku_free(void *p) { DBUG_TRACE; free(p); }
 
-void *toku_xmalloc(size_t size) { return malloc(size); }
+void *toku_xmalloc(size_t size) { DBUG_TRACE; return malloc(size); }
 
-void *toku_xrealloc(void *v, size_t size) { return realloc(v, size); }
+void *toku_xrealloc(void *v, size_t size) { DBUG_TRACE; return realloc(v, size); }
 
 void *toku_xmemdup(const void *v, size_t len) {
+  DBUG_TRACE;
   void *p = toku_xmalloc(len);
   memcpy(p, v, len);
   return p;
 }
 
 // TODO: what are the X-functions? Xcalloc, Xrealloc?
-void *toku_xcalloc(size_t nmemb, size_t size) { return calloc(nmemb, size); }
+void *toku_xcalloc(size_t nmemb, size_t size) { DBUG_TRACE; return calloc(nmemb, size); }
 
 // ft-ft-opts.cc:
 
@@ -46,13 +48,14 @@ toku_instr_key manager_escalation_mutex_key;
 toku_instr_key manager_escalator_mutex_key;
 
 // portability/memory.cc
-size_t toku_memory_footprint(void *, size_t touched) { return touched; }
+size_t toku_memory_footprint(void *, size_t touched) { DBUG_TRACE; return touched; }
 
 // ft/ft-status.c
 // PORT2: note: the @c parameter to TOKUFT_STATUS_INIT must not start with
 //   "TOKU"
 LTM_STATUS_S ltm_status;
 void LTM_STATUS_S::init() {
+  DBUG_TRACE;
   if (m_initialized) {
     return;
   }
@@ -106,6 +109,7 @@ void LTM_STATUS_S::init() {
 #undef LTM_STATUS_INIT
 }
 void LTM_STATUS_S::destroy() {
+  DBUG_TRACE;
   if (!m_initialized) {
     return;
   }
@@ -118,6 +122,7 @@ void LTM_STATUS_S::destroy() {
 
 int toku_keycompare(const void *key1, size_t key1len, const void *key2,
                     size_t key2len) {
+  DBUG_TRACE;
   size_t comparelen = key1len < key2len ? key1len : key2len;
   int c = memcmp(key1, key2, comparelen);
   if (__builtin_expect(c != 0, 1)) {
@@ -134,6 +139,7 @@ int toku_keycompare(const void *key1, size_t key1len, const void *key2,
 }
 
 int toku_builtin_compare_fun(const DBT *a, const DBT *b) {
+  DBUG_TRACE;
   return toku_keycompare(a->data, a->size, b->data, b->size);
 }
 #endif  // OS_WIN

@@ -3,6 +3,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "utilities/ttl/db_ttl_impl.h"
 
 #include "db/write_batch_internal.h"
@@ -31,6 +32,7 @@ TtlMergeOperator::TtlMergeOperator(
 
 bool TtlMergeOperator::FullMergeV2(const MergeOperationInput& merge_in,
                                    MergeOperationOutput* merge_out) const {
+  DBUG_TRACE;
   const uint32_t ts_len = DBWithTTLImpl::kTSLength;
   if (merge_in.existing_value && merge_in.existing_value->size() < ts_len) {
     ROCKS_LOG_ERROR(merge_in.logger,
@@ -100,6 +102,7 @@ bool TtlMergeOperator::PartialMergeMulti(const Slice& key,
                                          const std::deque<Slice>& operand_list,
                                          std::string* new_value,
                                          Logger* logger) const {
+  DBUG_TRACE;
   const uint32_t ts_len = DBWithTTLImpl::kTSLength;
   std::deque<Slice> operands_without_ts;
 
@@ -136,6 +139,7 @@ bool TtlMergeOperator::PartialMergeMulti(const Slice& key,
 }
 
 Status TtlMergeOperator::PrepareOptions(const ConfigOptions& config_options) {
+  DBUG_TRACE;
   if (clock_ == nullptr) {
     clock_ = config_options.env->GetSystemClock().get();
   }
@@ -144,6 +148,7 @@ Status TtlMergeOperator::PrepareOptions(const ConfigOptions& config_options) {
 
 Status TtlMergeOperator::ValidateOptions(
     const DBOptions& db_opts, const ColumnFamilyOptions& cf_opts) const {
+  DBUG_TRACE;
   if (user_merge_op_ == nullptr) {
     return Status::InvalidArgument(
         "UserMergeOperator required by TtlMergeOperator");
@@ -156,6 +161,7 @@ Status TtlMergeOperator::ValidateOptions(
 
 void DBWithTTLImpl::SanitizeOptions(int32_t ttl, ColumnFamilyOptions* options,
                                     SystemClock* clock) {
+  DBUG_TRACE;
   if (options->compaction_filter) {
     options->compaction_filter =
         new TtlCompactionFilter(ttl, clock, options->compaction_filter);
@@ -199,6 +205,7 @@ TtlCompactionFilter::TtlCompactionFilter(
 bool TtlCompactionFilter::Filter(int level, const Slice& key,
                                  const Slice& old_val, std::string* new_val,
                                  bool* value_changed) const {
+  DBUG_TRACE;
   if (DBWithTTLImpl::IsStale(old_val, ttl_, clock_)) {
     return true;
   }
@@ -221,6 +228,7 @@ bool TtlCompactionFilter::Filter(int level, const Slice& key,
 
 Status TtlCompactionFilter::PrepareOptions(
     const ConfigOptions& config_options) {
+  DBUG_TRACE;
   if (clock_ == nullptr) {
     clock_ = config_options.env->GetSystemClock().get();
   }
@@ -229,6 +237,7 @@ Status TtlCompactionFilter::PrepareOptions(
 
 Status TtlCompactionFilter::ValidateOptions(
     const DBOptions& db_opts, const ColumnFamilyOptions& cf_opts) const {
+  DBUG_TRACE;
   if (clock_ == nullptr) {
     return Status::InvalidArgument(
         "SystemClock required by TtlCompactionFilter");
@@ -249,6 +258,7 @@ TtlCompactionFilterFactory::TtlCompactionFilterFactory(
 std::unique_ptr<CompactionFilter>
 TtlCompactionFilterFactory::CreateCompactionFilter(
     const CompactionFilter::Context& context) {
+  DBUG_TRACE;
   std::unique_ptr<const CompactionFilter> user_comp_filter_from_factory =
       nullptr;
   if (user_comp_filter_factory_) {
@@ -262,6 +272,7 @@ TtlCompactionFilterFactory::CreateCompactionFilter(
 
 Status TtlCompactionFilterFactory::PrepareOptions(
     const ConfigOptions& config_options) {
+  DBUG_TRACE;
   if (clock_ == nullptr) {
     clock_ = config_options.env->GetSystemClock().get();
   }
@@ -270,6 +281,7 @@ Status TtlCompactionFilterFactory::PrepareOptions(
 
 Status TtlCompactionFilterFactory::ValidateOptions(
     const DBOptions& db_opts, const ColumnFamilyOptions& cf_opts) const {
+  DBUG_TRACE;
   if (clock_ == nullptr) {
     return Status::InvalidArgument(
         "SystemClock required by TtlCompactionFilterFactory");
@@ -279,6 +291,7 @@ Status TtlCompactionFilterFactory::ValidateOptions(
 }
 
 int RegisterTtlObjects(ObjectLibrary& library, const std::string& /*arg*/) {
+  DBUG_TRACE;
   library.AddFactory<MergeOperator>(
       TtlMergeOperator::kClassName(),
       [](const std::string& /*uri*/, std::unique_ptr<MergeOperator>* guard,
@@ -314,6 +327,7 @@ DBWithTTLImpl::~DBWithTTLImpl() {
 }
 
 Status DBWithTTLImpl::Close() {
+  DBUG_TRACE;
   Status ret = Status::OK();
   if (!closed_) {
     Options default_options = GetOptions();
@@ -327,6 +341,7 @@ Status DBWithTTLImpl::Close() {
 }
 
 void DBWithTTLImpl::RegisterTtlClasses() {
+  DBUG_TRACE;
   static std::once_flag once;
   std::call_once(once, [&]() {
     ObjectRegistry::Default()->AddLibrary("TTL", RegisterTtlObjects, "");
@@ -335,6 +350,7 @@ void DBWithTTLImpl::RegisterTtlClasses() {
 
 Status DBWithTTL::Open(const Options& options, const std::string& dbname,
                        DBWithTTL** dbptr, int32_t ttl, bool read_only) {
+  DBUG_TRACE;
   DBOptions db_options(options);
   ColumnFamilyOptions cf_options(options);
   std::vector<ColumnFamilyDescriptor> column_families;
@@ -356,6 +372,7 @@ Status DBWithTTL::Open(
     const std::vector<ColumnFamilyDescriptor>& column_families,
     std::vector<ColumnFamilyHandle*>* handles, DBWithTTL** dbptr,
     const std::vector<int32_t>& ttls, bool read_only) {
+  DBUG_TRACE;
   DBWithTTLImpl::RegisterTtlClasses();
   if (ttls.size() != column_families.size()) {
     return Status::InvalidArgument(
@@ -392,6 +409,7 @@ Status DBWithTTL::Open(
 Status DBWithTTLImpl::CreateColumnFamilyWithTtl(
     const ColumnFamilyOptions& options, const std::string& column_family_name,
     ColumnFamilyHandle** handle, int ttl) {
+  DBUG_TRACE;
   RegisterTtlClasses();
   ColumnFamilyOptions sanitized_options = options;
   DBWithTTLImpl::SanitizeOptions(ttl, &sanitized_options,
@@ -404,6 +422,7 @@ Status DBWithTTLImpl::CreateColumnFamilyWithTtl(
 Status DBWithTTLImpl::CreateColumnFamily(const ColumnFamilyOptions& options,
                                          const std::string& column_family_name,
                                          ColumnFamilyHandle** handle) {
+  DBUG_TRACE;
   return CreateColumnFamilyWithTtl(options, column_family_name, handle, 0);
 }
 
@@ -411,6 +430,7 @@ Status DBWithTTLImpl::CreateColumnFamily(const ColumnFamilyOptions& options,
 // Returns false if could not get the current_time, true if append succeeds
 Status DBWithTTLImpl::AppendTS(const Slice& val, std::string* val_with_ts,
                                SystemClock* clock) {
+  DBUG_TRACE;
   val_with_ts->reserve(kTSLength + val.size());
   char ts_string[kTSLength];
   int64_t curtime;
@@ -427,6 +447,7 @@ Status DBWithTTLImpl::AppendTS(const Slice& val, std::string* val_with_ts,
 // Returns corruption if the length of the string is lesser than timestamp, or
 // timestamp refers to a time lesser than ttl-feature release time
 Status DBWithTTLImpl::SanityCheckTimestamp(const Slice& str) {
+  DBUG_TRACE;
   if (str.size() < kTSLength) {
     return Status::Corruption("Error: value's length less than timestamp's\n");
   }
@@ -442,6 +463,7 @@ Status DBWithTTLImpl::SanityCheckTimestamp(const Slice& str) {
 // Checks if the string is stale or not according to TTl provided
 bool DBWithTTLImpl::IsStale(const Slice& value, int32_t ttl,
                             SystemClock* clock) {
+  DBUG_TRACE;
   if (ttl <= 0) {  // Data is fresh if TTL is non-positive
     return false;
   }
@@ -460,6 +482,7 @@ bool DBWithTTLImpl::IsStale(const Slice& value, int32_t ttl,
 
 // Strips the TS from the end of the slice
 Status DBWithTTLImpl::StripTS(PinnableSlice* pinnable_val) {
+  DBUG_TRACE;
   if (pinnable_val->size() < kTSLength) {
     return Status::Corruption("Bad timestamp in key-value");
   }
@@ -470,6 +493,7 @@ Status DBWithTTLImpl::StripTS(PinnableSlice* pinnable_val) {
 
 // Strips the TS from the end of the string
 Status DBWithTTLImpl::StripTS(std::string* str) {
+  DBUG_TRACE;
   if (str->length() < kTSLength) {
     return Status::Corruption("Bad timestamp in key-value");
   }
@@ -481,6 +505,7 @@ Status DBWithTTLImpl::StripTS(std::string* str) {
 Status DBWithTTLImpl::Put(const WriteOptions& options,
                           ColumnFamilyHandle* column_family, const Slice& key,
                           const Slice& val) {
+  DBUG_TRACE;
   WriteBatch batch;
   Status st = batch.Put(column_family, key, val);
   if (st.ok()) {
@@ -492,6 +517,7 @@ Status DBWithTTLImpl::Put(const WriteOptions& options,
 Status DBWithTTLImpl::Get(const ReadOptions& options,
                           ColumnFamilyHandle* column_family, const Slice& key,
                           PinnableSlice* value, std::string* timestamp) {
+  DBUG_TRACE;
   if (timestamp) {
     return Status::NotSupported(
         "Get() that returns timestamp is not supported");
@@ -512,6 +538,7 @@ void DBWithTTLImpl::MultiGet(const ReadOptions& options, const size_t num_keys,
                              const Slice* keys, PinnableSlice* values,
                              std::string* timestamps, Status* statuses,
                              const bool /*sorted_input*/) {
+  DBUG_TRACE;
   if (timestamps) {
     for (size_t i = 0; i < num_keys; ++i) {
       statuses[i] = Status::NotSupported(
@@ -541,6 +568,7 @@ bool DBWithTTLImpl::KeyMayExist(const ReadOptions& options,
                                 ColumnFamilyHandle* column_family,
                                 const Slice& key, std::string* value,
                                 bool* value_found) {
+  DBUG_TRACE;
   bool ret = db_->KeyMayExist(options, column_family, key, value, value_found);
   if (ret && value != nullptr && value_found != nullptr && *value_found) {
     if (!SanityCheckTimestamp(*value).ok() || !StripTS(value).ok()) {
@@ -553,6 +581,7 @@ bool DBWithTTLImpl::KeyMayExist(const ReadOptions& options,
 Status DBWithTTLImpl::Merge(const WriteOptions& options,
                             ColumnFamilyHandle* column_family, const Slice& key,
                             const Slice& value) {
+  DBUG_TRACE;
   WriteBatch batch;
   Status st = batch.Merge(column_family, key, value);
   if (st.ok()) {
@@ -562,12 +591,14 @@ Status DBWithTTLImpl::Merge(const WriteOptions& options,
 }
 
 Status DBWithTTLImpl::Write(const WriteOptions& opts, WriteBatch* updates) {
+  DBUG_TRACE;
   class Handler : public WriteBatch::Handler {
    public:
     explicit Handler(SystemClock* clock) : clock_(clock) {}
     WriteBatch updates_ttl;
     Status PutCF(uint32_t column_family_id, const Slice& key,
                  const Slice& value) override {
+      DBUG_TRACE;
       std::string value_with_ts;
       Status st = AppendTS(value, &value_with_ts, clock_);
       if (!st.ok()) {
@@ -578,6 +609,7 @@ Status DBWithTTLImpl::Write(const WriteOptions& opts, WriteBatch* updates) {
     }
     Status MergeCF(uint32_t column_family_id, const Slice& key,
                    const Slice& value) override {
+      DBUG_TRACE;
       std::string value_with_ts;
       Status st = AppendTS(value, &value_with_ts, clock_);
       if (!st.ok()) {
@@ -587,14 +619,16 @@ Status DBWithTTLImpl::Write(const WriteOptions& opts, WriteBatch* updates) {
                                        value_with_ts);
     }
     Status DeleteCF(uint32_t column_family_id, const Slice& key) override {
+      DBUG_TRACE;
       return WriteBatchInternal::Delete(&updates_ttl, column_family_id, key);
     }
     Status DeleteRangeCF(uint32_t column_family_id, const Slice& begin_key,
                          const Slice& end_key) override {
+      DBUG_TRACE;
       return WriteBatchInternal::DeleteRange(&updates_ttl, column_family_id,
                                              begin_key, end_key);
     }
-    void LogData(const Slice& blob) override { updates_ttl.PutLogData(blob); }
+    void LogData(const Slice& blob) override { DBUG_TRACE; updates_ttl.PutLogData(blob); }
 
    private:
     SystemClock* clock_;
@@ -610,6 +644,7 @@ Status DBWithTTLImpl::Write(const WriteOptions& opts, WriteBatch* updates) {
 
 Iterator* DBWithTTLImpl::NewIterator(const ReadOptions& _read_options,
                                      ColumnFamilyHandle* column_family) {
+  DBUG_TRACE;
   if (_read_options.io_activity != Env::IOActivity::kUnknown &&
       _read_options.io_activity != Env::IOActivity::kDBIterator) {
     return NewErrorIterator(Status::InvalidArgument(
@@ -624,6 +659,7 @@ Iterator* DBWithTTLImpl::NewIterator(const ReadOptions& _read_options,
 }
 
 void DBWithTTLImpl::SetTtl(ColumnFamilyHandle* h, int32_t ttl) {
+  DBUG_TRACE;
   std::shared_ptr<TtlCompactionFilterFactory> filter;
   Options opts;
   opts = GetOptions(h);

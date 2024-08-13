@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "env/mock_env.h"
 
 #include <algorithm>
@@ -27,6 +28,7 @@
 namespace ROCKSDB_NAMESPACE {
 namespace {
 int64_t MaybeCurrentTime(const std::shared_ptr<SystemClock>& clock) {
+  DBUG_TRACE;
   int64_t time = 1337346000;  // arbitrary fallback default
   clock->GetCurrentTime(&time).PermitUncheckedError();
   return time;
@@ -98,13 +100,15 @@ class MemFile {
   void operator=(const MemFile&) = delete;
 
   void Ref() {
+    DBUG_TRACE;
     MutexLock lock(&mutex_);
     ++refs_;
   }
 
-  bool is_lock_file() const { return is_lock_file_; }
+  bool is_lock_file() const { DBUG_TRACE; return is_lock_file_; }
 
   bool Lock() {
+    DBUG_TRACE;
     assert(is_lock_file_);
     MutexLock lock(&mutex_);
     if (locked_) {
@@ -116,12 +120,14 @@ class MemFile {
   }
 
   void Unlock() {
+    DBUG_TRACE;
     assert(is_lock_file_);
     MutexLock lock(&mutex_);
     locked_ = false;
   }
 
   void Unref() {
+    DBUG_TRACE;
     bool do_delete = false;
     {
       MutexLock lock(&mutex_);
@@ -137,10 +143,11 @@ class MemFile {
     }
   }
 
-  uint64_t Size() const { return size_; }
+  uint64_t Size() const { DBUG_TRACE; return size_; }
 
   void Truncate(size_t size, const IOOptions& /*options*/,
                 IODebugContext* /*dbg*/) {
+    DBUG_TRACE;
     MutexLock lock(&mutex_);
     if (size < size_) {
       data_.resize(size);
@@ -149,6 +156,7 @@ class MemFile {
   }
 
   void CorruptBuffer() {
+    DBUG_TRACE;
     if (fsynced_bytes_ >= size_) {
       return;
     }
@@ -164,6 +172,7 @@ class MemFile {
 
   IOStatus Read(uint64_t offset, size_t n, const IOOptions& /*options*/,
                 Slice* result, char* scratch, IODebugContext* /*dbg*/) const {
+    DBUG_TRACE;
     {
       IOStatus s;
       TEST_SYNC_POINT_CALLBACK("MemFile::Read:IOStatus", &s);
@@ -194,6 +203,7 @@ class MemFile {
 
   IOStatus Write(uint64_t offset, const Slice& data,
                  const IOOptions& /*options*/, IODebugContext* /*dbg*/) {
+    DBUG_TRACE;
     MutexLock lock(&mutex_);
     size_t offset_ = static_cast<size_t>(offset);
     if (offset + data.size() > data_.size()) {
@@ -207,6 +217,7 @@ class MemFile {
 
   IOStatus Append(const Slice& data, const IOOptions& /*options*/,
                   IODebugContext* /*dbg*/) {
+    DBUG_TRACE;
     MutexLock lock(&mutex_);
     data_.append(data.data(), data.size());
     size_ = data_.size();
@@ -215,14 +226,16 @@ class MemFile {
   }
 
   IOStatus Fsync(const IOOptions& /*options*/, IODebugContext* /*dbg*/) {
+    DBUG_TRACE;
     fsynced_bytes_ = size_.load();
     return IOStatus::OK();
   }
 
-  uint64_t ModifiedTime() const { return modified_time_; }
+  uint64_t ModifiedTime() const { DBUG_TRACE; return modified_time_; }
 
  private:
   uint64_t Now() {
+    DBUG_TRACE;
     int64_t unix_time = 0;
     auto s = clock_->GetCurrentTime(&unix_time);
     assert(s.ok());
@@ -265,6 +278,7 @@ class MockSequentialFile : public FSSequentialFile {
 
   IOStatus Read(size_t n, const IOOptions& options, Slice* result,
                 char* scratch, IODebugContext* dbg) override {
+    DBUG_TRACE;
     IOStatus s = file_->Read(pos_, n, options, result,
                              (use_mmap_read_) ? nullptr : scratch, dbg);
     if (s.ok()) {
@@ -273,8 +287,9 @@ class MockSequentialFile : public FSSequentialFile {
     return s;
   }
 
-  bool use_direct_io() const override { return use_direct_io_; }
+  bool use_direct_io() const override { DBUG_TRACE; return use_direct_io_; }
   IOStatus Skip(uint64_t n) override {
+    DBUG_TRACE;
     if (pos_ > file_->Size()) {
       return IOStatus::IOError("pos_ > file_->Size()");
     }
@@ -304,17 +319,19 @@ class MockRandomAccessFile : public FSRandomAccessFile {
 
   ~MockRandomAccessFile() override { file_->Unref(); }
 
-  bool use_direct_io() const override { return use_direct_io_; }
+  bool use_direct_io() const override { DBUG_TRACE; return use_direct_io_; }
 
   IOStatus Prefetch(uint64_t /*offset*/, size_t /*n*/,
                     const IOOptions& /*options*/,
                     IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return IOStatus::OK();
   }
 
   IOStatus Read(uint64_t offset, size_t n, const IOOptions& options,
                 Slice* result, char* scratch,
                 IODebugContext* dbg) const override {
+    DBUG_TRACE;
     if (use_mmap_read_) {
       return file_->Read(offset, n, options, result, nullptr, dbg);
     } else {
@@ -336,25 +353,30 @@ class MockRandomRWFile : public FSRandomRWFile {
 
   IOStatus Write(uint64_t offset, const Slice& data, const IOOptions& options,
                  IODebugContext* dbg) override {
+    DBUG_TRACE;
     return file_->Write(offset, data, options, dbg);
   }
 
   IOStatus Read(uint64_t offset, size_t n, const IOOptions& options,
                 Slice* result, char* scratch,
                 IODebugContext* dbg) const override {
+    DBUG_TRACE;
     return file_->Read(offset, n, options, result, scratch, dbg);
   }
 
   IOStatus Close(const IOOptions& options, IODebugContext* dbg) override {
+    DBUG_TRACE;
     return file_->Fsync(options, dbg);
   }
 
   IOStatus Flush(const IOOptions& /*options*/,
                  IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return IOStatus::OK();
   }
 
   IOStatus Sync(const IOOptions& options, IODebugContext* dbg) override {
+    DBUG_TRACE;
     return file_->Fsync(options, dbg);
   }
 
@@ -373,11 +395,12 @@ class MockWritableFile : public FSWritableFile {
 
   ~MockWritableFile() override { file_->Unref(); }
 
-  bool use_direct_io() const override { return false && use_direct_io_; }
+  bool use_direct_io() const override { DBUG_TRACE; return false && use_direct_io_; }
 
   using FSWritableFile::Append;
   IOStatus Append(const Slice& data, const IOOptions& options,
                   IODebugContext* dbg) override {
+    DBUG_TRACE;
     size_t bytes_written = 0;
     while (bytes_written < data.size()) {
       auto bytes = RequestToken(data.size() - bytes_written);
@@ -395,35 +418,42 @@ class MockWritableFile : public FSWritableFile {
   IOStatus PositionedAppend(const Slice& data, uint64_t /*offset*/,
                             const IOOptions& options,
                             IODebugContext* dbg) override {
+    DBUG_TRACE;
     assert(use_direct_io_);
     return Append(data, options, dbg);
   }
 
   IOStatus Truncate(uint64_t size, const IOOptions& options,
                     IODebugContext* dbg) override {
+    DBUG_TRACE;
     file_->Truncate(static_cast<size_t>(size), options, dbg);
     return IOStatus::OK();
   }
   IOStatus Close(const IOOptions& options, IODebugContext* dbg) override {
+    DBUG_TRACE;
     return file_->Fsync(options, dbg);
   }
 
   IOStatus Flush(const IOOptions& /*options*/,
                  IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return IOStatus::OK();
   }
 
   IOStatus Sync(const IOOptions& options, IODebugContext* dbg) override {
+    DBUG_TRACE;
     return file_->Fsync(options, dbg);
   }
 
   uint64_t GetFileSize(const IOOptions& /*options*/,
                        IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return file_->Size();
   }
 
  private:
   inline size_t RequestToken(size_t bytes) {
+    DBUG_TRACE;
     if (rate_limiter_ && io_priority_ < Env::IO_TOTAL) {
       bytes = std::min(
           bytes, static_cast<size_t>(rate_limiter_->GetSingleBurstBytes()));
@@ -441,11 +471,13 @@ class MockEnvDirectory : public FSDirectory {
  public:
   IOStatus Fsync(const IOOptions& /*options*/,
                  IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return IOStatus::OK();
   }
 
   IOStatus Close(const IOOptions& /*options*/,
                  IODebugContext* /*dbg*/) override {
+    DBUG_TRACE;
     return IOStatus::OK();
   }
 };
@@ -454,7 +486,7 @@ class MockEnvFileLock : public FileLock {
  public:
   explicit MockEnvFileLock(const std::string& fname) : fname_(fname) {}
 
-  std::string FileName() const { return fname_; }
+  std::string FileName() const { DBUG_TRACE; return fname_; }
 
  private:
   const std::string fname_;
@@ -486,6 +518,7 @@ class TestMemLogger : public Logger {
   ~TestMemLogger() override = default;
 
   void Flush() override {
+    DBUG_TRACE;
     if (flush_pending_) {
       flush_pending_ = false;
     }
@@ -494,6 +527,7 @@ class TestMemLogger : public Logger {
 
   using Logger::Logv;
   void Logv(const char* format, va_list ap) override {
+    DBUG_TRACE;
     // We try twice: the first time with a fixed-size stack allocated buffer,
     // and the second time with a much larger dynamically allocated buffer.
     char buffer[500];
@@ -564,7 +598,7 @@ class TestMemLogger : public Logger {
       break;
     }
   }
-  size_t GetLogFileSize() const override { return log_size_; }
+  size_t GetLogFileSize() const override { DBUG_TRACE; return log_size_; }
 };
 
 static std::unordered_map<std::string, OptionTypeInfo> mock_fs_type_info = {
@@ -588,6 +622,7 @@ MockFileSystem::~MockFileSystem() {
 }
 
 Status MockFileSystem::PrepareOptions(const ConfigOptions& options) {
+  DBUG_TRACE;
   Status s = FileSystem::PrepareOptions(options);
   if (s.ok() && system_clock_ == SystemClock::Default()) {
     system_clock_ = options.env->GetSystemClock();
@@ -600,6 +635,7 @@ IOStatus MockFileSystem::GetAbsolutePath(const std::string& db_path,
                                          const IOOptions& /*options*/,
                                          std::string* output_path,
                                          IODebugContext* /*dbg*/) {
+  DBUG_TRACE;
   *output_path = NormalizeMockPath(db_path);
   if (output_path->at(0) != '/') {
     return IOStatus::NotSupported("GetAbsolutePath");
@@ -609,6 +645,7 @@ IOStatus MockFileSystem::GetAbsolutePath(const std::string& db_path,
 }
 
 std::string MockFileSystem::NormalizeMockPath(const std::string& path) {
+  DBUG_TRACE;
   std::string p = NormalizePath(path);
   if (p.back() == kFilePathSeparator && p.size() > 1) {
     p.pop_back();
@@ -620,6 +657,7 @@ std::string MockFileSystem::NormalizeMockPath(const std::string& path) {
 IOStatus MockFileSystem::NewSequentialFile(
     const std::string& fname, const FileOptions& file_opts,
     std::unique_ptr<FSSequentialFile>* result, IODebugContext* /*dbg*/) {
+  DBUG_TRACE;
   auto fn = NormalizeMockPath(fname);
 
   MutexLock lock(&mutex_);
@@ -641,6 +679,7 @@ IOStatus MockFileSystem::NewSequentialFile(
 IOStatus MockFileSystem::NewRandomAccessFile(
     const std::string& fname, const FileOptions& file_opts,
     std::unique_ptr<FSRandomAccessFile>* result, IODebugContext* /*dbg*/) {
+  DBUG_TRACE;
   auto fn = NormalizeMockPath(fname);
   MutexLock lock(&mutex_);
   if (file_map_.find(fn) == file_map_.end()) {
@@ -661,6 +700,7 @@ IOStatus MockFileSystem::NewRandomAccessFile(
 IOStatus MockFileSystem::NewRandomRWFile(
     const std::string& fname, const FileOptions& /*file_opts*/,
     std::unique_ptr<FSRandomRWFile>* result, IODebugContext* /*dbg*/) {
+  DBUG_TRACE;
   auto fn = NormalizeMockPath(fname);
   MutexLock lock(&mutex_);
   if (file_map_.find(fn) == file_map_.end()) {
@@ -679,6 +719,7 @@ IOStatus MockFileSystem::ReuseWritableFile(
     const std::string& fname, const std::string& old_fname,
     const FileOptions& options, std::unique_ptr<FSWritableFile>* result,
     IODebugContext* dbg) {
+  DBUG_TRACE;
   auto s = RenameFile(old_fname, fname, IOOptions(), dbg);
   if (!s.ok()) {
     return s;
@@ -691,6 +732,7 @@ IOStatus MockFileSystem::ReuseWritableFile(
 IOStatus MockFileSystem::NewWritableFile(
     const std::string& fname, const FileOptions& file_opts,
     std::unique_ptr<FSWritableFile>* result, IODebugContext* /*dbg*/) {
+  DBUG_TRACE;
   auto fn = NormalizeMockPath(fname);
   MutexLock lock(&mutex_);
   if (file_map_.find(fn) != file_map_.end()) {
@@ -710,6 +752,7 @@ IOStatus MockFileSystem::NewWritableFile(
 IOStatus MockFileSystem::ReopenWritableFile(
     const std::string& fname, const FileOptions& file_opts,
     std::unique_ptr<FSWritableFile>* result, IODebugContext* /*dbg*/) {
+  DBUG_TRACE;
   auto fn = NormalizeMockPath(fname);
   MutexLock lock(&mutex_);
   MemFile* file = nullptr;
@@ -733,6 +776,7 @@ IOStatus MockFileSystem::NewDirectory(const std::string& /*name*/,
                                       const IOOptions& /*io_opts*/,
                                       std::unique_ptr<FSDirectory>* result,
                                       IODebugContext* /*dbg*/) {
+  DBUG_TRACE;
   result->reset(new MockEnvDirectory());
   return IOStatus::OK();
 }
@@ -740,6 +784,7 @@ IOStatus MockFileSystem::NewDirectory(const std::string& /*name*/,
 IOStatus MockFileSystem::FileExists(const std::string& fname,
                                     const IOOptions& /*io_opts*/,
                                     IODebugContext* /*dbg*/) {
+  DBUG_TRACE;
   auto fn = NormalizeMockPath(fname);
   MutexLock lock(&mutex_);
   if (file_map_.find(fn) != file_map_.end()) {
@@ -759,6 +804,7 @@ IOStatus MockFileSystem::FileExists(const std::string& fname,
 
 bool MockFileSystem::GetChildrenInternal(const std::string& dir,
                                          std::vector<std::string>* result) {
+  DBUG_TRACE;
   auto d = NormalizeMockPath(dir);
   bool found_dir = false;
   result->clear();
@@ -787,6 +833,7 @@ IOStatus MockFileSystem::GetChildren(const std::string& dir,
                                      const IOOptions& /*options*/,
                                      std::vector<std::string>* result,
                                      IODebugContext* /*dbg*/) {
+  DBUG_TRACE;
   MutexLock lock(&mutex_);
   bool found_dir = GetChildrenInternal(dir, result);
 #ifndef __clang_analyzer__
@@ -797,6 +844,7 @@ IOStatus MockFileSystem::GetChildren(const std::string& dir,
 }
 
 void MockFileSystem::DeleteFileInternal(const std::string& fname) {
+  DBUG_TRACE;
   assert(fname == NormalizeMockPath(fname));
   const auto& pair = file_map_.find(fname);
   if (pair != file_map_.end()) {
@@ -808,6 +856,7 @@ void MockFileSystem::DeleteFileInternal(const std::string& fname) {
 IOStatus MockFileSystem::DeleteFile(const std::string& fname,
                                     const IOOptions& /*options*/,
                                     IODebugContext* /*dbg*/) {
+  DBUG_TRACE;
   auto fn = NormalizeMockPath(fname);
   MutexLock lock(&mutex_);
   if (file_map_.find(fn) == file_map_.end()) {
@@ -821,6 +870,7 @@ IOStatus MockFileSystem::DeleteFile(const std::string& fname,
 IOStatus MockFileSystem::Truncate(const std::string& fname, size_t size,
                                   const IOOptions& options,
                                   IODebugContext* dbg) {
+  DBUG_TRACE;
   auto fn = NormalizeMockPath(fname);
   MutexLock lock(&mutex_);
   auto iter = file_map_.find(fn);
@@ -834,6 +884,7 @@ IOStatus MockFileSystem::Truncate(const std::string& fname, size_t size,
 IOStatus MockFileSystem::CreateDir(const std::string& dirname,
                                    const IOOptions& /*options*/,
                                    IODebugContext* /*dbg*/) {
+  DBUG_TRACE;
   auto dn = NormalizeMockPath(dirname);
   MutexLock lock(&mutex_);
   if (file_map_.find(dn) == file_map_.end()) {
@@ -849,6 +900,7 @@ IOStatus MockFileSystem::CreateDir(const std::string& dirname,
 IOStatus MockFileSystem::CreateDirIfMissing(const std::string& dirname,
                                             const IOOptions& options,
                                             IODebugContext* dbg) {
+  DBUG_TRACE;
   CreateDir(dirname, options, dbg).PermitUncheckedError();
   return IOStatus::OK();
 }
@@ -856,6 +908,7 @@ IOStatus MockFileSystem::CreateDirIfMissing(const std::string& dirname,
 IOStatus MockFileSystem::DeleteDir(const std::string& dirname,
                                    const IOOptions& /*options*/,
                                    IODebugContext* /*dbg*/) {
+  DBUG_TRACE;
   auto dir = NormalizeMockPath(dirname);
   MutexLock lock(&mutex_);
   if (file_map_.find(dir) == file_map_.end()) {
@@ -876,6 +929,7 @@ IOStatus MockFileSystem::GetFileSize(const std::string& fname,
                                      const IOOptions& /*options*/,
                                      uint64_t* file_size,
                                      IODebugContext* /*dbg*/) {
+  DBUG_TRACE;
   auto fn = NormalizeMockPath(fname);
   TEST_SYNC_POINT_CALLBACK("MockFileSystem::GetFileSize:CheckFileType", &fn);
   MutexLock lock(&mutex_);
@@ -892,6 +946,7 @@ IOStatus MockFileSystem::GetFileModificationTime(const std::string& fname,
                                                  const IOOptions& /*options*/,
                                                  uint64_t* time,
                                                  IODebugContext* /*dbg*/) {
+  DBUG_TRACE;
   auto fn = NormalizeMockPath(fname);
   MutexLock lock(&mutex_);
   auto iter = file_map_.find(fn);
@@ -904,6 +959,7 @@ IOStatus MockFileSystem::GetFileModificationTime(const std::string& fname,
 
 bool MockFileSystem::RenameFileInternal(const std::string& src,
                                         const std::string& dest) {
+  DBUG_TRACE;
   if (file_map_.find(src) == file_map_.end()) {
     return false;
   } else {
@@ -924,6 +980,7 @@ IOStatus MockFileSystem::RenameFile(const std::string& src,
                                     const std::string& dest,
                                     const IOOptions& /*options*/,
                                     IODebugContext* /*dbg*/) {
+  DBUG_TRACE;
   auto s = NormalizeMockPath(src);
   auto t = NormalizeMockPath(dest);
   MutexLock lock(&mutex_);
@@ -939,6 +996,7 @@ IOStatus MockFileSystem::LinkFile(const std::string& src,
                                   const std::string& dest,
                                   const IOOptions& /*options*/,
                                   IODebugContext* /*dbg*/) {
+  DBUG_TRACE;
   auto s = NormalizeMockPath(src);
   auto t = NormalizeMockPath(dest);
   MutexLock lock(&mutex_);
@@ -956,6 +1014,7 @@ IOStatus MockFileSystem::NewLogger(const std::string& fname,
                                    const IOOptions& io_opts,
                                    std::shared_ptr<Logger>* result,
                                    IODebugContext* dbg) {
+  DBUG_TRACE;
   auto fn = NormalizeMockPath(fname);
   MutexLock lock(&mutex_);
   auto iter = file_map_.find(fn);
@@ -975,6 +1034,7 @@ IOStatus MockFileSystem::NewLogger(const std::string& fname,
 IOStatus MockFileSystem::LockFile(const std::string& fname,
                                   const IOOptions& /*options*/,
                                   FileLock** flock, IODebugContext* /*dbg*/) {
+  DBUG_TRACE;
   auto fn = NormalizeMockPath(fname);
   {
     MutexLock lock(&mutex_);
@@ -999,6 +1059,7 @@ IOStatus MockFileSystem::LockFile(const std::string& fname,
 IOStatus MockFileSystem::UnlockFile(FileLock* flock,
                                     const IOOptions& /*options*/,
                                     IODebugContext* /*dbg*/) {
+  DBUG_TRACE;
   std::string fn = static_cast_with_check<MockEnvFileLock>(flock)->FileName();
   {
     MutexLock lock(&mutex_);
@@ -1016,11 +1077,13 @@ IOStatus MockFileSystem::UnlockFile(FileLock* flock,
 IOStatus MockFileSystem::GetTestDirectory(const IOOptions& /*options*/,
                                           std::string* path,
                                           IODebugContext* /*dbg*/) {
+  DBUG_TRACE;
   *path = "/test";
   return IOStatus::OK();
 }
 
 Status MockFileSystem::CorruptBuffer(const std::string& fname) {
+  DBUG_TRACE;
   auto fn = NormalizeMockPath(fname);
   MutexLock lock(&mutex_);
   auto iter = file_map_.find(fn);
@@ -1036,23 +1099,26 @@ MockEnv::MockEnv(Env* env, const std::shared_ptr<FileSystem>& fs,
     : CompositeEnvWrapper(env, fs, clock) {}
 
 MockEnv* MockEnv::Create(Env* env) {
+  DBUG_TRACE;
   auto clock =
       std::make_shared<EmulatedSystemClock>(env->GetSystemClock(), true);
   return MockEnv::Create(env, clock);
 }
 
 MockEnv* MockEnv::Create(Env* env, const std::shared_ptr<SystemClock>& clock) {
+  DBUG_TRACE;
   auto fs = std::make_shared<MockFileSystem>(clock);
   return new MockEnv(env, fs, clock);
 }
 
 Status MockEnv::CorruptBuffer(const std::string& fname) {
+  DBUG_TRACE;
   auto mock = static_cast_with_check<MockFileSystem>(GetFileSystem().get());
   return mock->CorruptBuffer(fname);
 }
 
 // This is to maintain the behavior before swithcing from InMemoryEnv to MockEnv
-Env* NewMemEnv(Env* base_env) { return MockEnv::Create(base_env); }
+Env* NewMemEnv(Env* base_env) { DBUG_TRACE; return MockEnv::Create(base_env); }
 
 
 }  // namespace ROCKSDB_NAMESPACE

@@ -1,5 +1,6 @@
 /* -*- mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 // vim: ft=cpp:expandtab:ts=8:sw=2:softtabstop=2:
+#include "rocksdb/util/dbug.h"
 #ifndef OS_WIN
 #ident "$Id$"
 /*======
@@ -79,6 +80,7 @@ namespace toku {
 void locktree::create(locktree_manager *mgr, DICTIONARY_ID dict_id,
                       const comparator &cmp,
                       toku_external_mutex_factory_t mutex_factory) {
+  DBUG_TRACE;
   m_mgr = mgr;
   m_dict_id = dict_id;
 
@@ -104,11 +106,13 @@ void locktree::create(locktree_manager *mgr, DICTIONARY_ID dict_id,
 
 void locktree::set_escalation_barrier_func(
     lt_escalation_barrier_check_func func, void *extra) {
+  DBUG_TRACE;
   m_escalation_barrier = func;
   m_escalation_barrier_arg = extra;
 }
 
 void lt_lock_request_info::init(toku_external_mutex_factory_t mutex_factory) {
+  DBUG_TRACE;
   pending_lock_requests.create();
   pending_is_empty = true;
   toku_external_mutex_init(mutex_factory, &mutex);
@@ -125,6 +129,7 @@ void lt_lock_request_info::init(toku_external_mutex_factory_t mutex_factory) {
 }
 
 void locktree::destroy(void) {
+  DBUG_TRACE;
   invariant(m_reference_count == 0);
   invariant(m_lock_request_info.pending_lock_requests.size() == 0);
   m_cmp.destroy();
@@ -135,6 +140,7 @@ void locktree::destroy(void) {
 }
 
 void lt_lock_request_info::destroy(void) {
+  DBUG_TRACE;
   pending_lock_requests.destroy();
   toku_external_mutex_destroy(&mutex);
   toku_mutex_destroy(&retry_mutex);
@@ -142,14 +148,16 @@ void lt_lock_request_info::destroy(void) {
 }
 
 void locktree::add_reference(void) {
+  DBUG_TRACE;
   (void)toku_sync_add_and_fetch(&m_reference_count, 1);
 }
 
 uint32_t locktree::release_reference(void) {
+  DBUG_TRACE;
   return toku_sync_sub_and_fetch(&m_reference_count, 1);
 }
 
-uint32_t locktree::get_reference_count(void) { return m_reference_count; }
+uint32_t locktree::get_reference_count(void) { DBUG_TRACE; return m_reference_count; }
 
 // a container for a range/txnid pair
 struct row_lock {
@@ -166,10 +174,12 @@ struct row_lock {
 static void iterate_and_get_overlapping_row_locks(
     const concurrent_tree::locked_keyrange *lkr,
     GrowableArray<row_lock> *row_locks) {
+  DBUG_TRACE;
   struct copy_fn_obj {
     GrowableArray<row_lock> *row_locks;
     bool fn(const keyrange &range, TXNID txnid, bool is_shared,
             TxnidVector *owners) {
+      DBUG_TRACE;
       row_lock lock = {.range = range,
                        .txnid = txnid,
                        .is_shared = is_shared,
@@ -188,6 +198,7 @@ static void iterate_and_get_overlapping_row_locks(
 static bool determine_conflicting_txnids(
     const GrowableArray<row_lock> &row_locks, const TXNID &txnid,
     txnid_set *conflicts) {
+  DBUG_TRACE;
   bool conflicts_exist = false;
   const size_t num_overlaps = row_locks.get_size();
   for (size_t i = 0; i < num_overlaps; i++) {
@@ -212,6 +223,7 @@ static bool determine_conflicting_txnids(
 
 // how much memory does a row lock take up in a concurrent tree?
 static uint64_t row_lock_size_in_tree(const row_lock &lock) {
+  DBUG_TRACE;
   const uint64_t overhead = concurrent_tree::get_insertion_memory_overhead();
   return lock.range.get_memory_size() + overhead;
 }
@@ -221,6 +233,7 @@ static uint64_t row_lock_size_in_tree(const row_lock &lock) {
 static void remove_row_lock_from_tree(concurrent_tree::locked_keyrange *lkr,
                                       const row_lock &lock, TXNID txnid,
                                       locktree_manager *mgr) {
+  DBUG_TRACE;
   const uint64_t mem_released = row_lock_size_in_tree(lock);
   lkr->remove(lock.range, txnid);
   if (mgr != nullptr) {
@@ -233,6 +246,7 @@ static void remove_row_lock_from_tree(concurrent_tree::locked_keyrange *lkr,
 static void insert_row_lock_into_tree(concurrent_tree::locked_keyrange *lkr,
                                       const row_lock &lock,
                                       locktree_manager *mgr) {
+  DBUG_TRACE;
   uint64_t mem_used = row_lock_size_in_tree(lock);
   lkr->insert(lock.range, lock.txnid, lock.is_shared);
   if (mgr != nullptr) {
@@ -241,6 +255,7 @@ static void insert_row_lock_into_tree(concurrent_tree::locked_keyrange *lkr,
 }
 
 void locktree::sto_begin(TXNID txnid) {
+  DBUG_TRACE;
   invariant(m_sto_txnid == TXNID_NONE);
   invariant(m_sto_buffer.is_empty());
   m_sto_txnid = txnid;
@@ -248,6 +263,7 @@ void locktree::sto_begin(TXNID txnid) {
 
 void locktree::sto_append(const DBT *left_key, const DBT *right_key,
                           bool is_write_request) {
+  DBUG_TRACE;
   uint64_t buffer_mem, delta;
 
   // psergey: the below two lines do not make any sense
@@ -264,6 +280,7 @@ void locktree::sto_append(const DBT *left_key, const DBT *right_key,
 }
 
 void locktree::sto_end(void) {
+  DBUG_TRACE;
   uint64_t mem_size = m_sto_buffer.total_memory_size();
   if (m_mgr != nullptr) {
     m_mgr->note_mem_released(mem_size);
@@ -274,12 +291,14 @@ void locktree::sto_end(void) {
 }
 
 void locktree::sto_end_early_no_accounting(void *prepared_lkr) {
+  DBUG_TRACE;
   sto_migrate_buffer_ranges_to_tree(prepared_lkr);
   sto_end();
   toku_unsafe_set(m_sto_score, 0);
 }
 
 void locktree::sto_end_early(void *prepared_lkr) {
+  DBUG_TRACE;
   m_sto_end_early_count++;
 
   tokutime_t t0 = toku_time_now();
@@ -290,6 +309,7 @@ void locktree::sto_end_early(void *prepared_lkr) {
 }
 
 void locktree::sto_migrate_buffer_ranges_to_tree(void *prepared_lkr) {
+  DBUG_TRACE;
   // There should be something to migrate, and nothing in the rangetree.
   invariant(!m_sto_buffer.is_empty());
   invariant(m_rangetree->is_empty());
@@ -317,6 +337,7 @@ void locktree::sto_migrate_buffer_ranges_to_tree(void *prepared_lkr) {
     concurrent_tree::locked_keyrange *dst_lkr;
     bool fn(const keyrange &range, TXNID txnid, bool is_shared,
             TxnidVector *owners) {
+      DBUG_TRACE;
       // There can't be multiple owners in STO mode
       invariant_zero(owners);
       dst_lkr->insert(range, txnid, is_shared);
@@ -336,6 +357,7 @@ void locktree::sto_migrate_buffer_ranges_to_tree(void *prepared_lkr) {
 bool locktree::sto_try_acquire(void *prepared_lkr, TXNID txnid,
                                const DBT *left_key, const DBT *right_key,
                                bool is_write_request) {
+  DBUG_TRACE;
   if (m_rangetree->is_empty() && m_sto_buffer.is_empty() &&
       toku_unsafe_fetch(m_sto_score) >= STO_SCORE_THRESHOLD) {
     // We can do the optimization because the rangetree is empty, and
@@ -377,6 +399,7 @@ static bool iterate_and_get_overlapping_row_locks2(
     const concurrent_tree::locked_keyrange *lkr, const DBT *left_key,
     const DBT *right_key, comparator *cmp, TXNID,
     GrowableArray<row_lock> *row_locks) {
+  DBUG_TRACE;
   struct copy_fn_obj {
     GrowableArray<row_lock> *row_locks;
     bool first_call = true;
@@ -386,6 +409,7 @@ static bool iterate_and_get_overlapping_row_locks2(
 
     bool fn(const keyrange &range, TXNID txnid, bool is_shared,
             TxnidVector *owners) {
+      DBUG_TRACE;
       if (first_call) {
         first_call = false;
         if (is_shared && !(*cmp)(left_key, range.get_left_key()) &&
@@ -421,6 +445,7 @@ int locktree::acquire_lock_consolidated(void *prepared_lkr, TXNID txnid,
                                         const DBT *right_key,
                                         bool is_write_request,
                                         txnid_set *conflicts) {
+  DBUG_TRACE;
   int r = 0;
   concurrent_tree::locked_keyrange *lkr;
 
@@ -507,6 +532,7 @@ int locktree::acquire_lock_consolidated(void *prepared_lkr, TXNID txnid,
 int locktree::acquire_lock(bool is_write_request, TXNID txnid,
                            const DBT *left_key, const DBT *right_key,
                            txnid_set *conflicts) {
+  DBUG_TRACE;
   int r = 0;
 
   // we are only supporting write locks for simplicity
@@ -532,6 +558,7 @@ int locktree::acquire_lock(bool is_write_request, TXNID txnid,
 int locktree::try_acquire_lock(bool is_write_request, TXNID txnid,
                                const DBT *left_key, const DBT *right_key,
                                txnid_set *conflicts, bool big_txn) {
+  DBUG_TRACE;
   // All ranges in the locktree must have left endpoints <= right endpoints.
   // Range comparisons rely on this fact, so we make a paranoid invariant here.
   paranoid_invariant(m_cmp(left_key, right_key) <= 0);
@@ -546,6 +573,7 @@ int locktree::try_acquire_lock(bool is_write_request, TXNID txnid,
 int locktree::acquire_read_lock(TXNID txnid, const DBT *left_key,
                                 const DBT *right_key, txnid_set *conflicts,
                                 bool big_txn) {
+  DBUG_TRACE;
   return try_acquire_lock(false, txnid, left_key, right_key, conflicts,
                           big_txn);
 }
@@ -553,12 +581,14 @@ int locktree::acquire_read_lock(TXNID txnid, const DBT *left_key,
 int locktree::acquire_write_lock(TXNID txnid, const DBT *left_key,
                                  const DBT *right_key, txnid_set *conflicts,
                                  bool big_txn) {
+  DBUG_TRACE;
   return try_acquire_lock(true, txnid, left_key, right_key, conflicts, big_txn);
 }
 
 // typedef void (*dump_callback)(void *cdata, const DBT *left, const DBT *right,
 // TXNID txnid);
 void locktree::dump_locks(void *cdata, dump_callback cb) {
+  DBUG_TRACE;
   concurrent_tree::locked_keyrange lkr;
   keyrange range;
   range.create(toku_dbt_negative_infinity(), toku_dbt_positive_infinity());
@@ -596,6 +626,7 @@ void locktree::dump_locks(void *cdata, dump_callback cb) {
 void locktree::get_conflicts(bool is_write_request, TXNID txnid,
                              const DBT *left_key, const DBT *right_key,
                              txnid_set *conflicts) {
+  DBUG_TRACE;
   // because we only support write locks, ignore this bit for now.
   (void)is_write_request;
 
@@ -646,6 +677,7 @@ void locktree::get_conflicts(bool is_write_request, TXNID txnid,
 void locktree::remove_overlapping_locks_for_txnid(TXNID txnid,
                                                   const DBT *left_key,
                                                   const DBT *right_key) {
+  DBUG_TRACE;
   keyrange release_range;
   release_range.create(left_key, right_key);
 
@@ -677,14 +709,17 @@ void locktree::remove_overlapping_locks_for_txnid(TXNID txnid,
 }
 
 bool locktree::sto_txnid_is_valid_unsafe(void) const {
+  DBUG_TRACE;
   return toku_unsafe_fetch(m_sto_txnid) != TXNID_NONE;
 }
 
 int locktree::sto_get_score_unsafe(void) const {
+  DBUG_TRACE;
   return toku_unsafe_fetch(m_sto_score);
 }
 
 bool locktree::sto_try_release(TXNID txnid) {
+  DBUG_TRACE;
   bool released = false;
   if (toku_unsafe_fetch(m_sto_txnid) != TXNID_NONE) {
     // check the bit again with a prepared locked keyrange,
@@ -708,6 +743,7 @@ bool locktree::sto_try_release(TXNID txnid) {
 // in the given range buffer.
 void locktree::release_locks(TXNID txnid, const range_buffer *ranges,
                              bool all_trx_locks_hint) {
+  DBUG_TRACE;
   // try the single txn optimization. if it worked, then all of the
   // locks are already released, otherwise we need to do it here.
   bool released;
@@ -763,12 +799,14 @@ void locktree::release_locks(TXNID txnid, const range_buffer *ranges,
 static int extract_first_n_row_locks(concurrent_tree::locked_keyrange *lkr,
                                      locktree_manager *mgr, row_lock *row_locks,
                                      int num_to_extract) {
+  DBUG_TRACE;
   struct extract_fn_obj {
     int num_extracted;
     int num_to_extract;
     row_lock *row_locks;
     bool fn(const keyrange &range, TXNID txnid, bool is_shared,
             TxnidVector *owners) {
+      DBUG_TRACE;
       if (num_extracted < num_to_extract) {
         row_lock lock;
         lock.range.create_copy(range);
@@ -815,6 +853,7 @@ struct txnid_range_buffer {
 
   static int find_by_txnid(struct txnid_range_buffer *const &other_buffer,
                            const TXNID &txnid) {
+    DBUG_TRACE;
     if (txnid < other_buffer->txnid) {
       return -1;
     } else if (other_buffer->txnid == txnid) {
@@ -834,6 +873,7 @@ struct txnid_range_buffer {
 // not work so well.
 void locktree::escalate(lt_escalate_cb after_escalate_callback,
                         void *after_escalate_callback_extra) {
+  DBUG_TRACE;
   omt<struct txnid_range_buffer *, struct txnid_range_buffer *> range_buffers;
   range_buffers.create();
 
@@ -993,19 +1033,21 @@ void locktree::escalate(lt_escalate_cb after_escalate_callback,
   lkr.release();
 }
 
-void *locktree::get_userdata(void) const { return m_userdata; }
+void *locktree::get_userdata(void) const { DBUG_TRACE; return m_userdata; }
 
-void locktree::set_userdata(void *userdata) { m_userdata = userdata; }
+void locktree::set_userdata(void *userdata) { DBUG_TRACE; m_userdata = userdata; }
 
 struct lt_lock_request_info *locktree::get_lock_request_info(void) {
+  DBUG_TRACE;
   return &m_lock_request_info;
 }
 
-void locktree::set_comparator(const comparator &cmp) { m_cmp.inherit(cmp); }
+void locktree::set_comparator(const comparator &cmp) { DBUG_TRACE; m_cmp.inherit(cmp); }
 
-locktree_manager *locktree::get_manager(void) const { return m_mgr; }
+locktree_manager *locktree::get_manager(void) const { DBUG_TRACE; return m_mgr; }
 
 int locktree::compare(const locktree *lt) const {
+  DBUG_TRACE;
   if (m_dict_id.dictid < lt->m_dict_id.dictid) {
     return -1;
   } else if (m_dict_id.dictid == lt->m_dict_id.dictid) {
@@ -1015,7 +1057,7 @@ int locktree::compare(const locktree *lt) const {
   }
 }
 
-DICTIONARY_ID locktree::get_dict_id() const { return m_dict_id; }
+DICTIONARY_ID locktree::get_dict_id() const { DBUG_TRACE; return m_dict_id; }
 
 } /* namespace toku */
 #endif  // OS_WIN

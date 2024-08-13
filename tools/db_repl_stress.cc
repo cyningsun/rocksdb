@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #ifndef GFLAGS
 #include <cstdio>
 int main() {
@@ -54,6 +55,7 @@ struct DataPumpThread {
 };
 
 static void DataPumpThreadBody(void* arg) {
+  DBUG_TRACE;
   DataPumpThread* t = static_cast<DataPumpThread*>(arg);
   DB* db = t->db;
   Random rnd(301);
@@ -69,6 +71,7 @@ static void DataPumpThreadBody(void* arg) {
 }
 
 int main(int argc, const char** argv) {
+  DBUG_TRACE;
   SetUsageMessage(
       std::string("\nUSAGE:\n") + std::string(argv[0]) +
       " --num_inserts=<num_inserts> --wal_ttl_seconds=<WAL_ttl_seconds>" +
@@ -129,4 +132,3 @@ int main(int argc, const char** argv) {
 }
 
 #endif  // GFLAGS
-

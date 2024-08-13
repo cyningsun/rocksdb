@@ -8,6 +8,7 @@
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
 
+#include "rocksdb/util/dbug.h"
 #include <algorithm>
 #include <atomic>
 #include <cinttypes>
@@ -62,14 +63,17 @@ using ShareFilesNaming = BackupEngineOptions::ShareFilesNaming;
 constexpr BackupID kLatestBackupIDMarker = static_cast<BackupID>(-2);
 
 inline uint32_t ChecksumHexToInt32(const std::string& checksum_hex) {
+  DBUG_TRACE;
   std::string checksum_str;
   Slice(checksum_hex).DecodeHex(&checksum_str);
   return EndianSwapValue(DecodeFixed32(checksum_str.c_str()));
 }
 inline std::string ChecksumStrToHex(const std::string& checksum_str) {
+  DBUG_TRACE;
   return Slice(checksum_str).ToString(true);
 }
 inline std::string ChecksumInt32ToHex(const uint32_t& checksum_value) {
+  DBUG_TRACE;
   std::string checksum_str;
   PutFixed32(&checksum_str, EndianSwapValue(checksum_value));
   return ChecksumStrToHex(checksum_str);
@@ -87,18 +91,22 @@ const std::string kSharedChecksumDirSlash = kSharedChecksumDirName + "/";
 }  // namespace
 
 void BackupStatistics::IncrementNumberSuccessBackup() {
+  DBUG_TRACE;
   number_success_backup++;
 }
-void BackupStatistics::IncrementNumberFailBackup() { number_fail_backup++; }
+void BackupStatistics::IncrementNumberFailBackup() { DBUG_TRACE; number_fail_backup++; }
 
 uint32_t BackupStatistics::GetNumberSuccessBackup() const {
+  DBUG_TRACE;
   return number_success_backup;
 }
 uint32_t BackupStatistics::GetNumberFailBackup() const {
+  DBUG_TRACE;
   return number_fail_backup;
 }
 
 std::string BackupStatistics::ToString() const {
+  DBUG_TRACE;
   char result[50];
   snprintf(result, sizeof(result), "# success backup: %u, # fail backup: %u",
            GetNumberSuccessBackup(), GetNumberFailBackup());
@@ -106,6 +114,7 @@ std::string BackupStatistics::ToString() const {
 }
 
 void BackupEngineOptions::Dump(Logger* logger) const {
+  DBUG_TRACE;
   ROCKS_LOG_INFO(logger, "               Options.backup_dir: %s",
                  backup_dir.c_str());
   ROCKS_LOG_INFO(logger, "               Options.backup_env: %p", backup_env);
@@ -142,7 +151,7 @@ class BackupEngineImpl {
 
   IOStatus DeleteBackup(BackupID backup_id);
 
-  void StopBackup() { stop_backup_.store(true, std::memory_order_release); }
+  void StopBackup() { DBUG_TRACE; stop_backup_.store(true, std::memory_order_release); }
 
   IOStatus GarbageCollect();
 
@@ -167,10 +176,12 @@ class BackupEngineImpl {
   IOStatus Initialize();
 
   ShareFilesNaming GetNamingNoFlags() const {
+    DBUG_TRACE;
     return options_.share_files_with_checksum_naming &
            BackupEngineOptions::kMaskNoNamingFlags;
   }
   ShareFilesNaming GetNamingFlags() const {
+    DBUG_TRACE;
     return options_.share_files_with_checksum_naming &
            BackupEngineOptions::kMaskNamingFlags;
   }
@@ -178,6 +189,7 @@ class BackupEngineImpl {
   void TEST_SetDefaultRateLimitersClock(
       const std::shared_ptr<SystemClock>& backup_rate_limiter_clock,
       const std::shared_ptr<SystemClock>& restore_rate_limiter_clock) {
+    DBUG_TRACE;
     if (backup_rate_limiter_clock) {
       static_cast<GenericRateLimiter*>(options_.backup_rate_limiter.get())
           ->TEST_SetClock(backup_rate_limiter_clock);
@@ -230,6 +242,7 @@ class BackupEngineImpl {
     Temperature temp;
 
     std::string GetDbFileName() const {
+      DBUG_TRACE;
       std::string rv;
       // extract the filename part
       size_t slash = filename.find_last_of('/');
@@ -259,6 +272,7 @@ class BackupEngineImpl {
                                          const RateLimiter::OpType op_type);
 
   static inline std::string WithoutTrailingSlash(const std::string& path) {
+    DBUG_TRACE;
     if (path.empty() || path.back() != '/') {
       return path;
     } else {
@@ -267,6 +281,7 @@ class BackupEngineImpl {
   }
 
   static inline std::string WithTrailingSlash(const std::string& path) {
+    DBUG_TRACE;
     if (path.empty() || path.back() != '/') {
       return path + '/';
     } else {
@@ -297,6 +312,7 @@ class BackupEngineImpl {
     }
 
     const char* Name() const override {
+      DBUG_TRACE;
       return "BackupEngineImpl::RemapSharedFileSystem";
     }
 
@@ -304,6 +320,7 @@ class BackupEngineImpl {
     IOStatus GetChildren(const std::string& dir, const IOOptions& options,
                          std::vector<std::string>* result,
                          IODebugContext* dbg) override {
+      DBUG_TRACE;
       IOStatus s = RemapFileSystem::GetChildren(dir, options, result, dbg);
       if (s.ok() && (dir == dst_dir_ || dir == dst_dir_slash_)) {
         // Assume remapped files exist
@@ -319,6 +336,7 @@ class BackupEngineImpl {
                                        const IOOptions& options,
                                        std::vector<FileAttributes>* result,
                                        IODebugContext* dbg) override {
+      DBUG_TRACE;
       IOStatus s =
           RemapFileSystem::GetChildrenFileAttributes(dir, options, result, dbg);
       if (s.ok() && (dir == dst_dir_ || dir == dst_dir_slash_)) {
@@ -338,6 +356,7 @@ class BackupEngineImpl {
     // file path.
     std::pair<IOStatus, std::string> EncodePath(
         const std::string& path) override {
+      DBUG_TRACE;
       if (path.empty() || path[0] != '/') {
         return {IOStatus::InvalidArgument(path, "Not an absolute path"), ""};
       }
@@ -387,39 +406,45 @@ class BackupEngineImpl {
     ~BackupMeta() = default;
 
     void RecordTimestamp() {
+      DBUG_TRACE;
       // Best effort
       Status s = env_->GetCurrentTime(&timestamp_);
       if (!s.ok()) {
         timestamp_ = /* something clearly fabricated */ 1;
       }
     }
-    int64_t GetTimestamp() const { return timestamp_; }
-    uint64_t GetSize() const { return size_; }
+    int64_t GetTimestamp() const { DBUG_TRACE; return timestamp_; }
+    uint64_t GetSize() const { DBUG_TRACE; return size_; }
     uint32_t GetNumberFiles() const {
+      DBUG_TRACE;
       return static_cast<uint32_t>(files_.size());
     }
     void SetSequenceNumber(uint64_t sequence_number) {
+      DBUG_TRACE;
       sequence_number_ = sequence_number;
     }
-    uint64_t GetSequenceNumber() const { return sequence_number_; }
+    uint64_t GetSequenceNumber() const { DBUG_TRACE; return sequence_number_; }
 
-    const std::string& GetAppMetadata() const { return app_metadata_; }
+    const std::string& GetAppMetadata() const { DBUG_TRACE; return app_metadata_; }
 
     void SetAppMetadata(const std::string& app_metadata) {
+      DBUG_TRACE;
       app_metadata_ = app_metadata;
     }
 
     IOStatus AddFile(std::shared_ptr<FileInfo> file_info);
 
     void AddExcludedFile(const std::string& relative_file) {
+      DBUG_TRACE;
       excluded_files_.emplace_back(relative_file);
     }
 
     IOStatus Delete(bool delete_meta = true);
 
-    bool Empty() const { return files_.empty(); }
+    bool Empty() const { DBUG_TRACE; return files_.empty(); }
 
     std::shared_ptr<FileInfo> GetFile(const std::string& filename) const {
+      DBUG_TRACE;
       auto it = file_infos_->find(filename);
       if (it == file_infos_->end()) {
         return nullptr;
@@ -428,10 +453,12 @@ class BackupEngineImpl {
     }
 
     const std::vector<std::shared_ptr<FileInfo>>& GetFiles() const {
+      DBUG_TRACE;
       return files_;
     }
 
     const std::vector<BackupExcludedFileInfo>& GetExcludedFiles() const {
+      DBUG_TRACE;
       return excluded_files_;
     }
 
@@ -446,6 +473,7 @@ class BackupEngineImpl {
         const TEST_BackupMetaSchemaOptions* schema_test_options);
 
     std::string GetInfoString() {
+      DBUG_TRACE;
       std::ostringstream ss;
       ss << "Timestamp: " << timestamp_ << std::endl;
       char human_size[16];
@@ -461,6 +489,7 @@ class BackupEngineImpl {
     }
 
     const std::shared_ptr<Env>& GetEnvForOpen() const {
+      DBUG_TRACE;
       if (!env_for_open_) {
         // Lazy initialize
         // Find directories
@@ -506,28 +535,33 @@ class BackupEngineImpl {
 
   inline std::string GetAbsolutePath(
       const std::string& relative_path = "") const {
+    DBUG_TRACE;
     assert(relative_path.size() == 0 || relative_path[0] != '/');
     return options_.backup_dir + "/" + relative_path;
   }
   inline std::string GetPrivateFileRel(BackupID backup_id, bool tmp = false,
                                        const std::string& file = "") const {
+    DBUG_TRACE;
     assert(file.size() == 0 || file[0] != '/');
     return kPrivateDirSlash + std::to_string(backup_id) + (tmp ? ".tmp" : "") +
            "/" + file;
   }
   inline std::string GetSharedFileRel(const std::string& file = "",
                                       bool tmp = false) const {
+    DBUG_TRACE;
     assert(file.size() == 0 || file[0] != '/');
     return kSharedDirSlash + std::string(tmp ? "." : "") + file +
            (tmp ? ".tmp" : "");
   }
   inline std::string GetSharedFileWithChecksumRel(const std::string& file = "",
                                                   bool tmp = false) const {
+    DBUG_TRACE;
     assert(file.size() == 0 || file[0] != '/');
     return kSharedChecksumDirSlash + std::string(tmp ? "." : "") + file +
            (tmp ? ".tmp" : "");
   }
   inline bool UseLegacyNaming(const std::string& sid) const {
+    DBUG_TRACE;
     return GetNamingNoFlags() ==
                BackupEngineOptions::kLegacyCrc32cAndFileSize ||
            sid.empty();
@@ -535,6 +569,7 @@ class BackupEngineImpl {
   inline std::string GetSharedFileWithChecksum(
       const std::string& file, const std::string& checksum_hex,
       const uint64_t file_size, const std::string& db_session_id) const {
+    DBUG_TRACE;
     assert(file.size() == 0 || file[0] != '/');
     std::string file_copy = file;
     if (UseLegacyNaming(db_session_id)) {
@@ -552,6 +587,7 @@ class BackupEngineImpl {
     return file_copy;
   }
   static inline std::string GetFileFromChecksumFile(const std::string& file) {
+    DBUG_TRACE;
     assert(file.size() == 0 || file[0] != '/');
     std::string file_copy = file;
     size_t first_underscore = file_copy.find_first_of('_');
@@ -559,6 +595,7 @@ class BackupEngineImpl {
                            file_copy.find_last_of('.') - first_underscore);
   }
   inline std::string GetBackupMetaFile(BackupID backup_id, bool tmp) const {
+    DBUG_TRACE;
     return GetAbsolutePath(kMetaDirName) + "/" + (tmp ? "." : "") +
            std::to_string(backup_id) + (tmp ? ".tmp" : "");
   }
@@ -659,6 +696,7 @@ class BackupEngineImpl {
     }
 
     CopyOrCreateWorkItem& operator=(CopyOrCreateWorkItem&& o) noexcept {
+      DBUG_TRACE;
       src_path = std::move(o.src_path);
       dst_path = std::move(o.dst_path);
       src_temperature = std::move(o.src_temperature);
@@ -731,6 +769,7 @@ class BackupEngineImpl {
 
     BackupAfterCopyOrCreateWorkItem& operator=(
         BackupAfterCopyOrCreateWorkItem&& o) noexcept {
+      DBUG_TRACE;
       result = std::move(o.result);
       shared = o.shared;
       needed_to_copy = o.needed_to_copy;
@@ -779,6 +818,7 @@ class BackupEngineImpl {
 
     RestoreAfterCopyOrCreateWorkItem& operator=(
         RestoreAfterCopyOrCreateWorkItem&& o) noexcept {
+      DBUG_TRACE;
       result = std::move(o.result);
       checksum_hex = std::move(o.checksum_hex);
       return *this;
@@ -870,33 +910,39 @@ class BackupEngineImplThreadSafe : public BackupEngine,
   IOStatus CreateNewBackupWithMetadata(const CreateBackupOptions& options,
                                        DB* db, const std::string& app_metadata,
                                        BackupID* new_backup_id) override {
+    DBUG_TRACE;
     WriteLock lock(&mutex_);
     return impl_.CreateNewBackupWithMetadata(options, db, app_metadata,
                                              new_backup_id);
   }
 
   IOStatus PurgeOldBackups(uint32_t num_backups_to_keep) override {
+    DBUG_TRACE;
     WriteLock lock(&mutex_);
     return impl_.PurgeOldBackups(num_backups_to_keep);
   }
 
   IOStatus DeleteBackup(BackupID backup_id) override {
+    DBUG_TRACE;
     WriteLock lock(&mutex_);
     return impl_.DeleteBackup(backup_id);
   }
 
   void StopBackup() override {
+    DBUG_TRACE;
     // No locking needed
     impl_.StopBackup();
   }
 
   IOStatus GarbageCollect() override {
+    DBUG_TRACE;
     WriteLock lock(&mutex_);
     return impl_.GarbageCollect();
   }
 
   Status GetLatestBackupInfo(BackupInfo* backup_info,
                              bool include_file_details = false) const override {
+    DBUG_TRACE;
     ReadLock lock(&mutex_);
     return impl_.GetBackupInfo(kLatestBackupIDMarker, backup_info,
                                include_file_details);
@@ -904,18 +950,21 @@ class BackupEngineImplThreadSafe : public BackupEngine,
 
   Status GetBackupInfo(BackupID backup_id, BackupInfo* backup_info,
                        bool include_file_details = false) const override {
+    DBUG_TRACE;
     ReadLock lock(&mutex_);
     return impl_.GetBackupInfo(backup_id, backup_info, include_file_details);
   }
 
   void GetBackupInfo(std::vector<BackupInfo>* backup_info,
                      bool include_file_details) const override {
+    DBUG_TRACE;
     ReadLock lock(&mutex_);
     impl_.GetBackupInfo(backup_info, include_file_details);
   }
 
   void GetCorruptedBackups(
       std::vector<BackupID>* corrupt_backup_ids) const override {
+    DBUG_TRACE;
     ReadLock lock(&mutex_);
     impl_.GetCorruptedBackups(corrupt_backup_ids);
   }
@@ -924,6 +973,7 @@ class BackupEngineImplThreadSafe : public BackupEngine,
   IOStatus RestoreDBFromBackup(const RestoreOptions& options,
                                BackupID backup_id, const std::string& db_dir,
                                const std::string& wal_dir) const override {
+    DBUG_TRACE;
     // TSAN reports a lock inversion (potential deadlock) if we acquire read
     // locks in different orders. Assuming the implementation of RWMutex
     // allows simultaneous read locks, there should be no deadlock, because
@@ -961,20 +1011,23 @@ class BackupEngineImplThreadSafe : public BackupEngine,
   IOStatus RestoreDBFromLatestBackup(
       const RestoreOptions& options, const std::string& db_dir,
       const std::string& wal_dir) const override {
+    DBUG_TRACE;
     // Defer to above function, which locks
     return RestoreDBFromBackup(options, kLatestBackupIDMarker, db_dir, wal_dir);
   }
 
   IOStatus VerifyBackup(BackupID backup_id,
                         bool verify_with_checksum = false) const override {
+    DBUG_TRACE;
     ReadLock lock(&mutex_);
     return impl_.VerifyBackup(backup_id, verify_with_checksum);
   }
 
-  BackupEngine* AsBackupEngine() override { return this; }
+  BackupEngine* AsBackupEngine() override { DBUG_TRACE; return this; }
 
   // Not public API but needed
   IOStatus Initialize() {
+    DBUG_TRACE;
     // No locking needed
     return impl_.Initialize();
   }
@@ -982,6 +1035,7 @@ class BackupEngineImplThreadSafe : public BackupEngine,
   // Not public API but used in testing
   void TEST_SetBackupMetaSchemaOptions(
       const TEST_BackupMetaSchemaOptions& options) {
+    DBUG_TRACE;
     impl_.schema_test_options_.reset(new TEST_BackupMetaSchemaOptions(options));
   }
 
@@ -990,6 +1044,7 @@ class BackupEngineImplThreadSafe : public BackupEngine,
       const std::shared_ptr<SystemClock>& backup_rate_limiter_clock = nullptr,
       const std::shared_ptr<SystemClock>& restore_rate_limiter_clock =
           nullptr) {
+    DBUG_TRACE;
     impl_.TEST_SetDefaultRateLimitersClock(backup_rate_limiter_clock,
                                            restore_rate_limiter_clock);
   }
@@ -1003,6 +1058,7 @@ class BackupEngineImplThreadSafe : public BackupEngine,
 
 IOStatus BackupEngine::Open(const BackupEngineOptions& options, Env* env,
                             BackupEngine** backup_engine_ptr) {
+  DBUG_TRACE;
   std::unique_ptr<BackupEngineImplThreadSafe> backup_engine(
       new BackupEngineImplThreadSafe(options, env));
   auto s = backup_engine->Initialize();
@@ -1052,6 +1108,7 @@ BackupEngineImpl::~BackupEngineImpl() {
 }
 
 IOStatus BackupEngineImpl::Initialize() {
+  DBUG_TRACE;
   assert(!initialized_);
   initialized_ = true;
   if (read_only_) {
@@ -1327,6 +1384,7 @@ IOStatus BackupEngineImpl::Initialize() {
 IOStatus BackupEngineImpl::CreateNewBackupWithMetadata(
     const CreateBackupOptions& options, DB* db, const std::string& app_metadata,
     BackupID* new_backup_id_ptr) {
+  DBUG_TRACE;
   assert(initialized_);
   assert(!read_only_);
   if (app_metadata.size() > kMaxAppMetaSize) {
@@ -1651,6 +1709,7 @@ IOStatus BackupEngineImpl::CreateNewBackupWithMetadata(
 }
 
 IOStatus BackupEngineImpl::PurgeOldBackups(uint32_t num_backups_to_keep) {
+  DBUG_TRACE;
   assert(initialized_);
   assert(!read_only_);
 
@@ -1684,6 +1743,7 @@ IOStatus BackupEngineImpl::PurgeOldBackups(uint32_t num_backups_to_keep) {
 }
 
 IOStatus BackupEngineImpl::DeleteBackup(BackupID backup_id) {
+  DBUG_TRACE;
   IOStatus s1 = DeleteBackupNoGC(backup_id);
   IOStatus s2 = IOStatus::OK();
 
@@ -1705,6 +1765,7 @@ IOStatus BackupEngineImpl::DeleteBackup(BackupID backup_id) {
 
 // Does not auto-GarbageCollect nor lock
 IOStatus BackupEngineImpl::DeleteBackupNoGC(BackupID backup_id) {
+  DBUG_TRACE;
   assert(initialized_);
   assert(!read_only_);
 
@@ -1772,6 +1833,7 @@ IOStatus BackupEngineImpl::DeleteBackupNoGC(BackupID backup_id) {
 void BackupEngineImpl::SetBackupInfoFromBackupMeta(
     BackupID id, const BackupMeta& meta, BackupInfo* backup_info,
     bool include_file_details) const {
+  DBUG_TRACE;
   *backup_info = BackupInfo(id, meta.GetTimestamp(), meta.GetSize(),
                             meta.GetNumberFiles(), meta.GetAppMetadata());
   std::string dir =
@@ -1805,6 +1867,7 @@ void BackupEngineImpl::SetBackupInfoFromBackupMeta(
 Status BackupEngineImpl::GetBackupInfo(BackupID backup_id,
                                        BackupInfo* backup_info,
                                        bool include_file_details) const {
+  DBUG_TRACE;
   assert(initialized_);
   if (backup_id == kLatestBackupIDMarker) {
     // Note: Read latest_valid_backup_id_ inside of lock
@@ -1830,6 +1893,7 @@ Status BackupEngineImpl::GetBackupInfo(BackupID backup_id,
 
 void BackupEngineImpl::GetBackupInfo(std::vector<BackupInfo>* backup_info,
                                      bool include_file_details) const {
+  DBUG_TRACE;
   assert(initialized_);
   backup_info->resize(backups_.size());
   size_t i = 0;
@@ -1844,6 +1908,7 @@ void BackupEngineImpl::GetBackupInfo(std::vector<BackupInfo>* backup_info,
 
 void BackupEngineImpl::GetCorruptedBackups(
     std::vector<BackupID>* corrupt_backup_ids) const {
+  DBUG_TRACE;
   assert(initialized_);
   corrupt_backup_ids->reserve(corrupt_backups_.size());
   for (auto& backup : corrupt_backups_) {
@@ -1855,6 +1920,7 @@ IOStatus BackupEngineImpl::RestoreDBFromBackup(
     const RestoreOptions& options, BackupID backup_id,
     const std::string& db_dir, const std::string& wal_dir,
     const std::list<const BackupEngineImpl*>& locked_restore_from_dirs) const {
+  DBUG_TRACE;
   assert(initialized_);
   if (backup_id == kLatestBackupIDMarker) {
     // Note: Read latest_valid_backup_id_ inside of lock
@@ -2070,6 +2136,7 @@ IOStatus BackupEngineImpl::RestoreDBFromBackup(
 
 IOStatus BackupEngineImpl::VerifyBackup(BackupID backup_id,
                                         bool verify_with_checksum) const {
+  DBUG_TRACE;
   assert(initialized_);
   // Check if backup_id is corrupted, or valid and registered
   auto corrupt_itr = corrupt_backups_.find(backup_id);
@@ -2145,6 +2212,7 @@ IOStatus BackupEngineImpl::CopyOrCreateFile(
     std::function<void()> progress_callback, Temperature* src_temperature,
     Temperature dst_temperature, uint64_t* bytes_toward_next_callback,
     uint64_t* size, std::string* checksum_hex) {
+  DBUG_TRACE;
   assert(src.empty() != contents.empty());
   IOStatus io_s;
   std::unique_ptr<FSWritableFile> dst_file;
@@ -2288,6 +2356,7 @@ IOStatus BackupEngineImpl::AddBackupFileWorkItem(
     std::function<void()> progress_callback, const std::string& contents,
     const std::string& src_checksum_func_name,
     const std::string& src_checksum_str, const Temperature src_temperature) {
+  DBUG_TRACE;
   assert(contents.empty() != src_dir.empty());
 
   std::string src_path = src_dir + "/" + fname;
@@ -2532,6 +2601,7 @@ IOStatus BackupEngineImpl::ReadFileAndComputeChecksum(
     const std::string& src, const std::shared_ptr<FileSystem>& src_fs,
     const EnvOptions& src_env_options, uint64_t size_limit,
     std::string* checksum_hex, const Temperature src_temperature) const {
+  DBUG_TRACE;
   if (checksum_hex == nullptr) {
     return status_to_io_status(Status::Aborted("Checksum pointer is null"));
   }
@@ -2586,6 +2656,7 @@ Status BackupEngineImpl::GetFileDbIdentities(
     Env* src_env, const EnvOptions& src_env_options,
     const std::string& file_path, Temperature file_temp,
     RateLimiter* rate_limiter, std::string* db_id, std::string* db_session_id) {
+  DBUG_TRACE;
   assert(db_id != nullptr || db_session_id != nullptr);
 
   Options options;
@@ -2648,6 +2719,7 @@ void BackupEngineImpl::LoopRateLimitRequestHelper(
     const size_t total_bytes_to_request, RateLimiter* rate_limiter,
     const Env::IOPriority pri, Statistics* stats,
     const RateLimiter::OpType op_type) {
+  DBUG_TRACE;
   assert(rate_limiter != nullptr);
   size_t remaining_bytes = total_bytes_to_request;
   size_t request_bytes = 0;
@@ -2662,6 +2734,7 @@ void BackupEngineImpl::LoopRateLimitRequestHelper(
 
 void BackupEngineImpl::DeleteChildren(const std::string& dir,
                                       uint32_t file_type_filter) const {
+  DBUG_TRACE;
   std::vector<std::string> children;
   db_fs_->GetChildren(dir, io_options_, &children, nullptr)
       .PermitUncheckedError();  // ignore errors
@@ -2682,6 +2755,7 @@ void BackupEngineImpl::DeleteChildren(const std::string& dir,
 IOStatus BackupEngineImpl::ReadChildFileCurrentSizes(
     const std::string& dir, const std::shared_ptr<FileSystem>& fs,
     std::unordered_map<std::string, uint64_t>* result) const {
+  DBUG_TRACE;
   assert(result != nullptr);
   std::vector<Env::FileAttributes> files_attrs;
   IOStatus io_status = fs->FileExists(dir, io_options_, nullptr);
@@ -2701,6 +2775,7 @@ IOStatus BackupEngineImpl::ReadChildFileCurrentSizes(
 }
 
 IOStatus BackupEngineImpl::GarbageCollect() {
+  DBUG_TRACE;
   assert(!read_only_);
 
   // We will make a best effort to remove all garbage even in the presence
@@ -2819,6 +2894,7 @@ IOStatus BackupEngineImpl::GarbageCollect() {
 
 IOStatus BackupEngineImpl::BackupMeta::AddFile(
     std::shared_ptr<FileInfo> file_info) {
+  DBUG_TRACE;
   auto itr = file_infos_->find(file_info->filename);
   if (itr == file_infos_->end()) {
     auto ret = file_infos_->insert({file_info->filename, file_info});
@@ -2874,6 +2950,7 @@ IOStatus BackupEngineImpl::BackupMeta::AddFile(
 }
 
 IOStatus BackupEngineImpl::BackupMeta::Delete(bool delete_meta) {
+  DBUG_TRACE;
   IOStatus io_s;
   for (const auto& file : files_) {
     --file->refs;  // decrease refcount
@@ -2966,6 +3043,7 @@ IOStatus BackupEngineImpl::BackupMeta::LoadFromFile(
     const std::unordered_map<std::string, uint64_t>& abs_path_to_size,
     RateLimiter* rate_limiter, Logger* info_log,
     std::unordered_set<std::string>* reported_ignored_fields) {
+  DBUG_TRACE;
   assert(reported_ignored_fields);
   assert(Empty());
 
@@ -3220,6 +3298,7 @@ const std::vector<std::string> minor_version_strings{
 IOStatus BackupEngineImpl::BackupMeta::StoreToFile(
     bool sync, int schema_version,
     const TEST_BackupMetaSchemaOptions* schema_test_options) {
+  DBUG_TRACE;
   if (schema_version < 1) {
     return IOStatus::InvalidArgument(
         "BackupEngineOptions::schema_version must be >= 1");
@@ -3323,6 +3402,7 @@ IOStatus BackupEngineImpl::BackupMeta::StoreToFile(
 IOStatus BackupEngineReadOnly::Open(const BackupEngineOptions& options,
                                     Env* env,
                                     BackupEngineReadOnly** backup_engine_ptr) {
+  DBUG_TRACE;
   if (options.destroy_old_data) {
     return IOStatus::InvalidArgument(
         "Can't destroy old data with ReadOnly BackupEngine");
@@ -3340,6 +3420,7 @@ IOStatus BackupEngineReadOnly::Open(const BackupEngineOptions& options,
 
 void TEST_SetBackupMetaSchemaOptions(
     BackupEngine* engine, const TEST_BackupMetaSchemaOptions& options) {
+  DBUG_TRACE;
   BackupEngineImplThreadSafe* impl =
       static_cast_with_check<BackupEngineImplThreadSafe>(engine);
   impl->TEST_SetBackupMetaSchemaOptions(options);
@@ -3349,6 +3430,7 @@ void TEST_SetDefaultRateLimitersClock(
     BackupEngine* engine,
     const std::shared_ptr<SystemClock>& backup_rate_limiter_clock,
     const std::shared_ptr<SystemClock>& restore_rate_limiter_clock) {
+  DBUG_TRACE;
   BackupEngineImplThreadSafe* impl =
       static_cast_with_check<BackupEngineImplThreadSafe>(engine);
   impl->TEST_SetDefaultRateLimitersClock(backup_rate_limiter_clock,

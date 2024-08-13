@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "options/db_options.h"
 
 #include <cinttypes>
@@ -594,6 +595,7 @@ class MutableDBConfigurable : public Configurable {
                        const std::string& opt_name, const void* const this_ptr,
                        const void* const that_ptr,
                        std::string* mismatch) const override {
+    DBUG_TRACE;
     bool equals = opt_info.AreEqual(config_options, opt_name, this_ptr,
                                     that_ptr, mismatch);
     if (!equals && opt_info.IsByName()) {
@@ -656,6 +658,7 @@ class DBOptionsConfigurable : public MutableDBConfigurable {
       const ConfigOptions& config_options,
       const std::unordered_map<std::string, std::string>& opts_map,
       std::unordered_map<std::string, std::string>* unused) override {
+    DBUG_TRACE;
     Status s = Configurable::ConfigureOptions(config_options, opts_map, unused);
     if (s.ok()) {
       db_options_ = BuildDBOptions(immutable_, mutable_);
@@ -665,6 +668,7 @@ class DBOptionsConfigurable : public MutableDBConfigurable {
   }
 
   const void* GetOptionsPtr(const std::string& name) const override {
+    DBUG_TRACE;
     if (name == OptionsHelper::kDBOptionsName) {
       return &db_options_;
     } else {
@@ -679,12 +683,14 @@ class DBOptionsConfigurable : public MutableDBConfigurable {
 
 std::unique_ptr<Configurable> DBOptionsAsConfigurable(
     const MutableDBOptions& opts) {
+  DBUG_TRACE;
   std::unique_ptr<Configurable> ptr(new MutableDBConfigurable(opts));
   return ptr;
 }
 std::unique_ptr<Configurable> DBOptionsAsConfigurable(
     const DBOptions& opts,
     const std::unordered_map<std::string, std::string>* opt_map) {
+  DBUG_TRACE;
   std::unique_ptr<Configurable> ptr(new DBOptionsConfigurable(opts, opt_map));
   return ptr;
 }
@@ -786,6 +792,7 @@ ImmutableDBOptions::ImmutableDBOptions(const DBOptions& options)
 }
 
 void ImmutableDBOptions::Dump(Logger* log) const {
+  DBUG_TRACE;
   ROCKS_LOG_HEADER(log, "                        Options.error_if_exists: %d",
                    error_if_exists);
   ROCKS_LOG_HEADER(log, "                      Options.create_if_missing: %d",
@@ -959,12 +966,14 @@ void ImmutableDBOptions::Dump(Logger* log) const {
 }
 
 bool ImmutableDBOptions::IsWalDirSameAsDBPath() const {
+  DBUG_TRACE;
   assert(!db_paths.empty());
   return IsWalDirSameAsDBPath(db_paths[0].path);
 }
 
 bool ImmutableDBOptions::IsWalDirSameAsDBPath(
     const std::string& db_path) const {
+  DBUG_TRACE;
   bool same = wal_dir.empty();
   if (!same) {
     Status s = env->AreFilesSame(wal_dir, db_path, &same);
@@ -976,6 +985,7 @@ bool ImmutableDBOptions::IsWalDirSameAsDBPath(
 }
 
 const std::string& ImmutableDBOptions::GetWalDir() const {
+  DBUG_TRACE;
   if (wal_dir.empty()) {
     assert(!db_paths.empty());
     return db_paths[0].path;
@@ -986,6 +996,7 @@ const std::string& ImmutableDBOptions::GetWalDir() const {
 
 const std::string& ImmutableDBOptions::GetWalDir(
     const std::string& path) const {
+  DBUG_TRACE;
   if (wal_dir.empty()) {
     return path;
   } else {
@@ -1034,6 +1045,7 @@ MutableDBOptions::MutableDBOptions(const DBOptions& options)
       daily_offpeak_time_utc(options.daily_offpeak_time_utc) {}
 
 void MutableDBOptions::Dump(Logger* log) const {
+  DBUG_TRACE;
   ROCKS_LOG_HEADER(log, "            Options.max_background_jobs: %d",
                    max_background_jobs);
   ROCKS_LOG_HEADER(log, "            Options.max_background_compactions: %d",
@@ -1084,6 +1096,7 @@ Status GetMutableDBOptionsFromStrings(
     const MutableDBOptions& base_options,
     const std::unordered_map<std::string, std::string>& options_map,
     MutableDBOptions* new_options) {
+  DBUG_TRACE;
   assert(new_options);
   *new_options = base_options;
   ConfigOptions config_options;
@@ -1097,6 +1110,7 @@ Status GetMutableDBOptionsFromStrings(
 
 bool MutableDBOptionsAreEqual(const MutableDBOptions& this_options,
                               const MutableDBOptions& that_options) {
+  DBUG_TRACE;
   ConfigOptions config_options;
   std::string mismatch;
   return OptionTypeInfo::StructsAreEqual(
@@ -1107,6 +1121,7 @@ bool MutableDBOptionsAreEqual(const MutableDBOptions& this_options,
 Status GetStringFromMutableDBOptions(const ConfigOptions& config_options,
                                      const MutableDBOptions& mutable_opts,
                                      std::string* opt_string) {
+  DBUG_TRACE;
   return OptionTypeInfo::SerializeType(
       config_options, db_mutable_options_type_info, &mutable_opts, opt_string);
 }

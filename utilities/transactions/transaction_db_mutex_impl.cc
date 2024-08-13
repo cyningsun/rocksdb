@@ -4,6 +4,7 @@
 //  (found in the LICENSE.Apache file in the root directory).
 
 
+#include "rocksdb/util/dbug.h"
 #include "utilities/transactions/transaction_db_mutex_impl.h"
 
 #include <chrono>
@@ -24,7 +25,7 @@ class TransactionDBMutexImpl : public TransactionDBMutex {
 
   Status TryLockFor(int64_t timeout_time) override;
 
-  void UnLock() override { mutex_.unlock(); }
+  void UnLock() override { DBUG_TRACE; mutex_.unlock(); }
 
   friend class TransactionDBCondVarImpl;
 
@@ -42,9 +43,9 @@ class TransactionDBCondVarImpl : public TransactionDBCondVar {
   Status WaitFor(std::shared_ptr<TransactionDBMutex> mutex,
                  int64_t timeout_time) override;
 
-  void Notify() override { cv_.notify_one(); }
+  void Notify() override { DBUG_TRACE; cv_.notify_one(); }
 
-  void NotifyAll() override { cv_.notify_all(); }
+  void NotifyAll() override { DBUG_TRACE; cv_.notify_all(); }
 
  private:
   std::condition_variable cv_;
@@ -52,20 +53,24 @@ class TransactionDBCondVarImpl : public TransactionDBCondVar {
 
 std::shared_ptr<TransactionDBMutex>
 TransactionDBMutexFactoryImpl::AllocateMutex() {
+  DBUG_TRACE;
   return std::shared_ptr<TransactionDBMutex>(new TransactionDBMutexImpl());
 }
 
 std::shared_ptr<TransactionDBCondVar>
 TransactionDBMutexFactoryImpl::AllocateCondVar() {
+  DBUG_TRACE;
   return std::shared_ptr<TransactionDBCondVar>(new TransactionDBCondVarImpl());
 }
 
 Status TransactionDBMutexImpl::Lock() {
+  DBUG_TRACE;
   mutex_.lock();
   return Status::OK();
 }
 
 Status TransactionDBMutexImpl::TryLockFor(int64_t timeout_time) {
+  DBUG_TRACE;
   bool locked = true;
 
   if (timeout_time == 0) {
@@ -91,6 +96,7 @@ Status TransactionDBMutexImpl::TryLockFor(int64_t timeout_time) {
 
 Status TransactionDBCondVarImpl::Wait(
     std::shared_ptr<TransactionDBMutex> mutex) {
+  DBUG_TRACE;
   auto mutex_impl = static_cast<TransactionDBMutexImpl*>(mutex.get());
 
   std::unique_lock<std::mutex> lock(mutex_impl->mutex_, std::adopt_lock);
@@ -104,6 +110,7 @@ Status TransactionDBCondVarImpl::Wait(
 
 Status TransactionDBCondVarImpl::WaitFor(
     std::shared_ptr<TransactionDBMutex> mutex, int64_t timeout_time) {
+  DBUG_TRACE;
   Status s;
 
   auto mutex_impl = static_cast<TransactionDBMutexImpl*>(mutex.get());
@@ -130,4 +137,3 @@ Status TransactionDBCondVarImpl::WaitFor(
 }
 
 }  // namespace ROCKSDB_NAMESPACE
-

@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/utilities/object_registry.h"
 
 #include <cctype>
@@ -16,6 +17,7 @@
 namespace ROCKSDB_NAMESPACE {
 namespace {
 bool MatchesInteger(const std::string &target, size_t start, size_t pos) {
+  DBUG_TRACE;
   // If it is numeric, everything up to the match must be a number
   int digits = 0;
   if (target[start] == '-') {
@@ -32,6 +34,7 @@ bool MatchesInteger(const std::string &target, size_t start, size_t pos) {
 }
 
 bool MatchesDecimal(const std::string &target, size_t start, size_t pos) {
+  DBUG_TRACE;
   int digits = 0;
   if (target[start] == '-') {
     start++;  // Allow negative numbers
@@ -56,6 +59,7 @@ bool MatchesDecimal(const std::string &target, size_t start, size_t pos) {
 size_t ObjectLibrary::PatternEntry::MatchSeparatorAt(
     size_t start, Quantifier mode, const std::string &target, size_t tlen,
     const std::string &separator) const {
+  DBUG_TRACE;
   size_t slen = separator.size();
   // See if there is enough space.  If so, find the separator
   if (tlen < start + slen) {
@@ -91,6 +95,7 @@ bool ObjectLibrary::PatternEntry::MatchesTarget(const std::string &name,
                                                 size_t nlen,
                                                 const std::string &target,
                                                 size_t tlen) const {
+  DBUG_TRACE;
   if (separators_.empty()) {
     assert(optional_);  // If there are no separators, it must be only a name
     return nlen == tlen && name == target;
@@ -133,6 +138,7 @@ bool ObjectLibrary::PatternEntry::MatchesTarget(const std::string &name,
 }
 
 bool ObjectLibrary::PatternEntry::Matches(const std::string &target) const {
+  DBUG_TRACE;
   auto tlen = target.size();
   if (MatchesTarget(name_, nlength_, target, tlen)) {
     return true;
@@ -147,6 +153,7 @@ bool ObjectLibrary::PatternEntry::Matches(const std::string &target) const {
 }
 
 size_t ObjectLibrary::GetFactoryCount(size_t *types) const {
+  DBUG_TRACE;
   std::unique_lock<std::mutex> lock(mu_);
   *types = factories_.size();
   size_t factories = 0;
@@ -157,6 +164,7 @@ size_t ObjectLibrary::GetFactoryCount(size_t *types) const {
 }
 
 size_t ObjectLibrary::GetFactoryCount(const std::string &type) const {
+  DBUG_TRACE;
   std::unique_lock<std::mutex> lock(mu_);
   auto iter = factories_.find(type);
   if (iter != factories_.end()) {
@@ -168,6 +176,7 @@ size_t ObjectLibrary::GetFactoryCount(const std::string &type) const {
 
 void ObjectLibrary::GetFactoryNames(const std::string &type,
                                     std::vector<std::string> *names) const {
+  DBUG_TRACE;
   assert(names);
   std::unique_lock<std::mutex> lock(mu_);
   auto iter = factories_.find(type);
@@ -180,6 +189,7 @@ void ObjectLibrary::GetFactoryNames(const std::string &type,
 
 void ObjectLibrary::GetFactoryTypes(
     std::unordered_set<std::string> *types) const {
+  DBUG_TRACE;
   assert(types);
   std::unique_lock<std::mutex> lock(mu_);
   for (const auto &iter : factories_) {
@@ -188,6 +198,7 @@ void ObjectLibrary::GetFactoryTypes(
 }
 
 void ObjectLibrary::Dump(Logger *logger) const {
+  DBUG_TRACE;
   std::unique_lock<std::mutex> lock(mu_);
   if (logger != nullptr && !factories_.empty()) {
     ROCKS_LOG_HEADER(logger, "    Registered Library: %s\n", id_.c_str());
@@ -206,6 +217,7 @@ void ObjectLibrary::Dump(Logger *logger) const {
 // Returns the Default singleton instance of the ObjectLibrary
 // This instance will contain most of the "standard" registered objects
 std::shared_ptr<ObjectLibrary> &ObjectLibrary::Default() {
+  DBUG_TRACE;
   // Use avoid destruction here so the default ObjectLibrary will not be
   // statically destroyed and long-lived.
   STATIC_AVOID_DESTRUCTION(std::shared_ptr<ObjectLibrary>, instance)
@@ -221,6 +233,7 @@ ObjectRegistry::ObjectRegistry(const std::shared_ptr<ObjectLibrary> &library) {
 }
 
 std::shared_ptr<ObjectRegistry> ObjectRegistry::Default() {
+  DBUG_TRACE;
   // Use avoid destruction here so the default ObjectRegistry will not be
   // statically destroyed and long-lived.
   STATIC_AVOID_DESTRUCTION(std::shared_ptr<ObjectRegistry>, instance)
@@ -229,17 +242,20 @@ std::shared_ptr<ObjectRegistry> ObjectRegistry::Default() {
 }
 
 std::shared_ptr<ObjectRegistry> ObjectRegistry::NewInstance() {
+  DBUG_TRACE;
   return std::make_shared<ObjectRegistry>(Default());
 }
 
 std::shared_ptr<ObjectRegistry> ObjectRegistry::NewInstance(
     const std::shared_ptr<ObjectRegistry> &parent) {
+  DBUG_TRACE;
   return std::make_shared<ObjectRegistry>(parent);
 }
 
 Status ObjectRegistry::SetManagedObject(
     const std::string &type, const std::string &id,
     const std::shared_ptr<Customizable> &object) {
+  DBUG_TRACE;
   std::string object_key = ToManagedObjectKey(type, id);
   std::shared_ptr<Customizable> curr;
   if (parent_ != nullptr) {
@@ -268,6 +284,7 @@ Status ObjectRegistry::SetManagedObject(
 
 std::shared_ptr<Customizable> ObjectRegistry::GetManagedObject(
     const std::string &type, const std::string &id) const {
+  DBUG_TRACE;
   {
     std::unique_lock<std::mutex> lock(objects_mutex_);
     auto iter = managed_objects_.find(ToManagedObjectKey(type, id));
@@ -285,6 +302,7 @@ std::shared_ptr<Customizable> ObjectRegistry::GetManagedObject(
 Status ObjectRegistry::ListManagedObjects(
     const std::string &type, const std::string &name,
     std::vector<std::shared_ptr<Customizable>> *results) const {
+  DBUG_TRACE;
   {
     std::string key = ToManagedObjectKey(type, name);
     std::unique_lock<std::mutex> lock(objects_mutex_);
@@ -310,6 +328,7 @@ Status ObjectRegistry::ListManagedObjects(
 // If specified (not-null), types is updated to include the names of the
 // registered types.
 size_t ObjectRegistry::GetFactoryCount(const std::string &type) const {
+  DBUG_TRACE;
   size_t count = 0;
   if (parent_ != nullptr) {
     count = parent_->GetFactoryCount(type);
@@ -323,6 +342,7 @@ size_t ObjectRegistry::GetFactoryCount(const std::string &type) const {
 
 void ObjectRegistry::GetFactoryNames(const std::string &type,
                                      std::vector<std::string> *names) const {
+  DBUG_TRACE;
   assert(names);
   names->clear();
   if (parent_ != nullptr) {
@@ -336,6 +356,7 @@ void ObjectRegistry::GetFactoryNames(const std::string &type,
 
 void ObjectRegistry::GetFactoryTypes(
     std::unordered_set<std::string> *types) const {
+  DBUG_TRACE;
   assert(types);
   if (parent_ != nullptr) {
     parent_->GetFactoryTypes(types);
@@ -347,6 +368,7 @@ void ObjectRegistry::GetFactoryTypes(
 }
 
 void ObjectRegistry::Dump(Logger *logger) const {
+  DBUG_TRACE;
   if (logger != nullptr) {
     std::unique_lock<std::mutex> lock(library_mutex_);
     if (!plugins_.empty()) {
@@ -370,6 +392,7 @@ void ObjectRegistry::Dump(Logger *logger) const {
 
 int ObjectRegistry::RegisterPlugin(const std::string &name,
                                    const RegistrarFunc &func) {
+  DBUG_TRACE;
   if (!name.empty() && func != nullptr) {
     plugins_.push_back(name);
     return AddLibrary(name)->Register(func, name);

@@ -4,9 +4,11 @@
 //  (found in the LICENSE.Apache file in the root directory).
 //
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/sst_dump_tool.h"
 
 int main(int argc, char** argv) {
+  DBUG_TRACE;
   ROCKSDB_NAMESPACE::SSTDumpTool tool;
   return tool.Run(argc, argv);
 }

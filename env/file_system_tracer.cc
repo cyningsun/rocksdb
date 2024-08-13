@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "env/file_system_tracer.h"
 
 #include "rocksdb/file_system.h"
@@ -14,6 +15,7 @@ namespace ROCKSDB_NAMESPACE {
 IOStatus FileSystemTracingWrapper::NewSequentialFile(
     const std::string& fname, const FileOptions& file_opts,
     std::unique_ptr<FSSequentialFile>* result, IODebugContext* dbg) {
+  DBUG_TRACE;
   StopWatchNano timer(clock_);
   timer.Start();
   IOStatus s = target()->NewSequentialFile(fname, file_opts, result, dbg);
@@ -28,6 +30,7 @@ IOStatus FileSystemTracingWrapper::NewSequentialFile(
 IOStatus FileSystemTracingWrapper::NewRandomAccessFile(
     const std::string& fname, const FileOptions& file_opts,
     std::unique_ptr<FSRandomAccessFile>* result, IODebugContext* dbg) {
+  DBUG_TRACE;
   StopWatchNano timer(clock_);
   timer.Start();
   IOStatus s = target()->NewRandomAccessFile(fname, file_opts, result, dbg);
@@ -42,6 +45,7 @@ IOStatus FileSystemTracingWrapper::NewRandomAccessFile(
 IOStatus FileSystemTracingWrapper::NewWritableFile(
     const std::string& fname, const FileOptions& file_opts,
     std::unique_ptr<FSWritableFile>* result, IODebugContext* dbg) {
+  DBUG_TRACE;
   StopWatchNano timer(clock_);
   timer.Start();
   IOStatus s = target()->NewWritableFile(fname, file_opts, result, dbg);
@@ -56,6 +60,7 @@ IOStatus FileSystemTracingWrapper::NewWritableFile(
 IOStatus FileSystemTracingWrapper::ReopenWritableFile(
     const std::string& fname, const FileOptions& file_opts,
     std::unique_ptr<FSWritableFile>* result, IODebugContext* dbg) {
+  DBUG_TRACE;
   StopWatchNano timer(clock_);
   timer.Start();
   IOStatus s = target()->ReopenWritableFile(fname, file_opts, result, dbg);
@@ -71,6 +76,7 @@ IOStatus FileSystemTracingWrapper::ReuseWritableFile(
     const std::string& fname, const std::string& old_fname,
     const FileOptions& file_opts, std::unique_ptr<FSWritableFile>* result,
     IODebugContext* dbg) {
+  DBUG_TRACE;
   StopWatchNano timer(clock_);
   timer.Start();
   IOStatus s =
@@ -86,6 +92,7 @@ IOStatus FileSystemTracingWrapper::ReuseWritableFile(
 IOStatus FileSystemTracingWrapper::NewRandomRWFile(
     const std::string& fname, const FileOptions& file_opts,
     std::unique_ptr<FSRandomRWFile>* result, IODebugContext* dbg) {
+  DBUG_TRACE;
   StopWatchNano timer(clock_);
   timer.Start();
   IOStatus s = target()->NewRandomRWFile(fname, file_opts, result, dbg);
@@ -100,6 +107,7 @@ IOStatus FileSystemTracingWrapper::NewRandomRWFile(
 IOStatus FileSystemTracingWrapper::NewDirectory(
     const std::string& name, const IOOptions& io_opts,
     std::unique_ptr<FSDirectory>* result, IODebugContext* dbg) {
+  DBUG_TRACE;
   StopWatchNano timer(clock_);
   timer.Start();
   IOStatus s = target()->NewDirectory(name, io_opts, result, dbg);
@@ -115,6 +123,7 @@ IOStatus FileSystemTracingWrapper::GetChildren(const std::string& dir,
                                                const IOOptions& io_opts,
                                                std::vector<std::string>* r,
                                                IODebugContext* dbg) {
+  DBUG_TRACE;
   StopWatchNano timer(clock_);
   timer.Start();
   IOStatus s = target()->GetChildren(dir, io_opts, r, dbg);
@@ -129,6 +138,7 @@ IOStatus FileSystemTracingWrapper::GetChildren(const std::string& dir,
 IOStatus FileSystemTracingWrapper::DeleteFile(const std::string& fname,
                                               const IOOptions& options,
                                               IODebugContext* dbg) {
+  DBUG_TRACE;
   StopWatchNano timer(clock_);
   timer.Start();
   IOStatus s = target()->DeleteFile(fname, options, dbg);
@@ -143,6 +153,7 @@ IOStatus FileSystemTracingWrapper::DeleteFile(const std::string& fname,
 IOStatus FileSystemTracingWrapper::CreateDir(const std::string& dirname,
                                              const IOOptions& options,
                                              IODebugContext* dbg) {
+  DBUG_TRACE;
   StopWatchNano timer(clock_);
   timer.Start();
   IOStatus s = target()->CreateDir(dirname, options, dbg);
@@ -156,6 +167,7 @@ IOStatus FileSystemTracingWrapper::CreateDir(const std::string& dirname,
 
 IOStatus FileSystemTracingWrapper::CreateDirIfMissing(
     const std::string& dirname, const IOOptions& options, IODebugContext* dbg) {
+  DBUG_TRACE;
   StopWatchNano timer(clock_);
   timer.Start();
   IOStatus s = target()->CreateDirIfMissing(dirname, options, dbg);
@@ -170,6 +182,7 @@ IOStatus FileSystemTracingWrapper::CreateDirIfMissing(
 IOStatus FileSystemTracingWrapper::DeleteDir(const std::string& dirname,
                                              const IOOptions& options,
                                              IODebugContext* dbg) {
+  DBUG_TRACE;
   StopWatchNano timer(clock_);
   timer.Start();
   IOStatus s = target()->DeleteDir(dirname, options, dbg);
@@ -185,6 +198,7 @@ IOStatus FileSystemTracingWrapper::GetFileSize(const std::string& fname,
                                                const IOOptions& options,
                                                uint64_t* file_size,
                                                IODebugContext* dbg) {
+  DBUG_TRACE;
   StopWatchNano timer(clock_);
   timer.Start();
   IOStatus s = target()->GetFileSize(fname, options, file_size, dbg);
@@ -202,6 +216,7 @@ IOStatus FileSystemTracingWrapper::Truncate(const std::string& fname,
                                             size_t size,
                                             const IOOptions& options,
                                             IODebugContext* dbg) {
+  DBUG_TRACE;
   StopWatchNano timer(clock_);
   timer.Start();
   IOStatus s = target()->Truncate(fname, size, options, dbg);
@@ -219,6 +234,7 @@ IOStatus FSSequentialFileTracingWrapper::Read(size_t n,
                                               const IOOptions& options,
                                               Slice* result, char* scratch,
                                               IODebugContext* dbg) {
+  DBUG_TRACE;
   StopWatchNano timer(clock_);
   timer.Start();
   IOStatus s = target()->Read(n, options, result, scratch, dbg);
@@ -234,6 +250,7 @@ IOStatus FSSequentialFileTracingWrapper::Read(size_t n,
 
 IOStatus FSSequentialFileTracingWrapper::InvalidateCache(size_t offset,
                                                          size_t length) {
+  DBUG_TRACE;
   StopWatchNano timer(clock_);
   timer.Start();
   IOStatus s = target()->InvalidateCache(offset, length);
@@ -251,6 +268,7 @@ IOStatus FSSequentialFileTracingWrapper::InvalidateCache(size_t offset,
 IOStatus FSSequentialFileTracingWrapper::PositionedRead(
     uint64_t offset, size_t n, const IOOptions& options, Slice* result,
     char* scratch, IODebugContext* dbg) {
+  DBUG_TRACE;
   StopWatchNano timer(clock_);
   timer.Start();
   IOStatus s =
@@ -270,6 +288,7 @@ IOStatus FSRandomAccessFileTracingWrapper::Read(uint64_t offset, size_t n,
                                                 const IOOptions& options,
                                                 Slice* result, char* scratch,
                                                 IODebugContext* dbg) const {
+  DBUG_TRACE;
   StopWatchNano timer(clock_);
   timer.Start();
   IOStatus s = target()->Read(offset, n, options, result, scratch, dbg);
@@ -288,6 +307,7 @@ IOStatus FSRandomAccessFileTracingWrapper::MultiRead(FSReadRequest* reqs,
                                                      size_t num_reqs,
                                                      const IOOptions& options,
                                                      IODebugContext* dbg) {
+  DBUG_TRACE;
   StopWatchNano timer(clock_);
   timer.Start();
   IOStatus s = target()->MultiRead(reqs, num_reqs, options, dbg);
@@ -308,6 +328,7 @@ IOStatus FSRandomAccessFileTracingWrapper::MultiRead(FSReadRequest* reqs,
 IOStatus FSRandomAccessFileTracingWrapper::Prefetch(uint64_t offset, size_t n,
                                                     const IOOptions& options,
                                                     IODebugContext* dbg) {
+  DBUG_TRACE;
   StopWatchNano timer(clock_);
   timer.Start();
   IOStatus s = target()->Prefetch(offset, n, options, dbg);
@@ -324,6 +345,7 @@ IOStatus FSRandomAccessFileTracingWrapper::Prefetch(uint64_t offset, size_t n,
 
 IOStatus FSRandomAccessFileTracingWrapper::InvalidateCache(size_t offset,
                                                            size_t length) {
+  DBUG_TRACE;
   StopWatchNano timer(clock_);
   timer.Start();
   IOStatus s = target()->InvalidateCache(offset, length);
@@ -342,6 +364,7 @@ IOStatus FSRandomAccessFileTracingWrapper::ReadAsync(
     FSReadRequest& req, const IOOptions& opts,
     std::function<void(FSReadRequest&, void*)> cb, void* cb_arg,
     void** io_handle, IOHandleDeleter* del_fn, IODebugContext* dbg) {
+  DBUG_TRACE;
   // Create a callback and populate info.
   auto read_async_callback =
       std::bind(&FSRandomAccessFileTracingWrapper::ReadAsyncCallback, this,
@@ -363,6 +386,7 @@ IOStatus FSRandomAccessFileTracingWrapper::ReadAsync(
 
 void FSRandomAccessFileTracingWrapper::ReadAsyncCallback(FSReadRequest& req,
                                                          void* cb_arg) {
+  DBUG_TRACE;
   ReadAsyncCallbackInfo* read_async_cb_info =
       static_cast<ReadAsyncCallbackInfo*>(cb_arg);
   assert(read_async_cb_info);
@@ -386,6 +410,7 @@ void FSRandomAccessFileTracingWrapper::ReadAsyncCallback(FSReadRequest& req,
 IOStatus FSWritableFileTracingWrapper::Append(const Slice& data,
                                               const IOOptions& options,
                                               IODebugContext* dbg) {
+  DBUG_TRACE;
   StopWatchNano timer(clock_);
   timer.Start();
   IOStatus s = target()->Append(data, options, dbg);
@@ -402,6 +427,7 @@ IOStatus FSWritableFileTracingWrapper::Append(const Slice& data,
 IOStatus FSWritableFileTracingWrapper::PositionedAppend(
     const Slice& data, uint64_t offset, const IOOptions& options,
     IODebugContext* dbg) {
+  DBUG_TRACE;
   StopWatchNano timer(clock_);
   timer.Start();
   IOStatus s = target()->PositionedAppend(data, offset, options, dbg);
@@ -419,6 +445,7 @@ IOStatus FSWritableFileTracingWrapper::PositionedAppend(
 IOStatus FSWritableFileTracingWrapper::Truncate(uint64_t size,
                                                 const IOOptions& options,
                                                 IODebugContext* dbg) {
+  DBUG_TRACE;
   StopWatchNano timer(clock_);
   timer.Start();
   IOStatus s = target()->Truncate(size, options, dbg);
@@ -434,6 +461,7 @@ IOStatus FSWritableFileTracingWrapper::Truncate(uint64_t size,
 
 IOStatus FSWritableFileTracingWrapper::Close(const IOOptions& options,
                                              IODebugContext* dbg) {
+  DBUG_TRACE;
   StopWatchNano timer(clock_);
   timer.Start();
   IOStatus s = target()->Close(options, dbg);
@@ -447,6 +475,7 @@ IOStatus FSWritableFileTracingWrapper::Close(const IOOptions& options,
 
 uint64_t FSWritableFileTracingWrapper::GetFileSize(const IOOptions& options,
                                                    IODebugContext* dbg) {
+  DBUG_TRACE;
   StopWatchNano timer(clock_);
   timer.Start();
   uint64_t file_size = target()->GetFileSize(options, dbg);
@@ -461,6 +490,7 @@ uint64_t FSWritableFileTracingWrapper::GetFileSize(const IOOptions& options,
 
 IOStatus FSWritableFileTracingWrapper::InvalidateCache(size_t offset,
                                                        size_t length) {
+  DBUG_TRACE;
   StopWatchNano timer(clock_);
   timer.Start();
   IOStatus s = target()->InvalidateCache(offset, length);
@@ -478,6 +508,7 @@ IOStatus FSWritableFileTracingWrapper::InvalidateCache(size_t offset,
 IOStatus FSRandomRWFileTracingWrapper::Write(uint64_t offset, const Slice& data,
                                              const IOOptions& options,
                                              IODebugContext* dbg) {
+  DBUG_TRACE;
   StopWatchNano timer(clock_);
   timer.Start();
   IOStatus s = target()->Write(offset, data, options, dbg);
@@ -496,6 +527,7 @@ IOStatus FSRandomRWFileTracingWrapper::Read(uint64_t offset, size_t n,
                                             const IOOptions& options,
                                             Slice* result, char* scratch,
                                             IODebugContext* dbg) const {
+  DBUG_TRACE;
   StopWatchNano timer(clock_);
   timer.Start();
   IOStatus s = target()->Read(offset, n, options, result, scratch, dbg);
@@ -512,6 +544,7 @@ IOStatus FSRandomRWFileTracingWrapper::Read(uint64_t offset, size_t n,
 
 IOStatus FSRandomRWFileTracingWrapper::Flush(const IOOptions& options,
                                              IODebugContext* dbg) {
+  DBUG_TRACE;
   StopWatchNano timer(clock_);
   timer.Start();
   IOStatus s = target()->Flush(options, dbg);
@@ -525,6 +558,7 @@ IOStatus FSRandomRWFileTracingWrapper::Flush(const IOOptions& options,
 
 IOStatus FSRandomRWFileTracingWrapper::Close(const IOOptions& options,
                                              IODebugContext* dbg) {
+  DBUG_TRACE;
   StopWatchNano timer(clock_);
   timer.Start();
   IOStatus s = target()->Close(options, dbg);
@@ -538,6 +572,7 @@ IOStatus FSRandomRWFileTracingWrapper::Close(const IOOptions& options,
 
 IOStatus FSRandomRWFileTracingWrapper::Sync(const IOOptions& options,
                                             IODebugContext* dbg) {
+  DBUG_TRACE;
   StopWatchNano timer(clock_);
   timer.Start();
   IOStatus s = target()->Sync(options, dbg);
@@ -551,6 +586,7 @@ IOStatus FSRandomRWFileTracingWrapper::Sync(const IOOptions& options,
 
 IOStatus FSRandomRWFileTracingWrapper::Fsync(const IOOptions& options,
                                              IODebugContext* dbg) {
+  DBUG_TRACE;
   StopWatchNano timer(clock_);
   timer.Start();
   IOStatus s = target()->Fsync(options, dbg);

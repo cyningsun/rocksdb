@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "file/line_file_reader.h"
 
 #include <cstring>
@@ -17,6 +18,7 @@ IOStatus LineFileReader::Create(const std::shared_ptr<FileSystem>& fs,
                                 std::unique_ptr<LineFileReader>* reader,
                                 IODebugContext* dbg,
                                 RateLimiter* rate_limiter) {
+  DBUG_TRACE;
   std::unique_ptr<FSSequentialFile> file;
   IOStatus io_s = fs->NewSequentialFile(fname, file_opts, &file, dbg);
   if (io_s.ok()) {
@@ -29,6 +31,7 @@ IOStatus LineFileReader::Create(const std::shared_ptr<FileSystem>& fs,
 
 bool LineFileReader::ReadLine(std::string* out,
                               Env::IOPriority rate_limiter_priority) {
+  DBUG_TRACE;
   assert(out);
   if (!io_status_.ok()) {
     // Status should be checked (or permit unchecked) any time we return false.

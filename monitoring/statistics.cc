@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 //
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/statistics.h"
 
 #include <algorithm>
@@ -339,11 +340,13 @@ const std::vector<std::pair<Histograms, std::string>> HistogramsNameMap = {
 };
 
 std::shared_ptr<Statistics> CreateDBStatistics() {
+  DBUG_TRACE;
   return std::make_shared<StatisticsImpl>(nullptr);
 }
 
 static int RegisterBuiltinStatistics(ObjectLibrary& library,
                                      const std::string& /*arg*/) {
+  DBUG_TRACE;
   library.AddFactory<Statistics>(
       StatisticsImpl::kClassName(),
       [](const std::string& /*uri*/, std::unique_ptr<Statistics>* guard,
@@ -357,6 +360,7 @@ static int RegisterBuiltinStatistics(ObjectLibrary& library,
 Status Statistics::CreateFromString(const ConfigOptions& config_options,
                                     const std::string& id,
                                     std::shared_ptr<Statistics>* result) {
+  DBUG_TRACE;
   static std::once_flag once;
   std::call_once(once, [&]() {
     RegisterBuiltinStatistics(*(ObjectLibrary::Default().get()), "");
@@ -386,11 +390,13 @@ StatisticsImpl::StatisticsImpl(std::shared_ptr<Statistics> stats)
 StatisticsImpl::~StatisticsImpl() = default;
 
 uint64_t StatisticsImpl::getTickerCount(uint32_t tickerType) const {
+  DBUG_TRACE;
   MutexLock lock(&aggregate_lock_);
   return getTickerCountLocked(tickerType);
 }
 
 uint64_t StatisticsImpl::getTickerCountLocked(uint32_t tickerType) const {
+  DBUG_TRACE;
   assert(tickerType < TICKER_ENUM_MAX);
   uint64_t res = 0;
   for (size_t core_idx = 0; core_idx < per_core_stats_.Size(); ++core_idx) {
@@ -401,12 +407,14 @@ uint64_t StatisticsImpl::getTickerCountLocked(uint32_t tickerType) const {
 
 void StatisticsImpl::histogramData(uint32_t histogramType,
                                    HistogramData* const data) const {
+  DBUG_TRACE;
   MutexLock lock(&aggregate_lock_);
   getHistogramImplLocked(histogramType)->Data(data);
 }
 
 std::unique_ptr<HistogramImpl> StatisticsImpl::getHistogramImplLocked(
     uint32_t histogramType) const {
+  DBUG_TRACE;
   assert(histogramType < HISTOGRAM_ENUM_MAX);
   std::unique_ptr<HistogramImpl> res_hist(new HistogramImpl());
   for (size_t core_idx = 0; core_idx < per_core_stats_.Size(); ++core_idx) {
@@ -417,11 +425,13 @@ std::unique_ptr<HistogramImpl> StatisticsImpl::getHistogramImplLocked(
 }
 
 std::string StatisticsImpl::getHistogramString(uint32_t histogramType) const {
+  DBUG_TRACE;
   MutexLock lock(&aggregate_lock_);
   return getHistogramImplLocked(histogramType)->ToString();
 }
 
 void StatisticsImpl::setTickerCount(uint32_t tickerType, uint64_t count) {
+  DBUG_TRACE;
   {
     MutexLock lock(&aggregate_lock_);
     setTickerCountLocked(tickerType, count);
@@ -432,6 +442,7 @@ void StatisticsImpl::setTickerCount(uint32_t tickerType, uint64_t count) {
 }
 
 void StatisticsImpl::setTickerCountLocked(uint32_t tickerType, uint64_t count) {
+  DBUG_TRACE;
   assert(tickerType < TICKER_ENUM_MAX);
   for (size_t core_idx = 0; core_idx < per_core_stats_.Size(); ++core_idx) {
     if (core_idx == 0) {
@@ -443,6 +454,7 @@ void StatisticsImpl::setTickerCountLocked(uint32_t tickerType, uint64_t count) {
 }
 
 uint64_t StatisticsImpl::getAndResetTickerCount(uint32_t tickerType) {
+  DBUG_TRACE;
   uint64_t sum = 0;
   {
     MutexLock lock(&aggregate_lock_);
@@ -460,6 +472,7 @@ uint64_t StatisticsImpl::getAndResetTickerCount(uint32_t tickerType) {
 }
 
 void StatisticsImpl::recordTick(uint32_t tickerType, uint64_t count) {
+  DBUG_TRACE;
   if (get_stats_level() <= StatsLevel::kExceptTickers) {
     return;
   }
@@ -475,6 +488,7 @@ void StatisticsImpl::recordTick(uint32_t tickerType, uint64_t count) {
 }
 
 void StatisticsImpl::recordInHistogram(uint32_t histogramType, uint64_t value) {
+  DBUG_TRACE;
   assert(histogramType < HISTOGRAM_ENUM_MAX);
   if (get_stats_level() <= StatsLevel::kExceptHistogramOrTimers) {
     return;
@@ -486,6 +500,7 @@ void StatisticsImpl::recordInHistogram(uint32_t histogramType, uint64_t value) {
 }
 
 Status StatisticsImpl::Reset() {
+  DBUG_TRACE;
   MutexLock lock(&aggregate_lock_);
   for (uint32_t i = 0; i < TICKER_ENUM_MAX; ++i) {
     setTickerCountLocked(i, 0);
@@ -506,6 +521,7 @@ const int kTmpStrBufferSize = 200;
 }  // namespace
 
 std::string StatisticsImpl::ToString() const {
+  DBUG_TRACE;
   MutexLock lock(&aggregate_lock_);
   std::string res;
   res.reserve(20000);
@@ -541,6 +557,7 @@ std::string StatisticsImpl::ToString() const {
 
 bool StatisticsImpl::getTickerMap(
     std::map<std::string, uint64_t>* stats_map) const {
+  DBUG_TRACE;
   assert(stats_map);
   if (!stats_map) {
     return false;
@@ -555,6 +572,7 @@ bool StatisticsImpl::getTickerMap(
 }
 
 bool StatisticsImpl::HistEnabledForType(uint32_t type) const {
+  DBUG_TRACE;
   return type < HISTOGRAM_ENUM_MAX;
 }
 

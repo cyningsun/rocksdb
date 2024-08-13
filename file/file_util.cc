@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 //
+#include "rocksdb/util/dbug.h"
 #include "file/file_util.h"
 
 #include <algorithm>
@@ -23,6 +24,7 @@ IOStatus CopyFile(FileSystem* fs, const std::string& source,
                   std::unique_ptr<WritableFileWriter>& dest_writer,
                   uint64_t size, bool use_fsync,
                   const std::shared_ptr<IOTracer>& io_tracer) {
+  DBUG_TRACE;
   FileOptions soptions;
   IOStatus io_s;
   std::unique_ptr<SequentialFileReader> src_reader;
@@ -78,6 +80,7 @@ IOStatus CopyFile(FileSystem* fs, const std::string& source,
                   Temperature src_temp_hint, const std::string& destination,
                   Temperature dst_temp, uint64_t size, bool use_fsync,
                   const std::shared_ptr<IOTracer>& io_tracer) {
+  DBUG_TRACE;
   FileOptions options;
   IOStatus io_s;
   std::unique_ptr<WritableFileWriter> dest_writer;
@@ -102,6 +105,7 @@ IOStatus CopyFile(FileSystem* fs, const std::string& source,
 // Utility function to create a file with the provided contents
 IOStatus CreateFile(FileSystem* fs, const std::string& destination,
                     const std::string& contents, bool use_fsync) {
+  DBUG_TRACE;
   const EnvOptions soptions;
   IOStatus io_s;
   std::unique_ptr<WritableFileWriter> dest_writer;
@@ -125,6 +129,7 @@ IOStatus CreateFile(FileSystem* fs, const std::string& destination,
 Status DeleteDBFile(const ImmutableDBOptions* db_options,
                     const std::string& fname, const std::string& dir_to_sync,
                     const bool force_bg, const bool force_fg) {
+  DBUG_TRACE;
   SstFileManagerImpl* sfm = static_cast_with_check<SstFileManagerImpl>(
       db_options->sst_file_manager.get());
   if (sfm && !force_fg) {
@@ -139,6 +144,7 @@ Status DeleteUnaccountedDBFile(const ImmutableDBOptions* db_options,
                                const std::string& dir_to_sync,
                                const bool force_bg, const bool force_fg,
                                std::optional<int32_t> bucket) {
+  DBUG_TRACE;
   SstFileManagerImpl* sfm = static_cast_with_check<SstFileManagerImpl>(
       db_options->sst_file_manager.get());
   if (sfm && !force_fg) {
@@ -162,6 +168,7 @@ IOStatus GenerateOneFileChecksum(
     size_t verify_checksums_readahead_size, bool /*allow_mmap_reads*/,
     std::shared_ptr<IOTracer>& io_tracer, RateLimiter* rate_limiter,
     const ReadOptions& read_options, Statistics* stats, SystemClock* clock) {
+  DBUG_TRACE;
   if (checksum_factory == nullptr) {
     return IOStatus::InvalidArgument("Checksum factory is invalid");
   }
@@ -262,6 +269,7 @@ IOStatus GenerateOneFileChecksum(
 }
 
 Status DestroyDir(Env* env, const std::string& dir) {
+  DBUG_TRACE;
   Status s;
   if (env->FileExists(dir).IsNotFound()) {
     return s;

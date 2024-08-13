@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "file/file_prefetch_buffer.h"
 
 #include <algorithm>
@@ -27,6 +28,7 @@ void FilePrefetchBuffer::PrepareBufferForRead(BufferInfo* buf, size_t alignment,
                                               size_t roundup_len,
                                               bool refit_tail,
                                               uint64_t& aligned_useful_len) {
+  DBUG_TRACE;
   uint64_t aligned_useful_offset_in_buf = 0;
   bool copy_data_to_new_buffer = false;
   // Check if requested bytes are in the existing buffer_.
@@ -83,6 +85,7 @@ Status FilePrefetchBuffer::Read(BufferInfo* buf, const IOOptions& opts,
                                 RandomAccessFileReader* reader,
                                 uint64_t read_len, uint64_t aligned_useful_len,
                                 uint64_t start_offset) {
+  DBUG_TRACE;
   Slice result;
   char* to_buf = buf->buffer_.BufferStart() + aligned_useful_len;
   Status s = reader->Read(opts, start_offset + aligned_useful_len, read_len,
@@ -116,6 +119,7 @@ Status FilePrefetchBuffer::Read(BufferInfo* buf, const IOOptions& opts,
 Status FilePrefetchBuffer::ReadAsync(BufferInfo* buf, const IOOptions& opts,
                                      RandomAccessFileReader* reader,
                                      uint64_t read_len, uint64_t start_offset) {
+  DBUG_TRACE;
   TEST_SYNC_POINT("FilePrefetchBuffer::ReadAsync");
   // callback for async read request.
   auto fp = std::bind(&FilePrefetchBuffer::PrefetchAsyncCallback, this,
@@ -141,6 +145,7 @@ Status FilePrefetchBuffer::ReadAsync(BufferInfo* buf, const IOOptions& opts,
 Status FilePrefetchBuffer::Prefetch(const IOOptions& opts,
                                     RandomAccessFileReader* reader,
                                     uint64_t offset, size_t n) {
+  DBUG_TRACE;
   if (!enable_ || reader == nullptr) {
     return Status::OK();
   }
@@ -180,6 +185,7 @@ Status FilePrefetchBuffer::Prefetch(const IOOptions& opts,
 // Copy data from src to overlap_buf_.
 void FilePrefetchBuffer::CopyDataToBuffer(BufferInfo* src, uint64_t& offset,
                                           size_t& length) {
+  DBUG_TRACE;
   if (length == 0) {
     return;
   }
@@ -214,6 +220,7 @@ void FilePrefetchBuffer::CopyDataToBuffer(BufferInfo* src, uint64_t& offset,
 // previous sequential reads were read from the cache instead of these buffer.
 // In that case outdated IOs should be aborted.
 void FilePrefetchBuffer::AbortOutdatedIO(uint64_t offset) {
+  DBUG_TRACE;
   std::vector<void*> handles;
   std::vector<BufferInfo*> tmp_buf;
   for (auto& buf : bufs_) {
@@ -239,6 +246,7 @@ void FilePrefetchBuffer::AbortOutdatedIO(uint64_t offset) {
 }
 
 void FilePrefetchBuffer::AbortAllIOs() {
+  DBUG_TRACE;
   std::vector<void*> handles;
   for (auto& buf : bufs_) {
     if (buf->async_read_in_progress_ && buf->io_handle_ != nullptr) {
@@ -267,6 +275,7 @@ void FilePrefetchBuffer::AbortAllIOs() {
 // front/first buffer in bufs_ should contain this offset, otherwise, all
 // buffers will be freed.
 void FilePrefetchBuffer::ClearOutdatedData(uint64_t offset, size_t length) {
+  DBUG_TRACE;
   while (!IsBufferQueueEmpty()) {
     BufferInfo* buf = GetFirstBuffer();
     // Offset is greater than this buffer's end offset.
@@ -318,6 +327,7 @@ void FilePrefetchBuffer::ClearOutdatedData(uint64_t offset, size_t length) {
 }
 
 void FilePrefetchBuffer::PollIfNeeded(uint64_t offset, size_t length) {
+  DBUG_TRACE;
   BufferInfo* buf = GetFirstBuffer();
 
   if (buf->async_read_in_progress_ && fs_ != nullptr) {
@@ -359,6 +369,7 @@ void FilePrefetchBuffer::ReadAheadSizeTuning(
     uint64_t prev_buf_end_offset, size_t alignment, size_t length,
     size_t readahead_size, uint64_t& start_offset, uint64_t& end_offset,
     size_t& read_len, uint64_t& aligned_useful_len) {
+  DBUG_TRACE;
   uint64_t updated_start_offset = Rounddown(start_offset, alignment);
   uint64_t updated_end_offset =
       Roundup(start_offset + length + readahead_size, alignment);
@@ -430,6 +441,7 @@ Status FilePrefetchBuffer::HandleOverlappingData(
     const IOOptions& opts, RandomAccessFileReader* reader, uint64_t offset,
     size_t length, size_t readahead_size, bool& copy_to_overlap_buffer,
     uint64_t& tmp_offset, size_t& tmp_length) {
+  DBUG_TRACE;
   // No Overlapping of data between 2 buffers.
   if (IsBufferQueueEmpty() || NumBuffersAllocated() == 1) {
     return Status::OK();
@@ -531,6 +543,7 @@ Status FilePrefetchBuffer::PrefetchInternal(const IOOptions& opts,
                                             uint64_t offset, size_t length,
                                             size_t readahead_size,
                                             bool& copy_to_overlap_buffer) {
+  DBUG_TRACE;
   if (!enable_) {
     return Status::OK();
   }
@@ -675,6 +688,7 @@ bool FilePrefetchBuffer::TryReadFromCache(const IOOptions& opts,
                                           uint64_t offset, size_t n,
                                           Slice* result, Status* status,
                                           bool for_compaction) {
+  DBUG_TRACE;
   bool ret = TryReadFromCacheUntracked(opts, reader, offset, n, result, status,
                                        for_compaction);
   if (usage_ == FilePrefetchBufferUsage::kTableOpenPrefetchTail && enable_) {
@@ -690,6 +704,7 @@ bool FilePrefetchBuffer::TryReadFromCache(const IOOptions& opts,
 bool FilePrefetchBuffer::TryReadFromCacheUntracked(
     const IOOptions& opts, RandomAccessFileReader* reader, uint64_t offset,
     size_t n, Slice* result, Status* status, bool for_compaction) {
+  DBUG_TRACE;
   if (track_min_offset_ && offset < min_offset_read_) {
     min_offset_read_ = static_cast<size_t>(offset);
   }
@@ -792,6 +807,7 @@ bool FilePrefetchBuffer::TryReadFromCacheUntracked(
 
 void FilePrefetchBuffer::PrefetchAsyncCallback(FSReadRequest& req,
                                                void* cb_arg) {
+  DBUG_TRACE;
   BufferInfo* buf = static_cast<BufferInfo*>(cb_arg);
 
 #ifndef NDEBUG
@@ -823,6 +839,7 @@ Status FilePrefetchBuffer::PrefetchAsync(const IOOptions& opts,
                                          RandomAccessFileReader* reader,
                                          uint64_t offset, size_t n,
                                          Slice* result) {
+  DBUG_TRACE;
   assert(reader != nullptr);
   if (!enable_) {
     return Status::NotSupported();
@@ -959,6 +976,7 @@ Status FilePrefetchBuffer::PrefetchRemBuffers(const IOOptions& opts,
                                               uint64_t end_offset1,
                                               size_t alignment,
                                               size_t readahead_size) {
+  DBUG_TRACE;
   Status s;
   while (NumBuffersAllocated() < num_buffers_) {
     BufferInfo* prev_buf = GetLastBuffer();

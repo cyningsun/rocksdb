@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #if !defined(GFLAGS)
 #include <cstdio>
 int main() {
@@ -127,6 +128,7 @@ DEFINE_bool(legend, false,
 DEFINE_uint32(runs, 1, "Number of times to rebuild and run benchmark tests");
 
 void _always_assert_fail(int line, const char *file, const char *expr) {
+  DBUG_TRACE;
   fprintf(stderr, "%s: %d: Assertion %s failed\n", file, line, expr);
   abort();
 }
@@ -187,6 +189,7 @@ struct KeyMaker {
   // call returns a Slice from the same buffer so previously returned
   // Slices should be considered invalidated.
   Slice Get(uint32_t filter_num, uint32_t val_num) {
+    DBUG_TRACE;
     size_t start = FLAGS_vary_key_alignment ? val_num % 4 : 0;
     size_t len = smallest_size_;
     if (FLAGS_vary_key_size_log2_interval < 30) {
@@ -210,6 +213,7 @@ struct KeyMaker {
 };
 
 void PrintWarnings() {
+DBUG_TRACE;
 #if defined(__GNUC__) && !defined(__OPTIMIZE__)
   fprintf(stdout,
           "WARNING: Optimization is disabled: benchmarks unnecessarily slow\n");
@@ -220,7 +224,7 @@ void PrintWarnings() {
 #endif
 }
 
-void PrintError(const char *error) { fprintf(stderr, "ERROR: %s\n", error); }
+void PrintError(const char *error) { DBUG_TRACE; fprintf(stderr, "ERROR: %s\n", error); }
 
 struct FilterInfo {
   uint32_t filter_id_ = 0;
@@ -259,6 +263,7 @@ static const std::vector<TestMode> bestCaseTestModes = {
 };
 
 const char *TestModeToString(TestMode tm) {
+  DBUG_TRACE;
   switch (tm) {
     case kSingleFilter:
       return "Single filter";
@@ -279,6 +284,7 @@ const char *TestModeToString(TestMode tm) {
 // Do just enough to keep some data dependence for the
 // compiler / CPU
 static uint32_t DryRunNoHash(Slice &s) {
+  DBUG_TRACE;
   uint32_t sz = static_cast<uint32_t>(s.size());
   if (sz >= 4) {
     return sz + s.data()[3];
@@ -288,15 +294,18 @@ static uint32_t DryRunNoHash(Slice &s) {
 }
 
 static uint32_t DryRunHash32(Slice &s) {
+  DBUG_TRACE;
   // Same perf characteristics as GetSliceHash()
   return BloomHash(s);
 }
 
 static uint32_t DryRunHash64(Slice &s) {
+  DBUG_TRACE;
   return Lower32of64(GetSliceHash64(s));
 }
 
 const std::shared_ptr<const FilterPolicy> &GetPolicy() {
+  DBUG_TRACE;
   static std::shared_ptr<const FilterPolicy> policy;
   if (!policy) {
     policy = BloomLikeFilterPolicy::Create(
@@ -350,6 +359,7 @@ struct FilterBench : public MockBlockBasedTableTester {
 };
 
 void FilterBench::Go() {
+  DBUG_TRACE;
   if (FLAGS_use_plain_table_bloom && FLAGS_use_full_block_reader) {
     throw std::runtime_error(
         "Can't combine -use_plain_table_bloom and -use_full_block_reader");
@@ -594,6 +604,7 @@ void FilterBench::Go() {
 
 double FilterBench::RandomQueryTest(uint32_t inside_threshold, bool dry_run,
                                     TestMode mode) {
+  DBUG_TRACE;
   for (auto &info : infos_) {
     info.outside_queries_ = 0;
     info.false_positives_ = 0;
@@ -791,6 +802,7 @@ double FilterBench::RandomQueryTest(uint32_t inside_threshold, bool dry_run,
 }
 
 int main(int argc, char **argv) {
+  DBUG_TRACE;
   ROCKSDB_NAMESPACE::port::InstallStackTraceHandler();
   SetUsageMessage(std::string("\nUSAGE:\n") + std::string(argv[0]) +
                   " [-quick] [OTHER OPTIONS]...");

@@ -1,5 +1,6 @@
 /* -*- mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 // vim: ft=cpp:expandtab:ts=8:sw=4:softtabstop=4:
+#include "rocksdb/util/dbug.h"
 #ifndef OS_WIN
 #ident "$Id$"
 /*======
@@ -61,6 +62,7 @@ namespace toku {
 // create a keyrange by borrowing the left and right dbt
 // pointers. no memory is copied. no checks for infinity needed.
 void keyrange::create(const DBT *left, const DBT *right) {
+  DBUG_TRACE;
   init_empty();
   m_left_key = left;
   m_right_key = right;
@@ -68,12 +70,14 @@ void keyrange::create(const DBT *left, const DBT *right) {
 
 // destroy the key copies. if they were never set, then destroy does nothing.
 void keyrange::destroy(void) {
+  DBUG_TRACE;
   toku_destroy_dbt(&m_left_key_copy);
   toku_destroy_dbt(&m_right_key_copy);
 }
 
 // create a keyrange by copying the keys from the given range.
 void keyrange::create_copy(const keyrange &range) {
+  DBUG_TRACE;
   // start with an initialized, empty range
   init_empty();
 
@@ -93,6 +97,7 @@ void keyrange::create_copy(const keyrange &range) {
 // endpoints between this range and the given. replaced keys
 // in this range are freed and inherited keys are copied.
 void keyrange::extend(const comparator &cmp, const keyrange &range) {
+  DBUG_TRACE;
   const DBT *range_left = range.get_left_key();
   const DBT *range_right = range.get_right_key();
   if (cmp(range_left, get_left_key()) < 0) {
@@ -109,6 +114,7 @@ void keyrange::extend(const comparator &cmp, const keyrange &range) {
 //     it complicates things for little gain.
 // - the size of the keyrange class itself
 uint64_t keyrange::get_memory_size(void) const {
+  DBUG_TRACE;
   const DBT *left_key = get_left_key();
   const DBT *right_key = get_right_key();
   return left_key->size + right_key->size + sizeof(keyrange);
@@ -117,6 +123,7 @@ uint64_t keyrange::get_memory_size(void) const {
 // compare ranges.
 keyrange::comparison keyrange::compare(const comparator &cmp,
                                        const keyrange &range) const {
+  DBUG_TRACE;
   if (cmp(get_right_key(), range.get_left_key()) < 0) {
     return comparison::LESS_THAN;
   } else if (cmp(get_left_key(), range.get_right_key()) > 0) {
@@ -130,6 +137,7 @@ keyrange::comparison keyrange::compare(const comparator &cmp,
 }
 
 bool keyrange::overlaps(const comparator &cmp, const keyrange &range) const {
+  DBUG_TRACE;
   // equality is a stronger form of overlapping.
   // so two ranges "overlap" if they're either equal or just overlapping.
   comparison c = compare(cmp, range);
@@ -137,12 +145,14 @@ bool keyrange::overlaps(const comparator &cmp, const keyrange &range) const {
 }
 
 keyrange keyrange::get_infinite_range(void) {
+  DBUG_TRACE;
   keyrange range;
   range.create(toku_dbt_negative_infinity(), toku_dbt_positive_infinity());
   return range;
 }
 
 void keyrange::init_empty(void) {
+  DBUG_TRACE;
   m_left_key = nullptr;
   m_right_key = nullptr;
   toku_init_dbt(&m_left_key_copy);
@@ -151,6 +161,7 @@ void keyrange::init_empty(void) {
 }
 
 const DBT *keyrange::get_left_key(void) const {
+  DBUG_TRACE;
   if (m_left_key) {
     return m_left_key;
   } else {
@@ -159,6 +170,7 @@ const DBT *keyrange::get_left_key(void) const {
 }
 
 const DBT *keyrange::get_right_key(void) const {
+  DBUG_TRACE;
   if (m_right_key) {
     return m_right_key;
   } else {
@@ -170,6 +182,7 @@ const DBT *keyrange::get_right_key(void) const {
 // optimization for point ranges, so the left and right ranges
 // are not copied twice.
 void keyrange::set_both_keys(const DBT *key) {
+  DBUG_TRACE;
   if (toku_dbt_is_infinite(key)) {
     m_left_key = key;
     m_right_key = key;
@@ -182,6 +195,7 @@ void keyrange::set_both_keys(const DBT *key) {
 
 // destroy the current left key. set and possibly copy the new one
 void keyrange::replace_left_key(const DBT *key) {
+  DBUG_TRACE;
   // a little magic:
   //
   // if this is a point range, then the left and right keys share
@@ -206,6 +220,7 @@ void keyrange::replace_left_key(const DBT *key) {
 
 // destroy the current right key. set and possibly copy the new one
 void keyrange::replace_right_key(const DBT *key) {
+  DBUG_TRACE;
   toku_destroy_dbt(&m_right_key_copy);
   if (toku_dbt_is_infinite(key)) {
     m_right_key = key;

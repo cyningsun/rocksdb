@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "db/file_indexer.h"
 
 #include <algorithm>
@@ -20,9 +21,10 @@ namespace ROCKSDB_NAMESPACE {
 FileIndexer::FileIndexer(const Comparator* ucmp)
     : num_levels_(0), ucmp_(ucmp), level_rb_(nullptr) {}
 
-size_t FileIndexer::NumLevelIndex() const { return next_level_index_.size(); }
+size_t FileIndexer::NumLevelIndex() const { DBUG_TRACE; return next_level_index_.size(); }
 
 size_t FileIndexer::LevelIndexSize(size_t level) const {
+  DBUG_TRACE;
   if (level >= next_level_index_.size()) {
     return 0;
   }
@@ -33,6 +35,7 @@ void FileIndexer::GetNextLevelIndex(const size_t level, const size_t file_index,
                                     const int cmp_smallest,
                                     const int cmp_largest, int32_t* left_bound,
                                     int32_t* right_bound) const {
+  DBUG_TRACE;
   assert(level > 0);
 
   // Last level, no hint
@@ -74,6 +77,7 @@ void FileIndexer::GetNextLevelIndex(const size_t level, const size_t file_index,
 
 void FileIndexer::UpdateIndex(Arena* arena, const size_t num_levels,
                               std::vector<FileMetaData*>* const files) {
+  DBUG_TRACE;
   if (files == nullptr) {
     return;
   }
@@ -145,6 +149,7 @@ void FileIndexer::CalculateLB(
     const std::vector<FileMetaData*>& lower_files, IndexLevel* index_level,
     std::function<int(const FileMetaData*, const FileMetaData*)> cmp_op,
     std::function<void(IndexUnit*, int32_t)> set_index) {
+  DBUG_TRACE;
   const int32_t upper_size = static_cast<int32_t>(upper_files.size());
   const int32_t lower_size = static_cast<int32_t>(lower_files.size());
   int32_t upper_idx = 0;
@@ -182,6 +187,7 @@ void FileIndexer::CalculateRB(
     const std::vector<FileMetaData*>& lower_files, IndexLevel* index_level,
     std::function<int(const FileMetaData*, const FileMetaData*)> cmp_op,
     std::function<void(IndexUnit*, int32_t)> set_index) {
+  DBUG_TRACE;
   const int32_t upper_size = static_cast<int32_t>(upper_files.size());
   const int32_t lower_size = static_cast<int32_t>(lower_files.size());
   int32_t upper_idx = upper_size - 1;

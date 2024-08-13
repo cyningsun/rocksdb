@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "db/db_iter.h"
 
 #include <iostream>
@@ -96,6 +97,7 @@ DBIter::DBIter(Env* _env, const ReadOptions& read_options,
 }
 
 Status DBIter::GetProperty(std::string prop_name, std::string* prop) {
+  DBUG_TRACE;
   if (prop == nullptr) {
     return Status::InvalidArgument("prop is nullptr");
   }
@@ -130,6 +132,7 @@ Status DBIter::GetProperty(std::string prop_name, std::string* prop) {
 }
 
 bool DBIter::ParseKey(ParsedInternalKey* ikey) {
+  DBUG_TRACE;
   Status s = ParseInternalKey(iter_.key(), ikey, false /* log_err_key */);
   if (!s.ok()) {
     status_ = Status::Corruption("In DBIter: ", s.getState());
@@ -142,6 +145,7 @@ bool DBIter::ParseKey(ParsedInternalKey* ikey) {
 }
 
 void DBIter::Next() {
+  DBUG_TRACE;
   assert(valid_);
   assert(status_.ok());
 
@@ -233,6 +237,7 @@ bool DBIter::SetBlobValueIfNeeded(const Slice& user_key,
 }
 
 bool DBIter::SetValueAndColumnsFromEntity(Slice slice) {
+  DBUG_TRACE;
   assert(value_.empty());
   assert(wide_columns_.empty());
 
@@ -254,6 +259,7 @@ bool DBIter::SetValueAndColumnsFromEntity(Slice slice) {
 
 bool DBIter::SetValueAndColumnsFromMergeResult(const Status& merge_status,
                                                ValueType result_type) {
+  DBUG_TRACE;
   if (!merge_status.ok()) {
     valid_ = false;
     status_ = merge_status;
@@ -291,6 +297,7 @@ bool DBIter::SetValueAndColumnsFromMergeResult(const Status& merge_status,
 // within the prefix, and the iterator needs to be made invalid, if no
 // more entry for the prefix can be found.
 bool DBIter::FindNextUserEntry(bool skipping_saved_key, const Slice* prefix) {
+  DBUG_TRACE;
   PERF_TIMER_GUARD(find_next_user_entry_time);
   return FindNextUserEntryInternal(skipping_saved_key, prefix);
 }
@@ -298,6 +305,7 @@ bool DBIter::FindNextUserEntry(bool skipping_saved_key, const Slice* prefix) {
 // Actual implementation of DBIter::FindNextUserEntry()
 bool DBIter::FindNextUserEntryInternal(bool skipping_saved_key,
                                        const Slice* prefix) {
+  DBUG_TRACE;
   // Loop until we hit an acceptable entry to yield
   assert(iter_.Valid());
   assert(status_.ok());
@@ -552,6 +560,7 @@ bool DBIter::FindNextUserEntryInternal(bool skipping_saved_key,
 // POST: saved_value_ has the merged value for the user key
 //       iter_ points to the next entry (or invalid)
 bool DBIter::MergeValuesNewToOld() {
+  DBUG_TRACE;
   if (!merge_operator_) {
     ROCKS_LOG_ERROR(logger_, "Options::merge_operator is null.");
     status_ = Status::InvalidArgument("merge_operator_ must be set.");
@@ -681,6 +690,7 @@ bool DBIter::MergeValuesNewToOld() {
 }
 
 void DBIter::Prev() {
+  DBUG_TRACE;
   assert(valid_);
   assert(status_.ok());
 
@@ -717,6 +727,7 @@ void DBIter::Prev() {
 }
 
 bool DBIter::ReverseToForward() {
+  DBUG_TRACE;
   assert(iter_.status().ok());
 
   // When moving backwards, iter_ is positioned on _previous_ key, which may
@@ -764,6 +775,7 @@ bool DBIter::ReverseToForward() {
 
 // Move iter_ to the key before saved_key_.
 bool DBIter::ReverseToBackward() {
+  DBUG_TRACE;
   assert(iter_.status().ok());
 
   // When current_entry_is_merged_ is true, iter_ may be positioned on the next
@@ -797,6 +809,7 @@ bool DBIter::ReverseToBackward() {
 }
 
 void DBIter::PrevInternal(const Slice* prefix) {
+  DBUG_TRACE;
   while (iter_.Valid()) {
     saved_key_.SetUserKey(
         ExtractUserKey(iter_.key()),
@@ -863,6 +876,7 @@ void DBIter::PrevInternal(const Slice* prefix) {
 // POST: iter_ is positioned on one of the entries equal to saved_key_, or on
 //       the entry just before them, or on the entry just after them.
 bool DBIter::FindValueForCurrentKey() {
+  DBUG_TRACE;
   assert(iter_.Valid());
   merge_context_.Clear();
   current_entry_is_merged_ = false;
@@ -1107,6 +1121,7 @@ bool DBIter::FindValueForCurrentKey() {
 // TODO: This is very similar to FindNextUserEntry() and MergeValuesNewToOld().
 //       Would be nice to reuse some code.
 bool DBIter::FindValueForCurrentKeyUsingSeek() {
+  DBUG_TRACE;
   // FindValueForCurrentKey will enable pinning before calling
   // FindValueForCurrentKeyUsingSeek()
   assert(pinned_iters_mgr_.PinningEnabled());
@@ -1316,6 +1331,7 @@ bool DBIter::FindValueForCurrentKeyUsingSeek() {
 }
 
 bool DBIter::MergeWithNoBaseValue(const Slice& user_key) {
+  DBUG_TRACE;
   // `op_failure_scope` (an output parameter) is not provided (set to nullptr)
   // since a failure must be propagated regardless of its value.
   ValueType result_type;
@@ -1329,6 +1345,7 @@ bool DBIter::MergeWithNoBaseValue(const Slice& user_key) {
 
 bool DBIter::MergeWithPlainBaseValue(const Slice& value,
                                      const Slice& user_key) {
+  DBUG_TRACE;
   // `op_failure_scope` (an output parameter) is not provided (set to nullptr)
   // since a failure must be propagated regardless of its value.
   ValueType result_type;
@@ -1342,6 +1359,7 @@ bool DBIter::MergeWithPlainBaseValue(const Slice& value,
 
 bool DBIter::MergeWithWideColumnBaseValue(const Slice& entity,
                                           const Slice& user_key) {
+  DBUG_TRACE;
   // `op_failure_scope` (an output parameter) is not provided (set to nullptr)
   // since a failure must be propagated regardless of its value.
   ValueType result_type;
@@ -1356,6 +1374,7 @@ bool DBIter::MergeWithWideColumnBaseValue(const Slice& entity,
 // Move backwards until the key smaller than saved_key_.
 // Changes valid_ only if return value is false.
 bool DBIter::FindUserKeyBeforeSavedKey() {
+  DBUG_TRACE;
   assert(status_.ok());
   size_t num_skipped = 0;
   while (iter_.Valid()) {
@@ -1424,6 +1443,7 @@ bool DBIter::FindUserKeyBeforeSavedKey() {
 }
 
 bool DBIter::TooManyInternalKeysSkipped(bool increment) {
+  DBUG_TRACE;
   if ((max_skippable_internal_keys_ > 0) &&
       (num_internal_keys_skipped_ > max_skippable_internal_keys_)) {
     valid_ = false;
@@ -1437,6 +1457,7 @@ bool DBIter::TooManyInternalKeysSkipped(bool increment) {
 
 bool DBIter::IsVisible(SequenceNumber sequence, const Slice& ts,
                        bool* more_recent) {
+  DBUG_TRACE;
   // Remember that comparator orders preceding timestamp as larger.
   // TODO(yanqin): support timestamp in read_callback_.
   bool visible_by_seq = (read_callback_ == nullptr)
@@ -1456,6 +1477,7 @@ bool DBIter::IsVisible(SequenceNumber sequence, const Slice& ts,
 }
 
 void DBIter::SetSavedKeyToSeekTarget(const Slice& target) {
+  DBUG_TRACE;
   is_key_seqnum_zero_ = false;
   SequenceNumber seq = sequence_;
   saved_key_.Clear();
@@ -1473,6 +1495,7 @@ void DBIter::SetSavedKeyToSeekTarget(const Slice& target) {
 }
 
 void DBIter::SetSavedKeyToSeekForPrevTarget(const Slice& target) {
+  DBUG_TRACE;
   is_key_seqnum_zero_ = false;
   saved_key_.Clear();
   // now saved_key is used to store internal key.
@@ -1504,6 +1527,7 @@ void DBIter::SetSavedKeyToSeekForPrevTarget(const Slice& target) {
 }
 
 void DBIter::Seek(const Slice& target) {
+  DBUG_TRACE;
   PERF_COUNTER_ADD(iter_seek_count, 1);
   PERF_CPU_TIMER_GUARD(iter_seek_cpu_nanos, clock_);
   StopWatch sw(clock_, statistics_, DB_SEEK);
@@ -1580,6 +1604,7 @@ void DBIter::Seek(const Slice& target) {
 }
 
 void DBIter::SeekForPrev(const Slice& target) {
+  DBUG_TRACE;
   PERF_COUNTER_ADD(iter_seek_count, 1);
   PERF_CPU_TIMER_GUARD(iter_seek_cpu_nanos, clock_);
   StopWatch sw(clock_, statistics_, DB_SEEK);
@@ -1650,6 +1675,7 @@ void DBIter::SeekForPrev(const Slice& target) {
 }
 
 void DBIter::SeekToFirst() {
+  DBUG_TRACE;
   if (iterate_lower_bound_ != nullptr) {
     Seek(*iterate_lower_bound_);
     return;
@@ -1702,6 +1728,7 @@ void DBIter::SeekToFirst() {
 }
 
 void DBIter::SeekToLast() {
+  DBUG_TRACE;
   if (iterate_upper_bound_ != nullptr) {
     // Seek to last key strictly less than ReadOptions.iterate_upper_bound.
     SeekForPrev(*iterate_upper_bound_);
@@ -1764,6 +1791,7 @@ Iterator* NewDBIterator(Env* env, const ReadOptions& read_options,
                         uint64_t max_sequential_skip_in_iterations,
                         ReadCallback* read_callback,
                         ColumnFamilyHandleImpl* cfh, bool expose_blob_index) {
+  DBUG_TRACE;
   DBIter* db_iter = new DBIter(
       env, read_options, ioptions, mutable_cf_options, user_key_comparator,
       internal_iter, version, sequence, false,

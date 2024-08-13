@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "table/block_based/partitioned_filter_block.h"
 
 #include <utility>
@@ -76,6 +77,7 @@ PartitionedFilterBlockBuilder::~PartitionedFilterBlockBuilder() {
 
 void PartitionedFilterBlockBuilder::MaybeCutAFilterBlock(
     const Slice* next_key) {
+  DBUG_TRACE;
   // (NOTE: Can't just use ==, because keys_added_to_partition_ might be
   // incremented by more than one.)
   if (keys_added_to_partition_ >= keys_per_partition_) {
@@ -116,22 +118,26 @@ void PartitionedFilterBlockBuilder::MaybeCutAFilterBlock(
 }
 
 void PartitionedFilterBlockBuilder::Add(const Slice& key_without_ts) {
+  DBUG_TRACE;
   MaybeCutAFilterBlock(&key_without_ts);
   FullFilterBlockBuilder::Add(key_without_ts);
 }
 
 void PartitionedFilterBlockBuilder::AddKey(const Slice& key) {
+  DBUG_TRACE;
   FullFilterBlockBuilder::AddKey(key);
   keys_added_to_partition_++;
 }
 
 size_t PartitionedFilterBlockBuilder::EstimateEntriesAdded() {
+  DBUG_TRACE;
   return total_added_in_built_ + filter_bits_builder_->EstimateEntriesAdded();
 }
 
 Status PartitionedFilterBlockBuilder::Finish(
     const BlockHandle& last_partition_block_handle, Slice* filter,
     std::unique_ptr<const char[]>* filter_owner) {
+  DBUG_TRACE;
   if (finishing_front_filter_) {
     assert(!filters_.empty());
     auto& e = filters_.front();
@@ -204,6 +210,7 @@ std::unique_ptr<FilterBlockReader> PartitionedFilterBlockReader::Create(
     const BlockBasedTable* table, const ReadOptions& ro,
     FilePrefetchBuffer* prefetch_buffer, bool use_cache, bool prefetch,
     bool pin, BlockCacheLookupContext* lookup_context) {
+  DBUG_TRACE;
   assert(table);
   assert(table->get_rep());
   assert(!pin || prefetch);
@@ -231,6 +238,7 @@ bool PartitionedFilterBlockReader::KeyMayMatch(
     const Slice& key, const Slice* const const_ikey_ptr,
     GetContext* get_context, BlockCacheLookupContext* lookup_context,
     const ReadOptions& read_options) {
+  DBUG_TRACE;
   assert(const_ikey_ptr != nullptr);
   if (!whole_key_filtering()) {
     return true;
@@ -243,6 +251,7 @@ bool PartitionedFilterBlockReader::KeyMayMatch(
 void PartitionedFilterBlockReader::KeysMayMatch(
     MultiGetRange* range, BlockCacheLookupContext* lookup_context,
     const ReadOptions& read_options) {
+  DBUG_TRACE;
   if (!whole_key_filtering()) {
     return;  // Any/all may match
   }
@@ -255,6 +264,7 @@ bool PartitionedFilterBlockReader::PrefixMayMatch(
     const Slice& prefix, const Slice* const const_ikey_ptr,
     GetContext* get_context, BlockCacheLookupContext* lookup_context,
     const ReadOptions& read_options) {
+  DBUG_TRACE;
   assert(const_ikey_ptr != nullptr);
   return MayMatch(prefix, const_ikey_ptr, get_context, lookup_context,
                   read_options, &FullFilterBlockReader::PrefixMayMatch);
@@ -263,6 +273,7 @@ bool PartitionedFilterBlockReader::PrefixMayMatch(
 void PartitionedFilterBlockReader::PrefixesMayMatch(
     MultiGetRange* range, const SliceTransform* prefix_extractor,
     BlockCacheLookupContext* lookup_context, const ReadOptions& read_options) {
+  DBUG_TRACE;
   assert(prefix_extractor);
   MayMatch(range, prefix_extractor, lookup_context, read_options,
            &FullFilterBlockReader::PrefixesMayMatch);
@@ -271,6 +282,7 @@ void PartitionedFilterBlockReader::PrefixesMayMatch(
 BlockHandle PartitionedFilterBlockReader::GetFilterPartitionHandle(
     const CachableEntry<Block_kFilterPartitionIndex>& filter_block,
     const Slice& entry) const {
+  DBUG_TRACE;
   IndexBlockIter iter;
   const InternalKeyComparator* const comparator = internal_comparator();
   Statistics* kNullStats = nullptr;
@@ -300,6 +312,7 @@ Status PartitionedFilterBlockReader::GetFilterPartitionBlock(
     GetContext* get_context, BlockCacheLookupContext* lookup_context,
     const ReadOptions& read_options,
     CachableEntry<ParsedFullFilterBlock>* filter_block) const {
+  DBUG_TRACE;
   assert(table());
   assert(filter_block);
   assert(filter_block->IsEmpty());
@@ -328,6 +341,7 @@ bool PartitionedFilterBlockReader::MayMatch(
     const Slice& slice, const Slice* const_ikey_ptr, GetContext* get_context,
     BlockCacheLookupContext* lookup_context, const ReadOptions& read_options,
     FilterFunction filter_function) const {
+  DBUG_TRACE;
   CachableEntry<Block_kFilterPartitionIndex> filter_block;
   Status s = GetOrReadFilterBlock(get_context, lookup_context, &filter_block,
                                   read_options);
@@ -364,6 +378,7 @@ void PartitionedFilterBlockReader::MayMatch(
     MultiGetRange* range, const SliceTransform* prefix_extractor,
     BlockCacheLookupContext* lookup_context, const ReadOptions& read_options,
     FilterManyFunction filter_function) const {
+  DBUG_TRACE;
   CachableEntry<Block_kFilterPartitionIndex> filter_block;
   Status s = GetOrReadFilterBlock(range->begin()->get_context, lookup_context,
                                   &filter_block, read_options);
@@ -415,6 +430,7 @@ void PartitionedFilterBlockReader::MayMatchPartition(
     MultiGetRange* range, const SliceTransform* prefix_extractor,
     BlockHandle filter_handle, BlockCacheLookupContext* lookup_context,
     const ReadOptions& read_options, FilterManyFunction filter_function) const {
+  DBUG_TRACE;
   CachableEntry<ParsedFullFilterBlock> filter_partition_block;
   Status s = GetFilterPartitionBlock(
       nullptr /* prefetch_buffer */, filter_handle, range->begin()->get_context,
@@ -431,6 +447,7 @@ void PartitionedFilterBlockReader::MayMatchPartition(
 }
 
 size_t PartitionedFilterBlockReader::ApproximateMemoryUsage() const {
+  DBUG_TRACE;
   size_t usage = ApproximateFilterBlockMemoryUsage();
 #ifdef ROCKSDB_MALLOC_USABLE_SIZE
   usage += malloc_usable_size(const_cast<PartitionedFilterBlockReader*>(this));
@@ -444,6 +461,7 @@ size_t PartitionedFilterBlockReader::ApproximateMemoryUsage() const {
 // TODO(myabandeh): merge this with the same function in IndexReader
 Status PartitionedFilterBlockReader::CacheDependencies(
     const ReadOptions& ro, bool pin, FilePrefetchBuffer* tail_prefetch_buffer) {
+  DBUG_TRACE;
   assert(table());
 
   const BlockBasedTable::Rep* const rep = table()->get_rep();
@@ -535,6 +553,7 @@ Status PartitionedFilterBlockReader::CacheDependencies(
 
 void PartitionedFilterBlockReader::EraseFromCacheBeforeDestruction(
     uint32_t uncache_aggressiveness) {
+  DBUG_TRACE;
   // NOTE: essentially a copy of
   // PartitionIndexReader::EraseFromCacheBeforeDestruction
   if (uncache_aggressiveness > 0) {
@@ -581,6 +600,7 @@ void PartitionedFilterBlockReader::EraseFromCacheBeforeDestruction(
 
 const InternalKeyComparator* PartitionedFilterBlockReader::internal_comparator()
     const {
+  DBUG_TRACE;
   assert(table());
   assert(table()->get_rep());
 
@@ -588,6 +608,7 @@ const InternalKeyComparator* PartitionedFilterBlockReader::internal_comparator()
 }
 
 bool PartitionedFilterBlockReader::index_key_includes_seq() const {
+  DBUG_TRACE;
   assert(table());
   assert(table()->get_rep());
 
@@ -595,6 +616,7 @@ bool PartitionedFilterBlockReader::index_key_includes_seq() const {
 }
 
 bool PartitionedFilterBlockReader::index_value_is_full() const {
+  DBUG_TRACE;
   assert(table());
   assert(table()->get_rep());
 
@@ -602,6 +624,7 @@ bool PartitionedFilterBlockReader::index_value_is_full() const {
 }
 
 bool PartitionedFilterBlockReader::user_defined_timestamps_persisted() const {
+  DBUG_TRACE;
   assert(table());
   assert(table()->get_rep());
 

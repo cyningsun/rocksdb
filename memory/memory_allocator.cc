@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/memory_allocator.h"
 
 #include "memory/jemalloc_nodump_allocator.h"
@@ -21,6 +22,7 @@ static std::unordered_map<std::string, OptionTypeInfo> ma_wrapper_type_info = {
 
 static int RegisterBuiltinAllocators(ObjectLibrary& library,
                                      const std::string& /*arg*/) {
+  DBUG_TRACE;
   library.AddFactory<MemoryAllocator>(
       DefaultMemoryAllocator::kClassName(),
       [](const std::string& /*uri*/, std::unique_ptr<MemoryAllocator>* guard,
@@ -69,6 +71,7 @@ MemoryAllocatorWrapper::MemoryAllocatorWrapper(
 Status MemoryAllocator::CreateFromString(
     const ConfigOptions& options, const std::string& value,
     std::shared_ptr<MemoryAllocator>* result) {
+  DBUG_TRACE;
   static std::once_flag once;
   std::call_once(once, [&]() {
     RegisterBuiltinAllocators(*(ObjectLibrary::Default().get()), "");

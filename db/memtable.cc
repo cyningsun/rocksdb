@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "db/memtable.h"
 
 #include <algorithm>
@@ -161,6 +162,7 @@ MemTable::~MemTable() {
 }
 
 size_t MemTable::ApproximateMemoryUsage() {
+  DBUG_TRACE;
   autovector<size_t> usages = {
       arena_.ApproximateMemoryUsage(), table_->ApproximateMemoryUsage(),
       range_del_table_->ApproximateMemoryUsage(),
@@ -180,6 +182,7 @@ size_t MemTable::ApproximateMemoryUsage() {
 }
 
 bool MemTable::ShouldFlushNow() {
+  DBUG_TRACE;
   // This is set if memtable_max_range_deletions is > 0,
   // and that many range deletions are done
   if (memtable_max_range_deletions_ > 0 &&
@@ -248,6 +251,7 @@ bool MemTable::ShouldFlushNow() {
 }
 
 void MemTable::UpdateFlushState() {
+  DBUG_TRACE;
   auto state = flush_state_.load(std::memory_order_relaxed);
   if (state == FLUSH_NOT_REQUESTED && ShouldFlushNow()) {
     // ignore CAS failure, because that means somebody else requested
@@ -259,6 +263,7 @@ void MemTable::UpdateFlushState() {
 }
 
 void MemTable::UpdateOldestKeyTime() {
+  DBUG_TRACE;
   uint64_t oldest_key_time = oldest_key_time_.load(std::memory_order_relaxed);
   if (oldest_key_time == std::numeric_limits<uint64_t>::max()) {
     int64_t current_time = 0;
@@ -276,6 +281,7 @@ void MemTable::UpdateOldestKeyTime() {
 Status MemTable::VerifyEntryChecksum(const char* entry,
                                      uint32_t protection_bytes_per_key,
                                      bool allow_data_in_errors) {
+  DBUG_TRACE;
   if (protection_bytes_per_key == 0) {
     return Status::OK();
   }
@@ -325,6 +331,7 @@ Status MemTable::VerifyEntryChecksum(const char* entry,
 
 int MemTable::KeyComparator::operator()(const char* prefix_len_key1,
                                         const char* prefix_len_key2) const {
+  DBUG_TRACE;
   // Internal keys are encoded as length-prefixed strings.
   Slice k1 = GetLengthPrefixedSlice(prefix_len_key1);
   Slice k2 = GetLengthPrefixedSlice(prefix_len_key2);
@@ -333,21 +340,25 @@ int MemTable::KeyComparator::operator()(const char* prefix_len_key1,
 
 int MemTable::KeyComparator::operator()(
     const char* prefix_len_key, const KeyComparator::DecodedType& key) const {
+  DBUG_TRACE;
   // Internal keys are encoded as length-prefixed strings.
   Slice a = GetLengthPrefixedSlice(prefix_len_key);
   return comparator.CompareKeySeq(a, key);
 }
 
 void MemTableRep::InsertConcurrently(KeyHandle /*handle*/) {
+  DBUG_TRACE;
   throw std::runtime_error("concurrent insert not supported");
 }
 
 Slice MemTableRep::UserKey(const char* key) const {
+  DBUG_TRACE;
   Slice slice = GetLengthPrefixedSlice(key);
   return Slice(slice.data(), slice.size() - 8);
 }
 
 KeyHandle MemTableRep::Allocate(const size_t len, char** buf) {
+  DBUG_TRACE;
   *buf = allocator_->Allocate(len);
   return static_cast<KeyHandle>(*buf);
 }
@@ -356,6 +367,7 @@ KeyHandle MemTableRep::Allocate(const size_t len, char** buf) {
 // Uses *scratch as scratch space, and the returned pointer will point
 // into this scratch space.
 const char* EncodeKey(std::string* scratch, const Slice& target) {
+  DBUG_TRACE;
   scratch->clear();
   PutVarint32(scratch, static_cast<uint32_t>(target.size()));
   scratch->append(target.data(), target.size());
@@ -410,13 +422,15 @@ class MemTableIterator : public InternalIterator {
 
 #ifndef NDEBUG
   void SetPinnedItersMgr(PinnedIteratorsManager* pinned_iters_mgr) override {
+    DBUG_TRACE;
     pinned_iters_mgr_ = pinned_iters_mgr;
   }
   PinnedIteratorsManager* pinned_iters_mgr_ = nullptr;
 #endif
 
-  bool Valid() const override { return valid_ && status_.ok(); }
+  bool Valid() const override { DBUG_TRACE; return valid_ && status_.ok(); }
   void Seek(const Slice& k) override {
+    DBUG_TRACE;
     PERF_TIMER_GUARD(seek_on_memtable_time);
     PERF_COUNTER_ADD(seek_on_memtable_count, 1);
     if (bloom_) {
@@ -438,6 +452,7 @@ class MemTableIterator : public InternalIterator {
     VerifyEntryChecksum();
   }
   void SeekForPrev(const Slice& k) override {
+    DBUG_TRACE;
     PERF_TIMER_GUARD(seek_on_memtable_time);
     PERF_COUNTER_ADD(seek_on_memtable_count, 1);
     if (bloom_) {
@@ -464,16 +479,19 @@ class MemTableIterator : public InternalIterator {
     }
   }
   void SeekToFirst() override {
+    DBUG_TRACE;
     iter_->SeekToFirst();
     valid_ = iter_->Valid();
     VerifyEntryChecksum();
   }
   void SeekToLast() override {
+    DBUG_TRACE;
     iter_->SeekToLast();
     valid_ = iter_->Valid();
     VerifyEntryChecksum();
   }
   void Next() override {
+    DBUG_TRACE;
     PERF_COUNTER_ADD(next_on_memtable_count, 1);
     assert(Valid());
     iter_->Next();
@@ -482,6 +500,7 @@ class MemTableIterator : public InternalIterator {
     VerifyEntryChecksum();
   }
   bool NextAndGetResult(IterateResult* result) override {
+    DBUG_TRACE;
     Next();
     bool is_valid = Valid();
     if (is_valid) {
@@ -492,6 +511,7 @@ class MemTableIterator : public InternalIterator {
     return is_valid;
   }
   void Prev() override {
+    DBUG_TRACE;
     PERF_COUNTER_ADD(prev_on_memtable_count, 1);
     assert(Valid());
     iter_->Prev();
@@ -499,11 +519,13 @@ class MemTableIterator : public InternalIterator {
     VerifyEntryChecksum();
   }
   Slice key() const override {
+    DBUG_TRACE;
     assert(Valid());
     return GetLengthPrefixedSlice(iter_->key());
   }
 
   uint64_t write_unix_time() const override {
+    DBUG_TRACE;
     assert(Valid());
     ParsedInternalKey pikey;
     Status s = ParseInternalKey(key(), &pikey, /*log_err_key=*/false);
@@ -518,19 +540,22 @@ class MemTableIterator : public InternalIterator {
   }
 
   Slice value() const override {
+    DBUG_TRACE;
     assert(Valid());
     Slice key_slice = GetLengthPrefixedSlice(iter_->key());
     return GetLengthPrefixedSlice(key_slice.data() + key_slice.size());
   }
 
-  Status status() const override { return status_; }
+  Status status() const override { DBUG_TRACE; return status_; }
 
   bool IsKeyPinned() const override {
+    DBUG_TRACE;
     // memtable data is always pinned
     return true;
   }
 
   bool IsValuePinned() const override {
+    DBUG_TRACE;
     // memtable value is always pinned, except if we allow inplace update.
     return value_pinned_;
   }
@@ -551,6 +576,7 @@ class MemTableIterator : public InternalIterator {
   size_t ts_sz_;
 
   void VerifyEntryChecksum() {
+    DBUG_TRACE;
     if (protection_bytes_per_key_ > 0 && Valid()) {
       status_ = MemTable::VerifyEntryChecksum(iter_->key(),
                                               protection_bytes_per_key_);
@@ -564,6 +590,7 @@ class MemTableIterator : public InternalIterator {
 InternalIterator* MemTable::NewIterator(
     const ReadOptions& read_options,
     UnownedPtr<const SeqnoToTimeMapping> seqno_to_time_mapping, Arena* arena) {
+  DBUG_TRACE;
   assert(arena != nullptr);
   auto mem = arena->AllocateAligned(sizeof(MemTableIterator));
   return new (mem)
@@ -573,6 +600,7 @@ InternalIterator* MemTable::NewIterator(
 FragmentedRangeTombstoneIterator* MemTable::NewRangeTombstoneIterator(
     const ReadOptions& read_options, SequenceNumber read_seq,
     bool immutable_memtable) {
+  DBUG_TRACE;
   if (read_options.ignore_range_deletions ||
       is_range_del_table_empty_.load(std::memory_order_relaxed)) {
     return nullptr;
@@ -584,6 +612,7 @@ FragmentedRangeTombstoneIterator* MemTable::NewRangeTombstoneIterator(
 FragmentedRangeTombstoneIterator* MemTable::NewRangeTombstoneIteratorInternal(
     const ReadOptions& read_options, SequenceNumber read_seq,
     bool immutable_memtable) {
+  DBUG_TRACE;
   if (immutable_memtable) {
     // Note that caller should already have verified that
     // !is_range_del_table_empty_
@@ -618,6 +647,7 @@ FragmentedRangeTombstoneIterator* MemTable::NewRangeTombstoneIteratorInternal(
 }
 
 void MemTable::ConstructFragmentedRangeTombstones() {
+  DBUG_TRACE;
   // There should be no concurrent Construction.
   // We could also check fragmented_range_tombstone_list_ to avoid repeate
   // constructions. We just construct them here again to be safe.
@@ -635,11 +665,13 @@ void MemTable::ConstructFragmentedRangeTombstones() {
 }
 
 port::RWMutex* MemTable::GetLock(const Slice& key) {
+  DBUG_TRACE;
   return &locks_[GetSliceRangedNPHash(key, locks_.size())];
 }
 
 MemTable::MemTableStats MemTable::ApproximateStats(const Slice& start_ikey,
                                                    const Slice& end_ikey) {
+  DBUG_TRACE;
   uint64_t entry_count = table_->ApproximateNumEntries(start_ikey, end_ikey);
   entry_count += range_del_table_->ApproximateNumEntries(start_ikey, end_ikey);
   if (entry_count == 0) {
@@ -661,6 +693,7 @@ MemTable::MemTableStats MemTable::ApproximateStats(const Slice& start_ikey,
 
 Status MemTable::VerifyEncodedEntry(Slice encoded,
                                     const ProtectionInfoKVOS64& kv_prot_info) {
+  DBUG_TRACE;
   uint32_t ikey_len = 0;
   if (!GetVarint32(&encoded, &ikey_len)) {
     return Status::Corruption("Unable to parse internal key length");
@@ -702,6 +735,7 @@ void MemTable::UpdateEntryChecksum(const ProtectionInfoKVOS64* kv_prot_info,
                                    const Slice& key, const Slice& value,
                                    ValueType type, SequenceNumber s,
                                    char* checksum_ptr) {
+  DBUG_TRACE;
   if (moptions_.protection_bytes_per_key == 0) {
     return;
   }
@@ -724,6 +758,7 @@ Status MemTable::Add(SequenceNumber s, ValueType type,
                      const ProtectionInfoKVOS64* kv_prot_info,
                      bool allow_concurrent,
                      MemTablePostProcessInfo* post_process_info, void** hint) {
+  DBUG_TRACE;
   // Format of an entry is concatenation of:
   //  key_size     : varint32 of internal_key.size()
   //  key bytes    : char[internal_key.size()]
@@ -921,6 +956,7 @@ struct Saver {
   bool allow_data_in_errors;
   uint32_t protection_bytes_per_key;
   bool CheckCallback(SequenceNumber _seq) {
+    DBUG_TRACE;
     if (callback_) {
       return callback_->IsVisible(_seq);
     }
@@ -930,6 +966,7 @@ struct Saver {
 }  // anonymous namespace
 
 static bool SaveValue(void* arg, const char* entry) {
+  DBUG_TRACE;
   Saver* s = static_cast<Saver*>(arg);
   assert(s != nullptr);
   assert(!s->value || !s->columns);
@@ -1248,6 +1285,7 @@ bool MemTable::Get(const LookupKey& key, std::string* value,
                    SequenceNumber* seq, const ReadOptions& read_opts,
                    bool immutable_memtable, ReadCallback* callback,
                    bool* is_blob_index, bool do_merge) {
+  DBUG_TRACE;
   // The sequence number is updated synchronously in version_set.h
   if (IsEmpty()) {
     // Avoiding recording stats for speed.
@@ -1325,6 +1363,7 @@ void MemTable::GetFromTable(const LookupKey& key,
                             std::string* timestamp, Status* s,
                             MergeContext* merge_context, SequenceNumber* seq,
                             bool* found_final_value, bool* merge_in_progress) {
+  DBUG_TRACE;
   Saver saver;
   saver.status = s;
   saver.found_final_value = found_final_value;
@@ -1353,6 +1392,7 @@ void MemTable::GetFromTable(const LookupKey& key,
 
 void MemTable::MultiGet(const ReadOptions& read_options, MultiGetRange* range,
                         ReadCallback* callback, bool immutable_memtable) {
+  DBUG_TRACE;
   // The sequence number is updated synchronously in version_set.h
   if (IsEmpty()) {
     // Avoiding recording stats for speed.
@@ -1452,6 +1492,7 @@ void MemTable::MultiGet(const ReadOptions& read_options, MultiGetRange* range,
 Status MemTable::Update(SequenceNumber seq, ValueType value_type,
                         const Slice& key, const Slice& value,
                         const ProtectionInfoKVOS64* kv_prot_info) {
+  DBUG_TRACE;
   LookupKey lkey(key, seq);
   Slice mem_key = lkey.memtable_key();
 
@@ -1515,6 +1556,7 @@ Status MemTable::Update(SequenceNumber seq, ValueType value_type,
 Status MemTable::UpdateCallback(SequenceNumber seq, const Slice& key,
                                 const Slice& delta,
                                 const ProtectionInfoKVOS64* kv_prot_info) {
+  DBUG_TRACE;
   LookupKey lkey(key, seq);
   Slice memkey = lkey.memtable_key();
 
@@ -1607,6 +1649,7 @@ Status MemTable::UpdateCallback(SequenceNumber seq, const Slice& key,
 
 size_t MemTable::CountSuccessiveMergeEntries(const LookupKey& key,
                                              size_t limit) {
+  DBUG_TRACE;
   Slice memkey = key.memtable_key();
 
   // A total ordered iterator is costly for some memtablerep (prefix aware
@@ -1643,6 +1686,7 @@ size_t MemTable::CountSuccessiveMergeEntries(const LookupKey& key,
 
 void MemTableRep::Get(const LookupKey& k, void* callback_args,
                       bool (*callback_func)(void* arg, const char* entry)) {
+  DBUG_TRACE;
   auto iter = GetDynamicPrefixIterator();
   for (iter->Seek(k.internal_key(), k.memtable_key().data());
        iter->Valid() && callback_func(callback_args, iter->key());
@@ -1651,6 +1695,7 @@ void MemTableRep::Get(const LookupKey& k, void* callback_args,
 }
 
 void MemTable::RefLogContainingPrepSection(uint64_t log) {
+  DBUG_TRACE;
   assert(log > 0);
   auto cur = min_prep_log_referenced_.load();
   while ((log < cur || cur == 0) &&
@@ -1660,10 +1705,12 @@ void MemTable::RefLogContainingPrepSection(uint64_t log) {
 }
 
 uint64_t MemTable::GetMinLogContainingPrepSection() {
+  DBUG_TRACE;
   return min_prep_log_referenced_.load();
 }
 
 void MemTable::MaybeUpdateNewestUDT(const Slice& user_key) {
+  DBUG_TRACE;
   if (ts_sz_ == 0 || persist_user_defined_timestamps_) {
     return;
   }
@@ -1675,6 +1722,7 @@ void MemTable::MaybeUpdateNewestUDT(const Slice& user_key) {
 }
 
 const Slice& MemTable::GetNewestUDT() const {
+  DBUG_TRACE;
   // This path should not be invoked for MemTables that does not enable the UDT
   // in Memtable only feature.
   assert(ts_sz_ > 0 && !persist_user_defined_timestamps_);

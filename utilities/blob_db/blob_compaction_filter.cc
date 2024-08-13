@@ -4,6 +4,7 @@
 //  (found in the LICENSE.Apache file in the root directory).
 
 
+#include "rocksdb/util/dbug.h"
 #include "utilities/blob_db/blob_compaction_filter.h"
 
 #include <cinttypes>
@@ -113,6 +114,7 @@ CompactionFilter::Decision BlobIndexCompactionFilterBase::FilterV2(
 
 CompactionFilter::Decision BlobIndexCompactionFilterBase::HandleValueChange(
     const Slice& key, std::string* new_value) const {
+  DBUG_TRACE;
   BlobDBImpl* const blob_db_impl = context_.blob_db_impl;
   assert(blob_db_impl);
 
@@ -165,6 +167,7 @@ BlobIndexCompactionFilterGC::~BlobIndexCompactionFilterGC() {
 }
 
 bool BlobIndexCompactionFilterBase::IsBlobFileOpened() const {
+  DBUG_TRACE;
   if (blob_file_) {
     assert(writer_);
     return true;
@@ -173,6 +176,7 @@ bool BlobIndexCompactionFilterBase::IsBlobFileOpened() const {
 }
 
 bool BlobIndexCompactionFilterBase::OpenNewBlobFileIfNeeded() const {
+  DBUG_TRACE;
   if (IsBlobFileOpened()) {
     return true;
   }
@@ -204,6 +208,7 @@ bool BlobIndexCompactionFilterBase::OpenNewBlobFileIfNeeded() const {
 bool BlobIndexCompactionFilterBase::ReadBlobFromOldFile(
     const Slice& key, const BlobIndex& blob_index, PinnableSlice* blob,
     bool need_decompress, CompressionType* compression_type) const {
+  DBUG_TRACE;
   BlobDBImpl* const blob_db_impl = context_.blob_db_impl;
   assert(blob_db_impl);
 
@@ -243,6 +248,7 @@ bool BlobIndexCompactionFilterBase::ReadBlobFromOldFile(
 bool BlobIndexCompactionFilterBase::WriteBlobToNewFile(
     const Slice& key, const Slice& blob, uint64_t* new_blob_file_number,
     uint64_t* new_blob_offset) const {
+  DBUG_TRACE;
   TEST_SYNC_POINT("BlobIndexCompactionFilterBase::WriteBlobToNewFile");
   assert(new_blob_file_number);
   assert(new_blob_offset);
@@ -283,6 +289,7 @@ bool BlobIndexCompactionFilterBase::WriteBlobToNewFile(
 
 bool BlobIndexCompactionFilterBase::CloseAndRegisterNewBlobFileIfNeeded()
     const {
+  DBUG_TRACE;
   const BlobDBImpl* const blob_db_impl = context_.blob_db_impl;
   assert(blob_db_impl);
 
@@ -295,6 +302,7 @@ bool BlobIndexCompactionFilterBase::CloseAndRegisterNewBlobFileIfNeeded()
 }
 
 bool BlobIndexCompactionFilterBase::CloseAndRegisterNewBlobFile() const {
+  DBUG_TRACE;
   BlobDBImpl* const blob_db_impl = context_.blob_db_impl;
   assert(blob_db_impl);
   assert(blob_file_);
@@ -328,6 +336,7 @@ bool BlobIndexCompactionFilterBase::CloseAndRegisterNewBlobFile() const {
 CompactionFilter::BlobDecision BlobIndexCompactionFilterGC::PrepareBlobOutput(
     const Slice& key, const Slice& existing_value,
     std::string* new_value) const {
+  DBUG_TRACE;
   assert(new_value);
 
   const BlobDBImpl* const blob_db_impl = context().blob_db_impl;
@@ -415,6 +424,7 @@ CompactionFilter::BlobDecision BlobIndexCompactionFilterGC::PrepareBlobOutput(
 }
 
 bool BlobIndexCompactionFilterGC::OpenNewBlobFileIfNeeded() const {
+  DBUG_TRACE;
   if (IsBlobFileOpened()) {
     return true;
   }
@@ -428,6 +438,7 @@ bool BlobIndexCompactionFilterGC::OpenNewBlobFileIfNeeded() const {
 std::unique_ptr<CompactionFilter>
 BlobIndexCompactionFilterFactoryBase::CreateUserCompactionFilterFromFactory(
     const CompactionFilter::Context& context) const {
+  DBUG_TRACE;
   std::unique_ptr<CompactionFilter> user_comp_filter_from_factory;
   if (user_comp_filter_factory_) {
     user_comp_filter_from_factory =
@@ -439,6 +450,7 @@ BlobIndexCompactionFilterFactoryBase::CreateUserCompactionFilterFromFactory(
 std::unique_ptr<CompactionFilter>
 BlobIndexCompactionFilterFactory::CreateCompactionFilter(
     const CompactionFilter::Context& _context) {
+  DBUG_TRACE;
   assert(clock());
 
   int64_t current_time = 0;
@@ -464,6 +476,7 @@ BlobIndexCompactionFilterFactory::CreateCompactionFilter(
 std::unique_ptr<CompactionFilter>
 BlobIndexCompactionFilterFactoryGC::CreateCompactionFilter(
     const CompactionFilter::Context& _context) {
+  DBUG_TRACE;
   assert(clock());
 
   int64_t current_time = 0;

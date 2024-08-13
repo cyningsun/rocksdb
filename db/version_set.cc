@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "db/version_set.h"
 
 #include <algorithm>
@@ -99,6 +100,7 @@ namespace {
 int FindFileInRange(const InternalKeyComparator& icmp,
                     const LevelFilesBrief& file_level, const Slice& key,
                     uint32_t left, uint32_t right) {
+  DBUG_TRACE;
   auto cmp = [&](const FdWithKeyRange& f, const Slice& k) -> bool {
     return icmp.InternalKeyComparator::Compare(f.largest_key, k) < 0;
   };
@@ -110,6 +112,7 @@ Status OverlapWithIterator(const Comparator* ucmp,
                            const Slice& smallest_user_key,
                            const Slice& largest_user_key,
                            InternalIterator* iter, bool* overlap) {
+  DBUG_TRACE;
   InternalKey range_start(smallest_user_key, kMaxSequenceNumber,
                           kValueTypeForSeek);
   iter->Seek(range_start.Encode());
@@ -174,9 +177,10 @@ class FilePicker {
     }
   }
 
-  int GetCurrentLevel() const { return curr_level_; }
+  int GetCurrentLevel() const { DBUG_TRACE; return curr_level_; }
 
   FdWithKeyRange* GetNextFile() {
+    DBUG_TRACE;
     while (!search_ended_) {  // Loops over different levels.
       while (curr_index_in_curr_level_ < curr_file_level_->num_files) {
         // Loops over all files in current level.
@@ -247,11 +251,11 @@ class FilePicker {
 
   // getter for current file level
   // for GET_HIT_L0, GET_HIT_L1 & GET_HIT_L2_AND_UP counts
-  unsigned int GetHitFileLevel() { return hit_file_level_; }
+  unsigned int GetHitFileLevel() { DBUG_TRACE; return hit_file_level_; }
 
   // Returns true if the most recent "hit file" (i.e., one returned by
   // GetNextFile()) is at the last index in its level.
-  bool IsHitFileLastInLevel() { return is_hit_file_last_in_level_; }
+  bool IsHitFileLastInLevel() { DBUG_TRACE; return is_hit_file_last_in_level_; }
 
  private:
   unsigned int num_levels_;
@@ -275,6 +279,7 @@ class FilePicker {
   // Setup local variables to search next level.
   // Returns false if there are no more levels to search.
   bool PrepareNextLevel() {
+    DBUG_TRACE;
     curr_level_++;
     while (curr_level_ < num_levels_) {
       curr_file_level_ = &(*level_files_brief_)[curr_level_];
@@ -424,11 +429,12 @@ class FilePickerMultiGet {
     PrepareNextLevelForSearch();
   }
 
-  int GetCurrentLevel() const { return curr_level_; }
+  int GetCurrentLevel() const { DBUG_TRACE; return curr_level_; }
 
-  void PrepareNextLevelForSearch() { search_ended_ = !PrepareNextLevel(); }
+  void PrepareNextLevelForSearch() { DBUG_TRACE; search_ended_ = !PrepareNextLevel(); }
 
   FdWithKeyRange* GetNextFileInLevel() {
+    DBUG_TRACE;
     if (batch_iter_ == current_level_range_.end() || search_ended_) {
       hit_file_ = nullptr;
       return nullptr;
@@ -490,27 +496,29 @@ class FilePickerMultiGet {
 
   // getter for current file level
   // for GET_HIT_L0, GET_HIT_L1 & GET_HIT_L2_AND_UP counts
-  unsigned int GetHitFileLevel() { return hit_file_level_; }
+  unsigned int GetHitFileLevel() { DBUG_TRACE; return hit_file_level_; }
 
-  FdWithKeyRange* GetHitFile() { return hit_file_; }
+  FdWithKeyRange* GetHitFile() { DBUG_TRACE; return hit_file_; }
 
   // Returns true if the most recent "hit file" (i.e., one returned by
   // GetNextFile()) is at the last index in its level.
-  bool IsHitFileLastInLevel() { return is_hit_file_last_in_level_; }
+  bool IsHitFileLastInLevel() { DBUG_TRACE; return is_hit_file_last_in_level_; }
 
-  bool KeyMaySpanNextFile() { return maybe_repeat_key_; }
+  bool KeyMaySpanNextFile() { DBUG_TRACE; return maybe_repeat_key_; }
 
-  bool IsSearchEnded() { return search_ended_; }
+  bool IsSearchEnded() { DBUG_TRACE; return search_ended_; }
 
-  const MultiGetRange& CurrentFileRange() { return current_file_range_; }
+  const MultiGetRange& CurrentFileRange() { DBUG_TRACE; return current_file_range_; }
 
   bool RemainingOverlapInLevel() {
+    DBUG_TRACE;
     return !current_level_range_.Suffix(current_file_range_).empty();
   }
 
-  MultiGetRange& GetRange() { return range_; }
+  MultiGetRange& GetRange() { DBUG_TRACE; return range_; }
 
   void ReplaceRange(const MultiGetRange& other) {
+    DBUG_TRACE;
     assert(hit_file_ == nullptr);
     range_ = other;
     current_level_range_ = other;
@@ -587,6 +595,7 @@ class FilePickerMultiGet {
   bool GetNextFileInLevelWithKeys(MultiGetRange* next_file_range,
                                   size_t* file_index, FdWithKeyRange** fd,
                                   bool* is_last_key_in_file) {
+    DBUG_TRACE;
     size_t curr_file_index = *file_index;
     FdWithKeyRange* f = nullptr;
     bool file_hit = false;
@@ -728,6 +737,7 @@ class FilePickerMultiGet {
   // Setup local variables to search next level.
   // Returns false if there are no more levels to search.
   bool PrepareNextLevel() {
+    DBUG_TRACE;
     if (curr_level_ == 0) {
       MultiGetRange::Iterator mget_iter = current_level_range_.begin();
       if (fp_ctx_array_[mget_iter.index()].curr_index_in_curr_level <
@@ -873,6 +883,7 @@ Version::~Version() {
 
 int FindFile(const InternalKeyComparator& icmp,
              const LevelFilesBrief& file_level, const Slice& key) {
+  DBUG_TRACE;
   return FindFileInRange(icmp, file_level, key, 0,
                          static_cast<uint32_t>(file_level.num_files));
 }
@@ -880,6 +891,7 @@ int FindFile(const InternalKeyComparator& icmp,
 void DoGenerateLevelFilesBrief(LevelFilesBrief* file_level,
                                const std::vector<FileMetaData*>& files,
                                Arena* arena) {
+  DBUG_TRACE;
   assert(file_level);
   assert(arena);
 
@@ -909,6 +921,7 @@ void DoGenerateLevelFilesBrief(LevelFilesBrief* file_level,
 
 static bool AfterFile(const Comparator* ucmp, const Slice* user_key,
                       const FdWithKeyRange* f) {
+  DBUG_TRACE;
   // nullptr user_key occurs before all keys and is therefore never after *f
   return (user_key != nullptr &&
           ucmp->CompareWithoutTimestamp(*user_key,
@@ -917,6 +930,7 @@ static bool AfterFile(const Comparator* ucmp, const Slice* user_key,
 
 static bool BeforeFile(const Comparator* ucmp, const Slice* user_key,
                        const FdWithKeyRange* f) {
+  DBUG_TRACE;
   // nullptr user_key occurs after all keys and is therefore never before *f
   return (user_key != nullptr &&
           ucmp->CompareWithoutTimestamp(*user_key,
@@ -928,6 +942,7 @@ bool SomeFileOverlapsRange(const InternalKeyComparator& icmp,
                            const LevelFilesBrief& file_level,
                            const Slice* smallest_user_key,
                            const Slice* largest_user_key) {
+  DBUG_TRACE;
   const Comparator* ucmp = icmp.user_comparator();
   if (!disjoint_sorted_files) {
     // Need to check against all files
@@ -1030,10 +1045,12 @@ class LevelIterator final : public InternalIterator {
   // key (the file boundary that we pretend as a key) is to be returned next.
   // file_iter_.Valid() and to_return_sentinel_ should not both be true.
   bool Valid() const override {
+    DBUG_TRACE;
     assert(!(file_iter_.Valid() && to_return_sentinel_));
     return file_iter_.Valid() || to_return_sentinel_;
   }
   Slice key() const override {
+    DBUG_TRACE;
     assert(Valid());
     if (to_return_sentinel_) {
       // Sentinel should be returned after file_iter_ reaches the end of the
@@ -1045,23 +1062,27 @@ class LevelIterator final : public InternalIterator {
   }
 
   Slice value() const override {
+    DBUG_TRACE;
     assert(Valid());
     assert(!to_return_sentinel_);
     return file_iter_.value();
   }
 
   Status status() const override {
+    DBUG_TRACE;
     return file_iter_.iter() ? file_iter_.status() : Status::OK();
   }
 
-  bool PrepareValue() override { return file_iter_.PrepareValue(); }
+  bool PrepareValue() override { DBUG_TRACE; return file_iter_.PrepareValue(); }
 
   inline bool MayBeOutOfLowerBound() override {
+    DBUG_TRACE;
     assert(Valid());
     return may_be_out_of_lower_bound_ && file_iter_.MayBeOutOfLowerBound();
   }
 
   inline IterBoundCheck UpperBoundCheckResult() override {
+    DBUG_TRACE;
     if (Valid()) {
       return file_iter_.UpperBoundCheckResult();
     } else {
@@ -1070,6 +1091,7 @@ class LevelIterator final : public InternalIterator {
   }
 
   void SetPinnedItersMgr(PinnedIteratorsManager* pinned_iters_mgr) override {
+    DBUG_TRACE;
     pinned_iters_mgr_ = pinned_iters_mgr;
     if (file_iter_.iter()) {
       file_iter_.SetPinnedItersMgr(pinned_iters_mgr);
@@ -1077,18 +1099,21 @@ class LevelIterator final : public InternalIterator {
   }
 
   bool IsKeyPinned() const override {
+    DBUG_TRACE;
     return pinned_iters_mgr_ && pinned_iters_mgr_->PinningEnabled() &&
            file_iter_.iter() && file_iter_.IsKeyPinned();
   }
 
   bool IsValuePinned() const override {
+    DBUG_TRACE;
     return pinned_iters_mgr_ && pinned_iters_mgr_->PinningEnabled() &&
            file_iter_.iter() && file_iter_.IsValuePinned();
   }
 
-  bool IsDeleteRangeSentinelKey() const override { return to_return_sentinel_; }
+  bool IsDeleteRangeSentinelKey() const override { DBUG_TRACE; return to_return_sentinel_; }
 
   void SetRangeDelReadSeqno(SequenceNumber read_seq) override {
+    DBUG_TRACE;
     read_seq_ = read_seq;
   }
 
@@ -1100,16 +1125,19 @@ class LevelIterator final : public InternalIterator {
   void InitFileIterator(size_t new_file_index);
 
   const Slice& file_smallest_key(size_t file_index) {
+    DBUG_TRACE;
     assert(file_index < flevel_->num_files);
     return flevel_->files[file_index].smallest_key;
   }
 
   const Slice& file_largest_key(size_t file_index) {
+    DBUG_TRACE;
     assert(file_index < flevel_->num_files);
     return flevel_->files[file_index].largest_key;
   }
 
   bool KeyReachedUpperBound(const Slice& internal_key) {
+    DBUG_TRACE;
     return read_options_.iterate_upper_bound != nullptr &&
            user_comparator_.CompareWithoutTimestamp(
                ExtractUserKey(internal_key), /*a_has_ts=*/true,
@@ -1117,6 +1145,7 @@ class LevelIterator final : public InternalIterator {
   }
 
   void ClearRangeTombstoneIter() {
+    DBUG_TRACE;
     if (range_tombstone_iter_) {
       range_tombstone_iter_->reset();
     }
@@ -1126,6 +1155,7 @@ class LevelIterator final : public InternalIterator {
   // range_tombstone_iter_ is updated with a range tombstone iterator
   // into the new file. Old range tombstone iterator is cleared.
   InternalIterator* NewFileIterator() {
+    DBUG_TRACE;
     assert(file_index_ < flevel_->num_files);
     auto file_meta = flevel_->files[file_index_];
     if (should_sample_) {
@@ -1155,6 +1185,7 @@ class LevelIterator final : public InternalIterator {
   // Note MyRocks may update iterate bounds between seek. To workaround it,
   // we need to check and update may_be_out_of_lower_bound_ accordingly.
   void CheckMayBeOutOfLowerBound() {
+    DBUG_TRACE;
     if (read_options_.iterate_lower_bound != nullptr &&
         file_index_ < flevel_->num_files) {
       may_be_out_of_lower_bound_ =
@@ -1225,10 +1256,11 @@ class LevelIterator final : public InternalIterator {
   // The condition for returning sentinel is reaching the end of current
   // file_iter_: !Valid() && status.().ok().
   void TrySetDeleteRangeSentinel(const Slice& boundary_key);
-  void ClearSentinel() { to_return_sentinel_ = false; }
+  void ClearSentinel() { DBUG_TRACE; to_return_sentinel_ = false; }
 };
 
 void LevelIterator::TrySetDeleteRangeSentinel(const Slice& boundary_key) {
+  DBUG_TRACE;
   assert(range_tombstone_iter_);
   if (file_iter_.iter() != nullptr && !file_iter_.Valid() &&
       file_iter_.status().ok()) {
@@ -1238,6 +1270,7 @@ void LevelIterator::TrySetDeleteRangeSentinel(const Slice& boundary_key) {
 }
 
 void LevelIterator::Seek(const Slice& target) {
+  DBUG_TRACE;
   prefix_exhausted_ = false;
   ClearSentinel();
   // Check whether the seek key fall under the same file
@@ -1331,6 +1364,7 @@ void LevelIterator::Seek(const Slice& target) {
 }
 
 void LevelIterator::SeekForPrev(const Slice& target) {
+  DBUG_TRACE;
   prefix_exhausted_ = false;
   ClearSentinel();
   size_t new_file_index = FindFile(icomparator_, *flevel_, target);
@@ -1366,6 +1400,7 @@ void LevelIterator::SeekForPrev(const Slice& target) {
 }
 
 void LevelIterator::SeekToFirst() {
+  DBUG_TRACE;
   prefix_exhausted_ = false;
   ClearSentinel();
   InitFileIterator(0);
@@ -1382,6 +1417,7 @@ void LevelIterator::SeekToFirst() {
 }
 
 void LevelIterator::SeekToLast() {
+  DBUG_TRACE;
   prefix_exhausted_ = false;
   ClearSentinel();
   InitFileIterator(flevel_->num_files - 1);
@@ -1396,6 +1432,7 @@ void LevelIterator::SeekToLast() {
 }
 
 void LevelIterator::Next() {
+  DBUG_TRACE;
   assert(Valid());
   if (to_return_sentinel_) {
     // file_iter_ is at EOF already when to_return_sentinel_
@@ -1410,6 +1447,7 @@ void LevelIterator::Next() {
 }
 
 bool LevelIterator::NextAndGetResult(IterateResult* result) {
+  DBUG_TRACE;
   assert(Valid());
   // file_iter_ is at EOF already when to_return_sentinel_
   bool is_valid = !to_return_sentinel_ && file_iter_.NextAndGetResult(result);
@@ -1444,6 +1482,7 @@ bool LevelIterator::NextAndGetResult(IterateResult* result) {
 }
 
 void LevelIterator::Prev() {
+  DBUG_TRACE;
   assert(Valid());
   if (to_return_sentinel_) {
     ClearSentinel();
@@ -1457,6 +1496,7 @@ void LevelIterator::Prev() {
 }
 
 bool LevelIterator::SkipEmptyFileForward() {
+  DBUG_TRACE;
   bool seen_empty_file = false;
   // Pause at sentinel key
   while (!to_return_sentinel_ &&
@@ -1495,6 +1535,7 @@ bool LevelIterator::SkipEmptyFileForward() {
 }
 
 void LevelIterator::SkipEmptyFileBackward() {
+  DBUG_TRACE;
   // Pause at sentinel key
   while (!to_return_sentinel_ &&
          (file_iter_.iter() == nullptr ||
@@ -1525,6 +1566,7 @@ void LevelIterator::SkipEmptyFileBackward() {
 }
 
 void LevelIterator::SetFileIterator(InternalIterator* iter) {
+  DBUG_TRACE;
   if (pinned_iters_mgr_ && iter) {
     iter->SetPinnedItersMgr(pinned_iters_mgr_);
   }
@@ -1544,6 +1586,7 @@ void LevelIterator::SetFileIterator(InternalIterator* iter) {
 }
 
 void LevelIterator::InitFileIterator(size_t new_file_index) {
+  DBUG_TRACE;
   if (new_file_index >= flevel_->num_files) {
     file_index_ = new_file_index;
     SetFileIterator(nullptr);
@@ -1571,6 +1614,7 @@ Status Version::GetTableProperties(const ReadOptions& read_options,
                                    std::shared_ptr<const TableProperties>* tp,
                                    const FileMetaData* file_meta,
                                    const std::string* fname) const {
+  DBUG_TRACE;
   auto table_cache = cfd_->table_cache();
   auto ioptions = cfd_->ioptions();
   Status s = table_cache->GetTableProperties(
@@ -1627,6 +1671,7 @@ Status Version::GetTableProperties(const ReadOptions& read_options,
 
 Status Version::GetPropertiesOfAllTables(const ReadOptions& read_options,
                                          TablePropertiesCollection* props) {
+  DBUG_TRACE;
   Status s;
   for (int level = 0; level < storage_info_.num_levels_; level++) {
     s = GetPropertiesOfAllTables(read_options, props, level);
@@ -1640,6 +1685,7 @@ Status Version::GetPropertiesOfAllTables(const ReadOptions& read_options,
 
 Status Version::TablesRangeTombstoneSummary(int max_entries_to_print,
                                             std::string* out_str) {
+  DBUG_TRACE;
   if (max_entries_to_print <= 0) {
     return Status::OK();
   }
@@ -1699,6 +1745,7 @@ Status Version::TablesRangeTombstoneSummary(int max_entries_to_print,
 Status Version::GetPropertiesOfAllTables(const ReadOptions& read_options,
                                          TablePropertiesCollection* props,
                                          int level) {
+  DBUG_TRACE;
   for (const auto& file_meta : storage_info_.files_[level]) {
     auto fname =
         TableFileName(cfd_->ioptions()->cf_paths, file_meta->fd.GetNumber(),
@@ -1721,6 +1768,7 @@ Status Version::GetPropertiesOfAllTables(const ReadOptions& read_options,
 Status Version::GetPropertiesOfTablesInRange(
     const ReadOptions& read_options, const autovector<UserKeyRange>& ranges,
     TablePropertiesCollection* props) const {
+  DBUG_TRACE;
   for (int level = 0; level < storage_info_.num_non_empty_levels(); level++) {
     for (const auto& range : ranges) {
       // Convert user_key into a corresponding internal key.
@@ -1755,6 +1803,7 @@ Status Version::GetPropertiesOfTablesInRange(
 Status Version::GetAggregatedTableProperties(
     const ReadOptions& read_options, std::shared_ptr<const TableProperties>* tp,
     int level) {
+  DBUG_TRACE;
   TablePropertiesCollection props;
   Status s;
   if (level < 0) {
@@ -1775,6 +1824,7 @@ Status Version::GetAggregatedTableProperties(
 }
 
 size_t Version::GetMemoryUsageByTableReaders(const ReadOptions& read_options) {
+  DBUG_TRACE;
   size_t total_usage = 0;
   for (auto& file_level : storage_info_.level_files_brief_) {
     for (size_t i = 0; i < file_level.num_files; i++) {
@@ -1789,6 +1839,7 @@ size_t Version::GetMemoryUsageByTableReaders(const ReadOptions& read_options) {
 }
 
 void Version::GetColumnFamilyMetaData(ColumnFamilyMetaData* cf_meta) {
+  DBUG_TRACE;
   assert(cf_meta);
   assert(cfd_);
 
@@ -1852,6 +1903,7 @@ void Version::GetColumnFamilyMetaData(ColumnFamilyMetaData* cf_meta) {
 }
 
 uint64_t Version::GetSstFilesSize() {
+  DBUG_TRACE;
   uint64_t sst_files_size = 0;
   for (int level = 0; level < storage_info_.num_levels_; level++) {
     for (const auto& file_meta : storage_info_.LevelFiles(level)) {
@@ -1863,6 +1915,7 @@ uint64_t Version::GetSstFilesSize() {
 
 void Version::GetSstFilesBoundaryKeys(Slice* smallest_user_key,
                                       Slice* largest_user_key) {
+  DBUG_TRACE;
   smallest_user_key->clear();
   largest_user_key->clear();
   bool initialized = false;
@@ -1905,6 +1958,7 @@ void Version::GetSstFilesBoundaryKeys(Slice* smallest_user_key,
 }
 
 void Version::GetCreationTimeOfOldestFile(uint64_t* creation_time) {
+  DBUG_TRACE;
   uint64_t oldest_time = std::numeric_limits<uint64_t>::max();
   for (int level = 0; level < storage_info_.num_non_empty_levels_; level++) {
     for (FileMetaData* meta : storage_info_.LevelFiles(level)) {
@@ -1925,6 +1979,7 @@ void Version::GetCreationTimeOfOldestFile(uint64_t* creation_time) {
 InternalIterator* Version::TEST_GetLevelIterator(
     const ReadOptions& read_options, MergeIteratorBuilder* merge_iter_builder,
     int level, bool allow_unprepared_value) {
+  DBUG_TRACE;
   auto* arena = merge_iter_builder->GetArena();
   auto* mem = arena->AllocateAligned(sizeof(LevelIterator));
   std::unique_ptr<TruncatedRangeDelIterator>** tombstone_iter_ptr = nullptr;
@@ -1947,6 +2002,7 @@ InternalIterator* Version::TEST_GetLevelIterator(
 }
 
 uint64_t VersionStorageInfo::GetEstimatedActiveKeys() const {
+  DBUG_TRACE;
   // Estimation will be inaccurate when:
   // (1) there exist merge keys
   // (2) keys are directly overwritten
@@ -1978,6 +2034,7 @@ uint64_t VersionStorageInfo::GetEstimatedActiveKeys() const {
 
 double VersionStorageInfo::GetEstimatedCompressionRatioAtLevel(
     int level) const {
+  DBUG_TRACE;
   assert(level < num_levels_);
   uint64_t sum_file_size_bytes = 0;
   uint64_t sum_data_size_bytes = 0;
@@ -2001,6 +2058,7 @@ void Version::AddIterators(const ReadOptions& read_options,
                            const FileOptions& soptions,
                            MergeIteratorBuilder* merge_iter_builder,
                            bool allow_unprepared_value) {
+  DBUG_TRACE;
   assert(storage_info_.finalized_);
 
   for (int level = 0; level < storage_info_.num_non_empty_levels(); level++) {
@@ -2013,6 +2071,7 @@ void Version::AddIteratorsForLevel(const ReadOptions& read_options,
                                    const FileOptions& soptions,
                                    MergeIteratorBuilder* merge_iter_builder,
                                    int level, bool allow_unprepared_value) {
+  DBUG_TRACE;
   assert(storage_info_.finalized_);
   if (level >= storage_info_.num_non_empty_levels()) {
     // This is an empty level
@@ -2087,6 +2146,7 @@ Status Version::OverlapWithLevelIterator(const ReadOptions& read_options,
                                          const Slice& smallest_user_key,
                                          const Slice& largest_user_key,
                                          int level, bool* overlap) {
+  DBUG_TRACE;
   assert(storage_info_.finalized_);
 
   auto icmp = cfd_->internal_comparator();
@@ -7426,6 +7486,7 @@ Status ReactiveVersionSet::Recover(
     std::unique_ptr<log::FragmentBufferedReader>* manifest_reader,
     std::unique_ptr<log::Reader::Reporter>* manifest_reporter,
     std::unique_ptr<Status>* manifest_reader_status) {
+  DBUG_TRACE;
   assert(manifest_reader != nullptr);
   assert(manifest_reporter != nullptr);
   assert(manifest_reader_status != nullptr);
@@ -7460,6 +7521,7 @@ Status ReactiveVersionSet::ReadAndApply(
     Status* manifest_read_status,
     std::unordered_set<ColumnFamilyData*>* cfds_changed,
     std::vector<std::string>* files_to_delete) {
+  DBUG_TRACE;
   assert(manifest_reader != nullptr);
   assert(cfds_changed != nullptr);
   mu->AssertHeld();
@@ -7486,6 +7548,7 @@ Status ReactiveVersionSet::ReadAndApply(
 Status ReactiveVersionSet::MaybeSwitchManifest(
     log::Reader::Reporter* reporter,
     std::unique_ptr<log::FragmentBufferedReader>* manifest_reader) {
+  DBUG_TRACE;
   assert(manifest_reader != nullptr);
   Status s;
   std::string manifest_path;
@@ -7549,12 +7612,14 @@ Status ReactiveVersionSet::MaybeSwitchManifest(
 
 #ifndef NDEBUG
 uint64_t ReactiveVersionSet::TEST_read_edits_in_atomic_group() const {
+  DBUG_TRACE;
   assert(manifest_tailer_);
   return manifest_tailer_->GetReadBuffer().TEST_read_edits_in_atomic_group();
 }
 #endif  // !NDEBUG
 
 std::vector<VersionEdit>& ReactiveVersionSet::replay_buffer() {
+  DBUG_TRACE;
   assert(manifest_tailer_);
   return manifest_tailer_->GetReadBuffer().replay_buffer();
 }

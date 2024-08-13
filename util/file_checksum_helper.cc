@@ -7,6 +7,7 @@
 //  Use of this source code is governed by a BSD-style license that can be
 //  found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "util/file_checksum_helper.h"
 
 #include <unordered_set>
@@ -19,13 +20,14 @@
 
 namespace ROCKSDB_NAMESPACE {
 
-void FileChecksumListImpl::reset() { checksum_map_.clear(); }
+void FileChecksumListImpl::reset() { DBUG_TRACE; checksum_map_.clear(); }
 
-size_t FileChecksumListImpl::size() const { return checksum_map_.size(); }
+size_t FileChecksumListImpl::size() const { DBUG_TRACE; return checksum_map_.size(); }
 
 Status FileChecksumListImpl::GetAllFileChecksums(
     std::vector<uint64_t>* file_numbers, std::vector<std::string>* checksums,
     std::vector<std::string>* checksum_func_names) {
+  DBUG_TRACE;
   if (file_numbers == nullptr || checksums == nullptr ||
       checksum_func_names == nullptr) {
     return Status::InvalidArgument("Pointer has not been initiated");
@@ -42,6 +44,7 @@ Status FileChecksumListImpl::GetAllFileChecksums(
 Status FileChecksumListImpl::SearchOneFileChecksum(
     uint64_t file_number, std::string* checksum,
     std::string* checksum_func_name) {
+  DBUG_TRACE;
   if (checksum == nullptr || checksum_func_name == nullptr) {
     return Status::InvalidArgument("Pointer has not been initiated");
   }
@@ -59,6 +62,7 @@ Status FileChecksumListImpl::SearchOneFileChecksum(
 Status FileChecksumListImpl::InsertOneFileChecksum(
     uint64_t file_number, const std::string& checksum,
     const std::string& checksum_func_name) {
+  DBUG_TRACE;
   auto it = checksum_map_.find(file_number);
   if (it == checksum_map_.end()) {
     checksum_map_.insert(std::make_pair(
@@ -71,6 +75,7 @@ Status FileChecksumListImpl::InsertOneFileChecksum(
 }
 
 Status FileChecksumListImpl::RemoveOneFileChecksum(uint64_t file_number) {
+  DBUG_TRACE;
   auto it = checksum_map_.find(file_number);
   if (it == checksum_map_.end()) {
     return Status::NotFound();
@@ -81,11 +86,13 @@ Status FileChecksumListImpl::RemoveOneFileChecksum(uint64_t file_number) {
 }
 
 FileChecksumList* NewFileChecksumList() {
+  DBUG_TRACE;
   FileChecksumListImpl* checksum_list = new FileChecksumListImpl();
   return checksum_list;
 }
 
 std::shared_ptr<FileChecksumGenFactory> GetFileChecksumGenCrc32cFactory() {
+  DBUG_TRACE;
   static std::shared_ptr<FileChecksumGenFactory> default_crc32c_gen_factory(
       new FileChecksumGenCrc32cFactory());
   return default_crc32c_gen_factory;
@@ -94,6 +101,7 @@ std::shared_ptr<FileChecksumGenFactory> GetFileChecksumGenCrc32cFactory() {
 Status GetFileChecksumsFromManifest(Env* src_env, const std::string& abs_path,
                                     uint64_t manifest_file_size,
                                     FileChecksumList* checksum_list) {
+  DBUG_TRACE;
   if (checksum_list == nullptr) {
     return Status::InvalidArgument("checksum_list is nullptr");
   }
@@ -119,6 +127,7 @@ Status GetFileChecksumsFromManifest(Env* src_env, const std::string& abs_path,
   struct LogReporter : public log::Reader::Reporter {
     Status* status_ptr;
     void Corruption(size_t /*bytes*/, const Status& st) override {
+      DBUG_TRACE;
       if (status_ptr->ok()) {
         *status_ptr = st;
       }
@@ -140,6 +149,7 @@ Status GetFileChecksumsFromManifest(Env* src_env, const std::string& abs_path,
 namespace {
 static int RegisterFileChecksumGenFactories(ObjectLibrary& library,
                                             const std::string& /*arg*/) {
+  DBUG_TRACE;
   library.AddFactory<FileChecksumGenFactory>(
       FileChecksumGenCrc32cFactory::kClassName(),
       [](const std::string& /*uri*/,
@@ -155,6 +165,7 @@ static int RegisterFileChecksumGenFactories(ObjectLibrary& library,
 Status FileChecksumGenFactory::CreateFromString(
     const ConfigOptions& options, const std::string& value,
     std::shared_ptr<FileChecksumGenFactory>* result) {
+  DBUG_TRACE;
   static std::once_flag once;
   std::call_once(once, [&]() {
     RegisterFileChecksumGenFactories(*(ObjectLibrary::Default().get()), "");

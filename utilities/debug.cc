@@ -4,6 +4,7 @@
 //  (found in the LICENSE.Apache file in the root directory).
 
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/utilities/debug.h"
 
 #include "db/db_impl/db_impl.h"
@@ -45,6 +46,7 @@ static std::unordered_map<std::string, ValueType> value_type_string_map = {
 };
 
 std::string KeyVersion::GetTypeName() const {
+  DBUG_TRACE;
   std::string type_name;
   if (SerializeEnum<ValueType>(value_type_string_map,
                                static_cast<ValueType>(type), &type_name)) {
@@ -57,6 +59,7 @@ std::string KeyVersion::GetTypeName() const {
 Status GetAllKeyVersions(DB* db, Slice begin_key, Slice end_key,
                          size_t max_num_ikeys,
                          std::vector<KeyVersion>* key_versions) {
+  DBUG_TRACE;
   if (nullptr == db) {
     return Status::InvalidArgument("db cannot be null.");
   }
@@ -67,6 +70,7 @@ Status GetAllKeyVersions(DB* db, Slice begin_key, Slice end_key,
 Status GetAllKeyVersions(DB* db, ColumnFamilyHandle* cfh, Slice begin_key,
                          Slice end_key, size_t max_num_ikeys,
                          std::vector<KeyVersion>* key_versions) {
+  DBUG_TRACE;
   if (nullptr == db) {
     return Status::InvalidArgument("db cannot be null.");
   }
@@ -131,4 +135,3 @@ Status GetAllKeyVersions(DB* db, ColumnFamilyHandle* cfh, Slice begin_key,
 }
 
 }  // namespace ROCKSDB_NAMESPACE
-

@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "table/get_context.h"
 
 #include "db/blob//blob_fetcher.h"
@@ -73,6 +74,7 @@ GetContext::GetContext(const Comparator* ucmp,
                  tracing_get_id, blob_fetcher) {}
 
 void GetContext::appendToReplayLog(ValueType type, Slice value, Slice ts) {
+  DBUG_TRACE;
   if (replay_log_) {
     if (replay_log_->empty()) {
       // Optimization: in the common case of only one operation in the
@@ -96,6 +98,7 @@ void GetContext::appendToReplayLog(ValueType type, Slice value, Slice ts) {
 // IO to be certain.Set the status=kFound and value_found=false to let the
 // caller know that key may exist but is not there in memory
 void GetContext::MarkKeyMayExist() {
+  DBUG_TRACE;
   state_ = kFound;
   if (value_found_ != nullptr) {
     *value_found_ = false;
@@ -103,6 +106,7 @@ void GetContext::MarkKeyMayExist() {
 }
 
 void GetContext::SaveValue(const Slice& value, SequenceNumber /*seq*/) {
+  DBUG_TRACE;
   assert(state_ == kNotFound);
   assert(ucmp_->timestamp_size() == 0);
 
@@ -115,6 +119,7 @@ void GetContext::SaveValue(const Slice& value, SequenceNumber /*seq*/) {
 }
 
 void GetContext::ReportCounters() {
+  DBUG_TRACE;
   if (get_context_stats_.num_cache_hit > 0) {
     RecordTick(statistics_, BLOCK_CACHE_HIT, get_context_stats_.num_cache_hit);
   }
@@ -222,6 +227,7 @@ void GetContext::ReportCounters() {
 bool GetContext::SaveValue(const ParsedInternalKey& parsed_key,
                            const Slice& value, bool* matched,
                            Status* read_status, Cleanable* value_pinner) {
+  DBUG_TRACE;
   assert(matched);
   assert((state_ != kMerge && parsed_key.type != kTypeMerge) ||
          merge_context_ != nullptr);
@@ -487,6 +493,7 @@ bool GetContext::SaveValue(const ParsedInternalKey& parsed_key,
 }
 
 void GetContext::PostprocessMerge(const Status& merge_status) {
+  DBUG_TRACE;
   if (!merge_status.ok()) {
     if (merge_status.subcode() == Status::SubCode::kMergeOperatorFailed) {
       state_ = kMergeOperatorFailed;
@@ -502,6 +509,7 @@ void GetContext::PostprocessMerge(const Status& merge_status) {
 }
 
 void GetContext::MergeWithNoBaseValue() {
+  DBUG_TRACE;
   assert(do_merge_);
   assert(pinnable_val_ || columns_);
   assert(!pinnable_val_ || !columns_);
@@ -517,6 +525,7 @@ void GetContext::MergeWithNoBaseValue() {
 }
 
 void GetContext::MergeWithPlainBaseValue(const Slice& value) {
+  DBUG_TRACE;
   assert(do_merge_);
   assert(pinnable_val_ || columns_);
   assert(!pinnable_val_ || !columns_);
@@ -532,6 +541,7 @@ void GetContext::MergeWithPlainBaseValue(const Slice& value) {
 }
 
 void GetContext::MergeWithWideColumnBaseValue(const Slice& entity) {
+  DBUG_TRACE;
   assert(do_merge_);
   assert(pinnable_val_ || columns_);
   assert(!pinnable_val_ || !columns_);
@@ -567,6 +577,7 @@ bool GetContext::GetBlobValue(const Slice& user_key, const Slice& blob_index,
 }
 
 void GetContext::push_operand(const Slice& value, Cleanable* value_pinner) {
+  DBUG_TRACE;
   // TODO(yanqin) preserve timestamps information in merge_context
   if (pinned_iters_mgr() && pinned_iters_mgr()->PinningEnabled() &&
       value_pinner != nullptr) {
@@ -580,6 +591,7 @@ void GetContext::push_operand(const Slice& value, Cleanable* value_pinner) {
 Status replayGetContextLog(const Slice& replay_log, const Slice& user_key,
                            GetContext* get_context, Cleanable* value_pinner,
                            SequenceNumber seq_no) {
+  DBUG_TRACE;
   Slice s = replay_log;
   Slice ts;
   size_t ts_sz = get_context->TimestampSize();

@@ -8,6 +8,7 @@
 // found in the LICENSE file.
 
 
+#include "rocksdb/util/dbug.h"
 #include "utilities/checkpoint/checkpoint_impl.h"
 
 #include <algorithm>
@@ -36,6 +37,7 @@
 namespace ROCKSDB_NAMESPACE {
 
 Status Checkpoint::Create(DB* db, Checkpoint** checkpoint_ptr) {
+  DBUG_TRACE;
   *checkpoint_ptr = new CheckpointImpl(db);
   return Status::OK();
 }
@@ -43,11 +45,13 @@ Status Checkpoint::Create(DB* db, Checkpoint** checkpoint_ptr) {
 Status Checkpoint::CreateCheckpoint(const std::string& /*checkpoint_dir*/,
                                     uint64_t /*log_size_for_flush*/,
                                     uint64_t* /*sequence_number_ptr*/) {
+  DBUG_TRACE;
   return Status::NotSupported("");
 }
 
 void CheckpointImpl::CleanStagingDirectory(const std::string& full_private_path,
                                            Logger* info_log) {
+  DBUG_TRACE;
   std::vector<std::string> subchildren;
   Status s = db_->GetEnv()->FileExists(full_private_path);
   if (s.IsNotFound()) {
@@ -73,6 +77,7 @@ void CheckpointImpl::CleanStagingDirectory(const std::string& full_private_path,
 Status Checkpoint::ExportColumnFamily(
     ColumnFamilyHandle* /*handle*/, const std::string& /*export_dir*/,
     ExportImportFilesMetaData** /*metadata*/) {
+  DBUG_TRACE;
   return Status::NotSupported("");
 }
 
@@ -80,6 +85,7 @@ Status Checkpoint::ExportColumnFamily(
 Status CheckpointImpl::CreateCheckpoint(const std::string& checkpoint_dir,
                                         uint64_t log_size_for_flush,
                                         uint64_t* sequence_number_ptr) {
+  DBUG_TRACE;
   DBOptions db_options = db_->GetDBOptions();
 
   Status s = db_->GetEnv()->FileExists(checkpoint_dir);
@@ -203,6 +209,7 @@ Status CheckpointImpl::CreateCustomCheckpoint(
         create_file_cb,
     uint64_t* sequence_number, uint64_t log_size_for_flush,
     bool get_live_table_checksum) {
+  DBUG_TRACE;
   *sequence_number = db_->GetLatestSequenceNumber();
 
   LiveFilesStorageInfoOptions opts;
@@ -284,6 +291,7 @@ Status CheckpointImpl::CreateCustomCheckpoint(
 Status CheckpointImpl::ExportColumnFamily(
     ColumnFamilyHandle* handle, const std::string& export_dir,
     ExportImportFilesMetaData** metadata) {
+  DBUG_TRACE;
   auto cfh = static_cast_with_check<ColumnFamilyHandleImpl>(handle);
   const auto cf_name = cfh->GetName();
   const auto db_options = db_->GetDBOptions();
@@ -427,6 +435,7 @@ Status CheckpointImpl::ExportFilesInMetaData(
     std::function<Status(const std::string& src_dirname,
                          const std::string& src_fname)>
         copy_file_cb) {
+  DBUG_TRACE;
   Status s;
   auto hardlink_file = true;
 

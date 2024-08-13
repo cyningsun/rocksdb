@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/cache.h"
 
 #include "cache/lru_cache.h"
@@ -69,15 +70,18 @@ static std::unordered_map<std::string, OptionTypeInfo>
 namespace {
 static void NoopDelete(Cache::ObjectPtr /*obj*/,
                        MemoryAllocator* /*allocator*/) {
+  DBUG_TRACE;
   assert(false);
 }
 
 static size_t SliceSize(Cache::ObjectPtr obj) {
+  DBUG_TRACE;
   return static_cast<Slice*>(obj)->size();
 }
 
 static Status SliceSaveTo(Cache::ObjectPtr from_obj, size_t from_offset,
                           size_t length, char* out) {
+  DBUG_TRACE;
   const Slice& slice = *static_cast<Slice*>(from_obj);
   std::memcpy(out, slice.data() + from_offset, length);
   return Status::OK();
@@ -88,6 +92,7 @@ static Status NoopCreate(const Slice& /*data*/, CompressionType /*type*/,
                          MemoryAllocator* /*allocator*/,
                          Cache::ObjectPtr* /*out_obj*/,
                          size_t* /*out_charge*/) {
+  DBUG_TRACE;
   assert(false);
   return Status::NotSupported();
 }
@@ -104,6 +109,7 @@ const Cache::CacheItemHelper kSliceCacheItemHelper{
 Status SecondaryCache::CreateFromString(
     const ConfigOptions& config_options, const std::string& value,
     std::shared_ptr<SecondaryCache>* result) {
+  DBUG_TRACE;
   if (value.find("compressed_secondary_cache://") == 0) {
     std::string args = value;
     args.erase(0, std::strlen("compressed_secondary_cache://"));
@@ -131,6 +137,7 @@ Status SecondaryCache::CreateFromString(
 Status Cache::CreateFromString(const ConfigOptions& config_options,
                                const std::string& value,
                                std::shared_ptr<Cache>* result) {
+  DBUG_TRACE;
   Status status;
   std::shared_ptr<Cache> cache;
   if (value.find('=') == std::string::npos) {
@@ -151,17 +158,20 @@ Status Cache::CreateFromString(const ConfigOptions& config_options,
 }
 
 bool Cache::AsyncLookupHandle::IsReady() {
+  DBUG_TRACE;
   return pending_handle == nullptr || pending_handle->IsReady();
 }
 
-bool Cache::AsyncLookupHandle::IsPending() { return pending_handle != nullptr; }
+bool Cache::AsyncLookupHandle::IsPending() { DBUG_TRACE; return pending_handle != nullptr; }
 
 Cache::Handle* Cache::AsyncLookupHandle::Result() {
+  DBUG_TRACE;
   assert(!IsPending());
   return result_handle;
 }
 
 void Cache::StartAsyncLookup(AsyncLookupHandle& async_handle) {
+  DBUG_TRACE;
   async_handle.found_dummy_entry = false;  // in case re-used
   assert(!async_handle.IsPending());
   async_handle.result_handle =
@@ -170,11 +180,13 @@ void Cache::StartAsyncLookup(AsyncLookupHandle& async_handle) {
 }
 
 Cache::Handle* Cache::Wait(AsyncLookupHandle& async_handle) {
+  DBUG_TRACE;
   WaitAll(&async_handle, 1);
   return async_handle.Result();
 }
 
 void Cache::WaitAll(AsyncLookupHandle* async_handles, size_t count) {
+  DBUG_TRACE;
   for (size_t i = 0; i < count; ++i) {
     if (async_handles[i].IsPending()) {
       // If a pending handle gets here, it should be marked at "to be handled
@@ -185,6 +197,7 @@ void Cache::WaitAll(AsyncLookupHandle* async_handles, size_t count) {
 }
 
 void Cache::SetEvictionCallback(EvictionCallback&& fn) {
+  DBUG_TRACE;
   // Overwriting non-empty with non-empty could indicate a bug
   assert(!eviction_callback_ || !fn);
   eviction_callback_ = std::move(fn);

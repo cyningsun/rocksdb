@@ -11,6 +11,7 @@
 // the last "sync". It then checks for data loss errors by purposely dropping
 // file data (or entire files) not protected by a "sync".
 
+#include "rocksdb/util/dbug.h"
 #include "utilities/fault_injection_env.h"
 
 #include <functional>
@@ -21,6 +22,7 @@ namespace ROCKSDB_NAMESPACE {
 
 // Assume a filename, and not a directory name like "/foo/bar/"
 std::string GetDirName(const std::string filename) {
+  DBUG_TRACE;
   size_t found = filename.find_last_of("/\\");
   if (found == std::string::npos) {
     return "";
@@ -31,6 +33,7 @@ std::string GetDirName(const std::string filename) {
 
 // A basic file truncation function suitable for this test.
 Status Truncate(Env* env, const std::string& filename, uint64_t length) {
+  DBUG_TRACE;
   std::unique_ptr<SequentialFile> orig_file;
   const EnvOptions options;
   Status s = env->NewSequentialFile(filename, &orig_file, options);
@@ -71,6 +74,7 @@ Status Truncate(Env* env, const std::string& filename, uint64_t length) {
 
 // Trim the tailing "/" in the end of `str`
 std::string TrimDirname(const std::string& str) {
+  DBUG_TRACE;
   size_t found = str.find_last_not_of('/');
   if (found == std::string::npos) {
     return str;
@@ -80,17 +84,20 @@ std::string TrimDirname(const std::string& str) {
 
 // Return pair <parent directory name, file name> of a full path.
 std::pair<std::string, std::string> GetDirAndName(const std::string& name) {
+  DBUG_TRACE;
   std::string dirname = GetDirName(name);
   std::string fname = name.substr(dirname.size() + 1);
   return std::make_pair(dirname, fname);
 }
 
 Status FileState::DropUnsyncedData(Env* env) const {
+  DBUG_TRACE;
   ssize_t sync_pos = pos_at_last_sync_ == -1 ? 0 : pos_at_last_sync_;
   return Truncate(env, filename_, sync_pos);
 }
 
 Status FileState::DropRandomUnsyncedData(Env* env, Random* rand) const {
+  DBUG_TRACE;
   ssize_t sync_pos = pos_at_last_sync_ == -1 ? 0 : pos_at_last_sync_;
   assert(pos_ >= sync_pos);
   int range = static_cast<int>(pos_ - sync_pos);
@@ -100,6 +107,7 @@ Status FileState::DropRandomUnsyncedData(Env* env, Random* rand) const {
 }
 
 Status TestDirectory::Fsync() {
+  DBUG_TRACE;
   if (!env_->IsFilesystemActive()) {
     return env_->GetError();
   }
@@ -108,6 +116,7 @@ Status TestDirectory::Fsync() {
 }
 
 Status TestDirectory::Close() {
+  DBUG_TRACE;
   if (!env_->IsFilesystemActive()) {
     return env_->GetError();
   }
@@ -123,6 +132,7 @@ TestRandomAccessFile::TestRandomAccessFile(
 
 Status TestRandomAccessFile::Read(uint64_t offset, size_t n, Slice* result,
                                   char* scratch) const {
+  DBUG_TRACE;
   assert(env_);
   if (!env_->IsFilesystemActive()) {
     return env_->GetError();
@@ -133,6 +143,7 @@ Status TestRandomAccessFile::Read(uint64_t offset, size_t n, Slice* result,
 }
 
 Status TestRandomAccessFile::Prefetch(uint64_t offset, size_t n) {
+  DBUG_TRACE;
   assert(env_);
   if (!env_->IsFilesystemActive()) {
     return env_->GetError();
@@ -143,6 +154,7 @@ Status TestRandomAccessFile::Prefetch(uint64_t offset, size_t n) {
 }
 
 Status TestRandomAccessFile::MultiRead(ReadRequest* reqs, size_t num_reqs) {
+  DBUG_TRACE;
   assert(env_);
   if (!env_->IsFilesystemActive()) {
     const Status s = env_->GetError();
@@ -177,6 +189,7 @@ TestWritableFile::~TestWritableFile() {
 }
 
 Status TestWritableFile::Append(const Slice& data) {
+  DBUG_TRACE;
   if (!env_->IsFilesystemActive()) {
     return env_->GetError();
   }
@@ -189,6 +202,7 @@ Status TestWritableFile::Append(const Slice& data) {
 }
 
 Status TestWritableFile::Close() {
+  DBUG_TRACE;
   writable_file_opened_ = false;
   Status s = target_->Close();
   if (s.ok()) {
@@ -198,6 +212,7 @@ Status TestWritableFile::Close() {
 }
 
 Status TestWritableFile::Flush() {
+  DBUG_TRACE;
   Status s = target_->Flush();
   if (s.ok() && env_->IsFilesystemActive()) {
     state_.pos_at_last_flush_ = state_.pos_;
@@ -206,6 +221,7 @@ Status TestWritableFile::Flush() {
 }
 
 Status TestWritableFile::Sync() {
+  DBUG_TRACE;
   if (!env_->IsFilesystemActive()) {
     return Status::IOError("FaultInjectionTestEnv: not active");
   }
@@ -229,6 +245,7 @@ TestRandomRWFile::~TestRandomRWFile() {
 }
 
 Status TestRandomRWFile::Write(uint64_t offset, const Slice& data) {
+  DBUG_TRACE;
   if (!env_->IsFilesystemActive()) {
     return env_->GetError();
   }
@@ -237,6 +254,7 @@ Status TestRandomRWFile::Write(uint64_t offset, const Slice& data) {
 
 Status TestRandomRWFile::Read(uint64_t offset, size_t n, Slice* result,
                               char* scratch) const {
+  DBUG_TRACE;
   if (!env_->IsFilesystemActive()) {
     return env_->GetError();
   }
@@ -244,11 +262,13 @@ Status TestRandomRWFile::Read(uint64_t offset, size_t n, Slice* result,
 }
 
 Status TestRandomRWFile::Close() {
+  DBUG_TRACE;
   file_opened_ = false;
   return target_->Close();
 }
 
 Status TestRandomRWFile::Flush() {
+  DBUG_TRACE;
   if (!env_->IsFilesystemActive()) {
     return env_->GetError();
   }
@@ -256,6 +276,7 @@ Status TestRandomRWFile::Flush() {
 }
 
 Status TestRandomRWFile::Sync() {
+  DBUG_TRACE;
   if (!env_->IsFilesystemActive()) {
     return env_->GetError();
   }
@@ -264,6 +285,7 @@ Status TestRandomRWFile::Sync() {
 
 Status FaultInjectionTestEnv::NewDirectory(const std::string& name,
                                            std::unique_ptr<Directory>* result) {
+  DBUG_TRACE;
   std::unique_ptr<Directory> r;
   Status s = target()->NewDirectory(name, &r);
   assert(s.ok());
@@ -277,6 +299,7 @@ Status FaultInjectionTestEnv::NewDirectory(const std::string& name,
 Status FaultInjectionTestEnv::NewWritableFile(
     const std::string& fname, std::unique_ptr<WritableFile>* result,
     const EnvOptions& soptions) {
+  DBUG_TRACE;
   if (!IsFilesystemActive()) {
     return GetError();
   }
@@ -306,6 +329,7 @@ Status FaultInjectionTestEnv::NewWritableFile(
 Status FaultInjectionTestEnv::ReopenWritableFile(
     const std::string& fname, std::unique_ptr<WritableFile>* result,
     const EnvOptions& soptions) {
+  DBUG_TRACE;
   if (!IsFilesystemActive()) {
     return GetError();
   }
@@ -359,6 +383,7 @@ Status FaultInjectionTestEnv::ReopenWritableFile(
 Status FaultInjectionTestEnv::NewRandomRWFile(
     const std::string& fname, std::unique_ptr<RandomRWFile>* result,
     const EnvOptions& soptions) {
+  DBUG_TRACE;
   if (!IsFilesystemActive()) {
     return GetError();
   }
@@ -380,6 +405,7 @@ Status FaultInjectionTestEnv::NewRandomRWFile(
 Status FaultInjectionTestEnv::NewRandomAccessFile(
     const std::string& fname, std::unique_ptr<RandomAccessFile>* result,
     const EnvOptions& soptions) {
+  DBUG_TRACE;
   if (!IsFilesystemActive()) {
     return GetError();
   }
@@ -397,6 +423,7 @@ Status FaultInjectionTestEnv::NewRandomAccessFile(
 }
 
 Status FaultInjectionTestEnv::DeleteFile(const std::string& f) {
+  DBUG_TRACE;
   if (!IsFilesystemActive()) {
     return GetError();
   }
@@ -409,6 +436,7 @@ Status FaultInjectionTestEnv::DeleteFile(const std::string& f) {
 
 Status FaultInjectionTestEnv::RenameFile(const std::string& s,
                                          const std::string& t) {
+  DBUG_TRACE;
   if (!IsFilesystemActive()) {
     return GetError();
   }
@@ -435,6 +463,7 @@ Status FaultInjectionTestEnv::RenameFile(const std::string& s,
 
 Status FaultInjectionTestEnv::LinkFile(const std::string& s,
                                        const std::string& t) {
+  DBUG_TRACE;
   if (!IsFilesystemActive()) {
     return GetError();
   }
@@ -460,6 +489,7 @@ Status FaultInjectionTestEnv::LinkFile(const std::string& s,
 }
 
 void FaultInjectionTestEnv::WritableFileClosed(const FileState& state) {
+  DBUG_TRACE;
   MutexLock l(&mutex_);
   if (open_managed_files_.find(state.filename_) != open_managed_files_.end()) {
     db_file_state_[state.filename_] = state;
@@ -468,6 +498,7 @@ void FaultInjectionTestEnv::WritableFileClosed(const FileState& state) {
 }
 
 void FaultInjectionTestEnv::WritableFileSynced(const FileState& state) {
+  DBUG_TRACE;
   MutexLock l(&mutex_);
   if (open_managed_files_.find(state.filename_) != open_managed_files_.end()) {
     if (db_file_state_.find(state.filename_) == db_file_state_.end()) {
@@ -479,6 +510,7 @@ void FaultInjectionTestEnv::WritableFileSynced(const FileState& state) {
 }
 
 void FaultInjectionTestEnv::WritableFileAppended(const FileState& state) {
+  DBUG_TRACE;
   MutexLock l(&mutex_);
   if (open_managed_files_.find(state.filename_) != open_managed_files_.end()) {
     if (db_file_state_.find(state.filename_) == db_file_state_.end()) {
@@ -493,6 +525,7 @@ void FaultInjectionTestEnv::WritableFileAppended(const FileState& state) {
 // FileState of the file as the parameter.
 Status FaultInjectionTestEnv::DropFileData(
     std::function<Status(Env*, FileState)> func) {
+  DBUG_TRACE;
   Status s;
   MutexLock l(&mutex_);
   for (std::map<std::string, FileState>::const_iterator it =
@@ -507,18 +540,21 @@ Status FaultInjectionTestEnv::DropFileData(
 }
 
 Status FaultInjectionTestEnv::DropUnsyncedFileData() {
+  DBUG_TRACE;
   return DropFileData([&](Env* env, const FileState& state) {
     return state.DropUnsyncedData(env);
   });
 }
 
 Status FaultInjectionTestEnv::DropRandomUnsyncedFileData(Random* rnd) {
+  DBUG_TRACE;
   return DropFileData([&](Env* env, const FileState& state) {
     return state.DropRandomUnsyncedData(env, rnd);
   });
 }
 
 Status FaultInjectionTestEnv::DeleteFilesCreatedAfterLastDirSync() {
+  DBUG_TRACE;
   // Because DeleteFile access this container make a copy to avoid deadlock
   std::map<std::string, std::set<std::string>> map_copy;
   {
@@ -538,6 +574,7 @@ Status FaultInjectionTestEnv::DeleteFilesCreatedAfterLastDirSync() {
   return Status::OK();
 }
 void FaultInjectionTestEnv::ResetState() {
+  DBUG_TRACE;
   MutexLock l(&mutex_);
   db_file_state_.clear();
   dir_to_new_files_since_last_sync_.clear();
@@ -545,6 +582,7 @@ void FaultInjectionTestEnv::ResetState() {
 }
 
 void FaultInjectionTestEnv::UntrackFile(const std::string& f) {
+  DBUG_TRACE;
   MutexLock l(&mutex_);
   auto dir_and_name = GetDirAndName(f);
   dir_to_new_files_since_last_sync_[dir_and_name.first].erase(

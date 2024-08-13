@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "table/plain/plain_table_index.h"
 
 #include <cinttypes>
@@ -15,12 +16,14 @@ namespace ROCKSDB_NAMESPACE {
 
 namespace {
 inline uint32_t GetBucketIdFromHash(uint32_t hash, uint32_t num_buckets) {
+  DBUG_TRACE;
   assert(num_buckets > 0);
   return hash % num_buckets;
 }
 }  // namespace
 
 Status PlainTableIndex::InitFromRawData(Slice data) {
+  DBUG_TRACE;
   if (!GetVarint32(&data, &index_size_)) {
     return Status::Corruption("Couldn't read the index size!");
   }
@@ -39,6 +42,7 @@ Status PlainTableIndex::InitFromRawData(Slice data) {
 
 PlainTableIndex::IndexSearchResult PlainTableIndex::GetOffset(
     uint32_t prefix_hash, uint32_t* bucket_value) const {
+  DBUG_TRACE;
   int bucket = GetBucketIdFromHash(prefix_hash, index_size_);
   GetUnaligned(index_ + bucket, bucket_value);
   if ((*bucket_value & kSubIndexMask) == kSubIndexMask) {
@@ -55,6 +59,7 @@ PlainTableIndex::IndexSearchResult PlainTableIndex::GetOffset(
 
 void PlainTableIndexBuilder::IndexRecordList::AddRecord(uint32_t hash,
                                                         uint32_t offset) {
+  DBUG_TRACE;
   if (num_records_in_current_group_ == kNumRecordsPerGroup) {
     current_group_ = AllocateNewGroup();
     num_records_in_current_group_ = 0;
@@ -67,6 +72,7 @@ void PlainTableIndexBuilder::IndexRecordList::AddRecord(uint32_t hash,
 
 void PlainTableIndexBuilder::AddKeyPrefix(Slice key_prefix_slice,
                                           uint32_t key_offset) {
+  DBUG_TRACE;
   if (is_first_record_ || prev_key_prefix_ != key_prefix_slice.ToString()) {
     ++num_prefixes_;
     if (!is_first_record_) {
@@ -92,6 +98,7 @@ void PlainTableIndexBuilder::AddKeyPrefix(Slice key_prefix_slice,
 }
 
 Slice PlainTableIndexBuilder::Finish() {
+  DBUG_TRACE;
   AllocateIndex();
   std::vector<IndexRecord*> hash_to_offsets(index_size_, nullptr);
   std::vector<uint32_t> entries_per_bucket(index_size_, 0);
@@ -106,6 +113,7 @@ Slice PlainTableIndexBuilder::Finish() {
 }
 
 void PlainTableIndexBuilder::AllocateIndex() {
+  DBUG_TRACE;
   if (prefix_extractor_ == nullptr || hash_table_ratio_ <= 0) {
     // Fall back to pure binary search if the user fails to specify a prefix
     // extractor.
@@ -121,6 +129,7 @@ void PlainTableIndexBuilder::AllocateIndex() {
 void PlainTableIndexBuilder::BucketizeIndexes(
     std::vector<IndexRecord*>* hash_to_offsets,
     std::vector<uint32_t>* entries_per_bucket) {
+  DBUG_TRACE;
   bool first = true;
   uint32_t prev_hash = 0;
   size_t num_records = record_list_.GetNumRecords();
@@ -153,6 +162,7 @@ void PlainTableIndexBuilder::BucketizeIndexes(
 Slice PlainTableIndexBuilder::FillIndexes(
     const std::vector<IndexRecord*>& hash_to_offsets,
     const std::vector<uint32_t>& entries_per_bucket) {
+  DBUG_TRACE;
   ROCKS_LOG_DEBUG(ioptions_.logger,
                   "Reserving %" PRIu32 " bytes for plain table's sub_index",
                   sub_index_size_);
@@ -208,4 +218,3 @@ Slice PlainTableIndexBuilder::FillIndexes(
 const std::string PlainTableIndexBuilder::kPlainTableIndexBlock =
     "PlainTableIndexBlock";
 }  // namespace ROCKSDB_NAMESPACE
-

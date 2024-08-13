@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "logging/event_logger.h"
 
 #include <cassert>
@@ -44,9 +45,10 @@ EventLoggerStream::~EventLoggerStream() {
   }
 }
 
-void EventLogger::Log(const JSONWriter& jwriter) { Log(logger_, jwriter); }
+void EventLogger::Log(const JSONWriter& jwriter) { DBUG_TRACE; Log(logger_, jwriter); }
 
 void EventLogger::Log(Logger* logger, const JSONWriter& jwriter) {
+DBUG_TRACE;
 #ifdef ROCKSDB_PRINT_EVENTS_TO_STDOUT
   printf("%s\n", jwriter.Get().c_str());
 #else
@@ -56,6 +58,7 @@ void EventLogger::Log(Logger* logger, const JSONWriter& jwriter) {
 
 void EventLogger::LogToBuffer(LogBuffer* log_buffer, const JSONWriter& jwriter,
                               const size_t max_log_size) {
+DBUG_TRACE;
 #ifdef ROCKSDB_PRINT_EVENTS_TO_STDOUT
   printf("%s\n", jwriter.Get().c_str());
 #else

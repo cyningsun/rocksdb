@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "cache/secondary_cache_adapter.h"
 
 #include <atomic>
@@ -128,6 +129,7 @@ CacheWithSecondaryAdapter::~CacheWithSecondaryAdapter() {
 
 bool CacheWithSecondaryAdapter::EvictionHandler(const Slice& key,
                                                 Handle* handle, bool was_hit) {
+  DBUG_TRACE;
   auto helper = GetCacheItemHelper(handle);
   if (helper->IsSecondaryCacheCompatible() &&
       adm_policy_ != TieredAdmissionPolicy::kAdmPolicyThreeQueue) {
@@ -150,6 +152,7 @@ bool CacheWithSecondaryAdapter::EvictionHandler(const Slice& key,
 
 bool CacheWithSecondaryAdapter::ProcessDummyResult(Cache::Handle** handle,
                                                    bool erase) {
+  DBUG_TRACE;
   if (*handle && target_->Value(*handle) == kDummyObj) {
     target_->Release(*handle, erase);
     *handle = nullptr;
@@ -161,6 +164,7 @@ bool CacheWithSecondaryAdapter::ProcessDummyResult(Cache::Handle** handle,
 
 void CacheWithSecondaryAdapter::CleanupCacheObject(
     ObjectPtr obj, const CacheItemHelper* helper) {
+  DBUG_TRACE;
   if (helper->del_cb) {
     helper->del_cb(obj, memory_allocator());
   }
@@ -170,6 +174,7 @@ Cache::Handle* CacheWithSecondaryAdapter::Promote(
     std::unique_ptr<SecondaryCacheResultHandle>&& secondary_handle,
     const Slice& key, const CacheItemHelper* helper, Priority priority,
     Statistics* stats, bool found_dummy_entry, bool kept_in_sec_cache) {
+  DBUG_TRACE;
   assert(secondary_handle->IsReady());
 
   ObjectPtr obj = secondary_handle->Value();
@@ -241,6 +246,7 @@ Status CacheWithSecondaryAdapter::Insert(const Slice& key, ObjectPtr value,
                                          Priority priority,
                                          const Slice& compressed_value,
                                          CompressionType type) {
+  DBUG_TRACE;
   Status s = target_->Insert(key, value, helper, charge, handle, priority);
   if (s.ok() && value == nullptr && distribute_cache_res_ && handle) {
     charge = target_->GetCharge(*handle);
@@ -284,6 +290,7 @@ Cache::Handle* CacheWithSecondaryAdapter::Lookup(const Slice& key,
                                                  CreateContext* create_context,
                                                  Priority priority,
                                                  Statistics* stats) {
+  DBUG_TRACE;
   // NOTE: we could just StartAsyncLookup() and Wait(), but this should be a bit
   // more efficient
   Handle* result =
@@ -308,6 +315,7 @@ Cache::Handle* CacheWithSecondaryAdapter::Lookup(const Slice& key,
 
 bool CacheWithSecondaryAdapter::Release(Handle* handle,
                                         bool erase_if_last_ref) {
+  DBUG_TRACE;
   if (erase_if_last_ref) {
     ObjectPtr v = target_->Value(handle);
     if (v == nullptr && distribute_cache_res_) {
@@ -339,6 +347,7 @@ bool CacheWithSecondaryAdapter::Release(Handle* handle,
 }
 
 Cache::ObjectPtr CacheWithSecondaryAdapter::Value(Handle* handle) {
+  DBUG_TRACE;
   ObjectPtr v = target_->Value(handle);
   // TODO with stacked secondaries: might fail in EvictionHandler
   assert(v != kDummyObj);
@@ -347,6 +356,7 @@ Cache::ObjectPtr CacheWithSecondaryAdapter::Value(Handle* handle) {
 
 void CacheWithSecondaryAdapter::StartAsyncLookupOnMySecondary(
     AsyncLookupHandle& async_handle) {
+  DBUG_TRACE;
   assert(!async_handle.IsPending());
   assert(async_handle.result_handle == nullptr);
 
@@ -364,6 +374,7 @@ void CacheWithSecondaryAdapter::StartAsyncLookupOnMySecondary(
 
 void CacheWithSecondaryAdapter::StartAsyncLookup(
     AsyncLookupHandle& async_handle) {
+  DBUG_TRACE;
   target_->StartAsyncLookup(async_handle);
   if (!async_handle.IsPending()) {
     bool secondary_compatible =
@@ -381,6 +392,7 @@ void CacheWithSecondaryAdapter::StartAsyncLookup(
 
 void CacheWithSecondaryAdapter::WaitAll(AsyncLookupHandle* async_handles,
                                         size_t count) {
+  DBUG_TRACE;
   if (count == 0) {
     // Nothing to do
     return;
@@ -457,6 +469,7 @@ void CacheWithSecondaryAdapter::WaitAll(AsyncLookupHandle* async_handles,
 }
 
 std::string CacheWithSecondaryAdapter::GetPrintableOptions() const {
+  DBUG_TRACE;
   std::string str = target_->GetPrintableOptions();
   str.append("  secondary_cache:\n");
   str.append(secondary_cache_->GetPrintableOptions());
@@ -464,6 +477,7 @@ std::string CacheWithSecondaryAdapter::GetPrintableOptions() const {
 }
 
 const char* CacheWithSecondaryAdapter::Name() const {
+  DBUG_TRACE;
   if (distribute_cache_res_) {
     return kTieredCacheName;
   } else {
@@ -478,6 +492,7 @@ const char* CacheWithSecondaryAdapter::Name() const {
 // as well. At the moment, we don't have a good way of handling the case
 // where the new capacity < total cache reservations.
 void CacheWithSecondaryAdapter::SetCapacity(size_t capacity) {
+  DBUG_TRACE;
   size_t sec_capacity = static_cast<size_t>(
       capacity * (distribute_cache_res_ ? sec_cache_res_ratio_ : 0.0));
   size_t old_sec_capacity = 0;
@@ -535,11 +550,13 @@ void CacheWithSecondaryAdapter::SetCapacity(size_t capacity) {
 
 Status CacheWithSecondaryAdapter::GetSecondaryCacheCapacity(
     size_t& size) const {
+  DBUG_TRACE;
   return secondary_cache_->GetCapacity(size);
 }
 
 Status CacheWithSecondaryAdapter::GetSecondaryCachePinnedUsage(
     size_t& size) const {
+  DBUG_TRACE;
   Status s;
   if (distribute_cache_res_) {
     MutexLock m(&cache_res_mutex_);
@@ -570,6 +587,7 @@ Status CacheWithSecondaryAdapter::GetSecondaryCachePinnedUsage(
 // in the future.
 Status CacheWithSecondaryAdapter::UpdateCacheReservationRatio(
     double compressed_secondary_ratio) {
+  DBUG_TRACE;
   if (!distribute_cache_res_) {
     return Status::NotSupported();
   }
@@ -637,11 +655,13 @@ Status CacheWithSecondaryAdapter::UpdateCacheReservationRatio(
 
 Status CacheWithSecondaryAdapter::UpdateAdmissionPolicy(
     TieredAdmissionPolicy adm_policy) {
+  DBUG_TRACE;
   adm_policy_ = adm_policy;
   return Status::OK();
 }
 
 std::shared_ptr<Cache> NewTieredCache(const TieredCacheOptions& _opts) {
+  DBUG_TRACE;
   if (!_opts.cache_opts) {
     return nullptr;
   }
@@ -722,6 +742,7 @@ Status UpdateTieredCache(const std::shared_ptr<Cache>& cache,
                          int64_t total_capacity,
                          double compressed_secondary_ratio,
                          TieredAdmissionPolicy adm_policy) {
+  DBUG_TRACE;
   if (!cache || strcmp(cache->Name(), kTieredCacheName)) {
     return Status::InvalidArgument();
   }

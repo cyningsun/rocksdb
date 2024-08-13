@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "db/column_family.h"
 
 #include <algorithm>
@@ -79,13 +80,15 @@ ColumnFamilyHandleImpl::~ColumnFamilyHandleImpl() {
   }
 }
 
-uint32_t ColumnFamilyHandleImpl::GetID() const { return cfd()->GetID(); }
+uint32_t ColumnFamilyHandleImpl::GetID() const { DBUG_TRACE; return cfd()->GetID(); }
 
 const std::string& ColumnFamilyHandleImpl::GetName() const {
+  DBUG_TRACE;
   return cfd()->GetName();
 }
 
 Status ColumnFamilyHandleImpl::GetDescriptor(ColumnFamilyDescriptor* desc) {
+  DBUG_TRACE;
   // accessing mutable cf-options requires db mutex.
   InstrumentedMutexLock l(mutex_);
   *desc = ColumnFamilyDescriptor(cfd()->GetName(), cfd()->GetLatestCFOptions());
@@ -93,12 +96,14 @@ Status ColumnFamilyHandleImpl::GetDescriptor(ColumnFamilyDescriptor* desc) {
 }
 
 const Comparator* ColumnFamilyHandleImpl::GetComparator() const {
+  DBUG_TRACE;
   return cfd()->user_comparator();
 }
 
 void GetInternalTblPropCollFactory(
     const ImmutableCFOptions& ioptions,
     InternalTblPropCollFactories* internal_tbl_prop_coll_factories) {
+  DBUG_TRACE;
   assert(internal_tbl_prop_coll_factories);
 
   auto& collector_factories = ioptions.table_properties_collector_factories;
@@ -111,6 +116,7 @@ void GetInternalTblPropCollFactory(
 }
 
 Status CheckCompressionSupported(const ColumnFamilyOptions& cf_options) {
+  DBUG_TRACE;
   if (!cf_options.compression_per_level.empty()) {
     for (size_t level = 0; level < cf_options.compression_per_level.size();
          ++level) {
@@ -161,6 +167,7 @@ Status CheckCompressionSupported(const ColumnFamilyOptions& cf_options) {
 }
 
 Status CheckConcurrentWritesSupported(const ColumnFamilyOptions& cf_options) {
+  DBUG_TRACE;
   if (cf_options.inplace_update_support) {
     return Status::InvalidArgument(
         "In-place memtable updates (inplace_update_support) is not compatible "
@@ -175,6 +182,7 @@ Status CheckConcurrentWritesSupported(const ColumnFamilyOptions& cf_options) {
 
 Status CheckCFPathsSupported(const DBOptions& db_options,
                              const ColumnFamilyOptions& cf_options) {
+  DBUG_TRACE;
   // More than one cf_paths are supported only in universal
   // and level compaction styles. This function also checks the case
   // in which cf_paths is not specified, which results in db_paths
@@ -201,6 +209,7 @@ const uint64_t kDefaultPeriodicCompSecs = 0xfffffffffffffffe;
 
 ColumnFamilyOptions SanitizeOptions(const ImmutableDBOptions& db_options,
                                     const ColumnFamilyOptions& src) {
+  DBUG_TRACE;
   ColumnFamilyOptions result = src;
   size_t clamp_max = std::conditional<
       sizeof(size_t) == 4, std::integral_constant<size_t, 0xffffffff>,
@@ -449,11 +458,13 @@ SuperVersion::~SuperVersion() {
 }
 
 SuperVersion* SuperVersion::Ref() {
+  DBUG_TRACE;
   refs.fetch_add(1, std::memory_order_relaxed);
   return this;
 }
 
 bool SuperVersion::Unref() {
+  DBUG_TRACE;
   // fetch_sub returns the previous value of ref
   uint32_t previous_refs = refs.fetch_sub(1);
   assert(previous_refs > 0);
@@ -461,6 +472,7 @@ bool SuperVersion::Unref() {
 }
 
 void SuperVersion::Cleanup() {
+  DBUG_TRACE;
   assert(refs.load(std::memory_order_relaxed) == 0);
   // Since this SuperVersion object is being deleted,
   // decrement reference to the immutable MemtableList
@@ -481,6 +493,7 @@ void SuperVersion::Init(
     ColumnFamilyData* new_cfd, MemTable* new_mem, MemTableListVersion* new_imm,
     Version* new_current,
     std::shared_ptr<const SeqnoToTimeMapping> new_seqno_to_time_mapping) {
+  DBUG_TRACE;
   cfd = new_cfd;
   mem = new_mem;
   imm = new_imm;
@@ -496,6 +509,7 @@ void SuperVersion::Init(
 
 namespace {
 void SuperVersionUnrefHandle(void* ptr) {
+  DBUG_TRACE;
   // UnrefHandle is called when a thread exits or a ThreadLocalPtr gets
   // destroyed. When the former happens, the thread shouldn't see kSVInUse.
   // When the latter happens, only super_version_ holds a reference
@@ -512,6 +526,7 @@ void SuperVersionUnrefHandle(void* ptr) {
 }  // anonymous namespace
 
 std::vector<std::string> ColumnFamilyData::GetDbPaths() const {
+  DBUG_TRACE;
   std::vector<std::string> paths;
   paths.reserve(ioptions_.cf_paths.size());
   for (const DbPath& db_path : ioptions_.cf_paths) {
@@ -713,6 +728,7 @@ ColumnFamilyData::~ColumnFamilyData() {
 }
 
 bool ColumnFamilyData::UnrefAndTryDelete() {
+  DBUG_TRACE;
   int old_refs = refs_.fetch_sub(1);
   assert(old_refs > 0);
 
@@ -742,6 +758,7 @@ bool ColumnFamilyData::UnrefAndTryDelete() {
 }
 
 void ColumnFamilyData::SetDropped() {
+  DBUG_TRACE;
   // can't drop default CF
   assert(id_ != 0);
   dropped_ = true;
@@ -752,10 +769,12 @@ void ColumnFamilyData::SetDropped() {
 }
 
 ColumnFamilyOptions ColumnFamilyData::GetLatestCFOptions() const {
+  DBUG_TRACE;
   return BuildColumnFamilyOptions(initial_cf_options_, mutable_cf_options_);
 }
 
 uint64_t ColumnFamilyData::OldestLogToKeep() {
+  DBUG_TRACE;
   auto current_log = GetLogNumber();
 
   if (allow_2pc_) {
@@ -785,6 +804,7 @@ std::unique_ptr<WriteControllerToken> SetupDelay(
     WriteController* write_controller, uint64_t compaction_needed_bytes,
     uint64_t prev_compaction_need_bytes, bool penalize_stop,
     bool auto_compactions_disabled) {
+  DBUG_TRACE;
   const uint64_t kMinWriteRate = 16 * 1024u;  // Minimum write rate 16KB/s.
 
   uint64_t max_write_rate = write_controller->max_delayed_write_rate();
@@ -846,6 +866,7 @@ std::unique_ptr<WriteControllerToken> SetupDelay(
 
 int GetL0FileCountForCompactionSpeedup(int level0_file_num_compaction_trigger,
                                        int level0_slowdown_writes_trigger) {
+  DBUG_TRACE;
   // SanitizeOptions() ensures it.
   assert(level0_file_num_compaction_trigger <= level0_slowdown_writes_trigger);
 
@@ -879,6 +900,7 @@ int GetL0FileCountForCompactionSpeedup(int level0_file_num_compaction_trigger,
 uint64_t GetPendingCompactionBytesForCompactionSpeedup(
     const MutableCFOptions& mutable_cf_options,
     const VersionStorageInfo* vstorage) {
+  DBUG_TRACE;
   // Compaction debt relatively large compared to the stable (bottommost) data
   // size indicates compaction fell behind.
   const uint64_t kBottommostSizeDivisor = 8;
@@ -906,6 +928,7 @@ uint64_t GetPendingCompactionBytesForCompactionSpeedup(
 }
 
 uint64_t GetMarkedFileCountForCompactionSpeedup() {
+  DBUG_TRACE;
   // When just one file is marked, it is not clear that parallel compaction will
   // help the compaction that the user nicely requested to happen sooner. When
   // multiple files are marked, however, it is pretty clearly helpful, except
@@ -920,6 +943,7 @@ ColumnFamilyData::GetWriteStallConditionAndCause(
     uint64_t num_compaction_needed_bytes,
     const MutableCFOptions& mutable_cf_options,
     const ImmutableCFOptions& immutable_cf_options) {
+  DBUG_TRACE;
   if (num_unflushed_memtables >= mutable_cf_options.max_write_buffer_number) {
     return {WriteStallCondition::kStopped, WriteStallCause::kMemtableLimit};
   } else if (!mutable_cf_options.disable_auto_compactions &&
@@ -954,6 +978,7 @@ ColumnFamilyData::GetWriteStallConditionAndCause(
 
 WriteStallCondition ColumnFamilyData::RecalculateWriteStallConditions(
     const MutableCFOptions& mutable_cf_options) {
+  DBUG_TRACE;
   auto write_stall_condition = WriteStallCondition::kNormal;
   if (current_ != nullptr) {
     auto* vstorage = current_->storage_info();
@@ -1127,37 +1152,45 @@ WriteStallCondition ColumnFamilyData::RecalculateWriteStallConditions(
 }
 
 const FileOptions* ColumnFamilyData::soptions() const {
+  DBUG_TRACE;
   return &(column_family_set_->file_options_);
 }
 
 void ColumnFamilyData::SetCurrent(Version* current_version) {
+  DBUG_TRACE;
   current_ = current_version;
 }
 
 uint64_t ColumnFamilyData::GetNumLiveVersions() const {
+  DBUG_TRACE;
   return VersionSet::GetNumLiveVersions(dummy_versions_);
 }
 
 uint64_t ColumnFamilyData::GetTotalSstFilesSize() const {
+  DBUG_TRACE;
   return VersionSet::GetTotalSstFilesSize(dummy_versions_);
 }
 
 uint64_t ColumnFamilyData::GetTotalBlobFileSize() const {
+  DBUG_TRACE;
   return VersionSet::GetTotalBlobFileSize(dummy_versions_);
 }
 
 uint64_t ColumnFamilyData::GetLiveSstFilesSize() const {
+  DBUG_TRACE;
   return current_->GetSstFilesSize();
 }
 
 MemTable* ColumnFamilyData::ConstructNewMemtable(
     const MutableCFOptions& mutable_cf_options, SequenceNumber earliest_seq) {
+  DBUG_TRACE;
   return new MemTable(internal_comparator_, ioptions_, mutable_cf_options,
                       write_buffer_manager_, earliest_seq, id_);
 }
 
 void ColumnFamilyData::CreateNewMemtable(
     const MutableCFOptions& mutable_cf_options, SequenceNumber earliest_seq) {
+  DBUG_TRACE;
   if (mem_ != nullptr) {
     delete mem_->Unref();
   }
@@ -1166,6 +1199,7 @@ void ColumnFamilyData::CreateNewMemtable(
 }
 
 bool ColumnFamilyData::NeedsCompaction() const {
+  DBUG_TRACE;
   return !mutable_cf_options_.disable_auto_compactions &&
          compaction_picker_->NeedsCompaction(current_->storage_info());
 }
@@ -1173,6 +1207,7 @@ bool ColumnFamilyData::NeedsCompaction() const {
 Compaction* ColumnFamilyData::PickCompaction(
     const MutableCFOptions& mutable_options,
     const MutableDBOptions& mutable_db_options, LogBuffer* log_buffer) {
+  DBUG_TRACE;
   auto* result = compaction_picker_->PickCompaction(
       GetName(), mutable_options, mutable_db_options, current_->storage_info(),
       log_buffer);
@@ -1185,6 +1220,7 @@ Compaction* ColumnFamilyData::PickCompaction(
 bool ColumnFamilyData::RangeOverlapWithCompaction(
     const Slice& smallest_user_key, const Slice& largest_user_key,
     int level) const {
+  DBUG_TRACE;
   return compaction_picker_->RangeOverlapWithCompaction(
       smallest_user_key, largest_user_key, level);
 }
@@ -1192,6 +1228,7 @@ bool ColumnFamilyData::RangeOverlapWithCompaction(
 Status ColumnFamilyData::RangesOverlapWithMemtables(
     const autovector<UserKeyRange>& ranges, SuperVersion* super_version,
     bool allow_data_in_errors, bool* overlap) {
+  DBUG_TRACE;
   assert(overlap != nullptr);
   *overlap = false;
   // Create an InternalIterator over all unflushed memtables
@@ -1257,6 +1294,7 @@ Compaction* ColumnFamilyData::CompactRange(
     const InternalKey* begin, const InternalKey* end,
     InternalKey** compaction_end, bool* conflict,
     uint64_t max_file_num_to_ignore, const std::string& trim_ts) {
+  DBUG_TRACE;
   auto* result = compaction_picker_->CompactRange(
       GetName(), mutable_cf_options, mutable_db_options,
       current_->storage_info(), input_level, output_level,
@@ -1270,6 +1308,7 @@ Compaction* ColumnFamilyData::CompactRange(
 }
 
 SuperVersion* ColumnFamilyData::GetReferencedSuperVersion(DBImpl* db) {
+  DBUG_TRACE;
   SuperVersion* sv = GetThreadLocalSuperVersion(db);
   sv->Ref();
   if (!ReturnThreadLocalSuperVersion(sv)) {
@@ -1283,6 +1322,7 @@ SuperVersion* ColumnFamilyData::GetReferencedSuperVersion(DBImpl* db) {
 }
 
 SuperVersion* ColumnFamilyData::GetThreadLocalSuperVersion(DBImpl* db) {
+  DBUG_TRACE;
   // The SuperVersion is cached in thread local storage to avoid acquiring
   // mutex when SuperVersion does not change since the last use. When a new
   // SuperVersion is installed, the compaction or flush thread cleans up
@@ -1313,6 +1353,7 @@ SuperVersion* ColumnFamilyData::GetThreadLocalSuperVersion(DBImpl* db) {
 }
 
 bool ColumnFamilyData::ReturnThreadLocalSuperVersion(SuperVersion* sv) {
+  DBUG_TRACE;
   assert(sv != nullptr);
   // Put the SuperVersion back
   void* expected = SuperVersion::kSVInUse;
@@ -1332,6 +1373,7 @@ bool ColumnFamilyData::ReturnThreadLocalSuperVersion(SuperVersion* sv) {
 
 void ColumnFamilyData::InstallSuperVersion(SuperVersionContext* sv_context,
                                            InstrumentedMutex* db_mutex) {
+  DBUG_TRACE;
   db_mutex->AssertHeld();
   return InstallSuperVersion(sv_context, mutable_cf_options_);
 }
@@ -1339,6 +1381,7 @@ void ColumnFamilyData::InstallSuperVersion(SuperVersionContext* sv_context,
 void ColumnFamilyData::InstallSuperVersion(
     SuperVersionContext* sv_context,
     const MutableCFOptions& mutable_cf_options) {
+  DBUG_TRACE;
   SuperVersion* new_superversion = sv_context->new_superversion.release();
   new_superversion->mutable_cf_options = mutable_cf_options;
   new_superversion->Init(this, mem_, imm_.current(), current_,
@@ -1388,6 +1431,7 @@ void ColumnFamilyData::InstallSuperVersion(
 }
 
 void ColumnFamilyData::ResetThreadLocalSuperVersions() {
+  DBUG_TRACE;
   autovector<void*> sv_ptrs;
   local_sv_->Scrape(&sv_ptrs, SuperVersion::kSVObsolete);
   for (auto ptr : sv_ptrs) {
@@ -1407,6 +1451,7 @@ void ColumnFamilyData::ResetThreadLocalSuperVersions() {
 
 Status ColumnFamilyData::ValidateOptions(
     const DBOptions& db_options, const ColumnFamilyOptions& cf_options) {
+  DBUG_TRACE;
   Status s;
   s = CheckCompressionSupported(cf_options);
   if (s.ok() && db_options.allow_concurrent_memtable_write) {
@@ -1549,6 +1594,7 @@ Status ColumnFamilyData::ValidateOptions(
 Status ColumnFamilyData::SetOptions(
     const DBOptions& db_opts,
     const std::unordered_map<std::string, std::string>& options_map) {
+  DBUG_TRACE;
   ColumnFamilyOptions cf_opts =
       BuildColumnFamilyOptions(initial_cf_options_, mutable_cf_options_);
   ConfigOptions config_opts;
@@ -1567,6 +1613,7 @@ Status ColumnFamilyData::SetOptions(
 
 // REQUIRES: DB mutex held
 Env::WriteLifeTimeHint ColumnFamilyData::CalculateSSTWriteHint(int level) {
+  DBUG_TRACE;
   if (initial_cf_options_.compaction_style != kCompactionStyleLevel) {
     return Env::WLTH_NOT_SET;
   }
@@ -1589,6 +1636,7 @@ Env::WriteLifeTimeHint ColumnFamilyData::CalculateSSTWriteHint(int level) {
 
 Status ColumnFamilyData::AddDirectories(
     std::map<std::string, std::shared_ptr<FSDirectory>>* created_dirs) {
+  DBUG_TRACE;
   Status s;
   assert(created_dirs != nullptr);
   assert(data_dirs_.empty());
@@ -1614,6 +1662,7 @@ Status ColumnFamilyData::AddDirectories(
 }
 
 FSDirectory* ColumnFamilyData::GetDataDir(size_t path_id) const {
+  DBUG_TRACE;
   if (data_dirs_.empty()) {
     return nullptr;
   }
@@ -1623,6 +1672,7 @@ FSDirectory* ColumnFamilyData::GetDataDir(size_t path_id) const {
 }
 
 void ColumnFamilyData::SetFlushSkipReschedule() {
+  DBUG_TRACE;
   const Comparator* ucmp = user_comparator();
   const size_t ts_sz = ucmp->timestamp_size();
   if (ts_sz == 0 || ioptions_.persist_user_defined_timestamps) {
@@ -1632,11 +1682,13 @@ void ColumnFamilyData::SetFlushSkipReschedule() {
 }
 
 bool ColumnFamilyData::GetAndClearFlushSkipReschedule() {
+  DBUG_TRACE;
   return flush_skip_reschedule_.exchange(false);
 }
 
 bool ColumnFamilyData::ShouldPostponeFlushToRetainUDT(
     uint64_t max_memtable_id) {
+  DBUG_TRACE;
   const Comparator* ucmp = user_comparator();
   const size_t ts_sz = ucmp->timestamp_size();
   if (ts_sz == 0 || ioptions_.persist_user_defined_timestamps) {
@@ -1664,6 +1716,7 @@ bool ColumnFamilyData::ShouldPostponeFlushToRetainUDT(
 }
 
 void ColumnFamilyData::RecoverEpochNumbers() {
+  DBUG_TRACE;
   assert(current_);
   auto* vstorage = current_->storage_info();
   assert(vstorage);
@@ -1715,11 +1768,13 @@ ColumnFamilySet::~ColumnFamilySet() {
 }
 
 ColumnFamilyData* ColumnFamilySet::GetDefault() const {
+  DBUG_TRACE;
   assert(default_cfd_cache_ != nullptr);
   return default_cfd_cache_;
 }
 
 ColumnFamilyData* ColumnFamilySet::GetColumnFamily(uint32_t id) const {
+  DBUG_TRACE;
   auto cfd_iter = column_family_data_.find(id);
   if (cfd_iter != column_family_data_.end()) {
     return cfd_iter->second;
@@ -1730,6 +1785,7 @@ ColumnFamilyData* ColumnFamilySet::GetColumnFamily(uint32_t id) const {
 
 ColumnFamilyData* ColumnFamilySet::GetColumnFamily(
     const std::string& name) const {
+  DBUG_TRACE;
   auto cfd_iter = column_families_.find(name);
   if (cfd_iter != column_families_.end()) {
     auto cfd = GetColumnFamily(cfd_iter->second);
@@ -1741,16 +1797,19 @@ ColumnFamilyData* ColumnFamilySet::GetColumnFamily(
 }
 
 uint32_t ColumnFamilySet::GetNextColumnFamilyID() {
+  DBUG_TRACE;
   return ++max_column_family_;
 }
 
-uint32_t ColumnFamilySet::GetMaxColumnFamily() { return max_column_family_; }
+uint32_t ColumnFamilySet::GetMaxColumnFamily() { DBUG_TRACE; return max_column_family_; }
 
 void ColumnFamilySet::UpdateMaxColumnFamily(uint32_t new_max_column_family) {
+  DBUG_TRACE;
   max_column_family_ = std::max(new_max_column_family, max_column_family_);
 }
 
 size_t ColumnFamilySet::NumberOfColumnFamilies() const {
+  DBUG_TRACE;
   return column_families_.size();
 }
 
@@ -1758,6 +1817,7 @@ size_t ColumnFamilySet::NumberOfColumnFamilies() const {
 ColumnFamilyData* ColumnFamilySet::CreateColumnFamily(
     const std::string& name, uint32_t id, Version* dummy_versions,
     const ColumnFamilyOptions& options) {
+  DBUG_TRACE;
   assert(column_families_.find(name) == column_families_.end());
   ColumnFamilyData* new_cfd = new ColumnFamilyData(
       id, name, dummy_versions, table_cache_, write_buffer_manager_, options,
@@ -1787,6 +1847,7 @@ ColumnFamilyData* ColumnFamilySet::CreateColumnFamily(
 
 // under a DB mutex AND from a write thread
 void ColumnFamilySet::RemoveColumnFamily(ColumnFamilyData* cfd) {
+  DBUG_TRACE;
   uint32_t cf_id = cfd->GetID();
   auto cfd_iter = column_family_data_.find(cf_id);
   assert(cfd_iter != column_family_data_.end());
@@ -1798,6 +1859,7 @@ void ColumnFamilySet::RemoveColumnFamily(ColumnFamilyData* cfd) {
 
 // under a DB mutex OR from a write thread
 bool ColumnFamilyMemTablesImpl::Seek(uint32_t column_family_id) {
+  DBUG_TRACE;
   if (column_family_id == 0) {
     // optimization for common case
     current_ = column_family_set_->GetDefault();
@@ -1809,21 +1871,25 @@ bool ColumnFamilyMemTablesImpl::Seek(uint32_t column_family_id) {
 }
 
 uint64_t ColumnFamilyMemTablesImpl::GetLogNumber() const {
+  DBUG_TRACE;
   assert(current_ != nullptr);
   return current_->GetLogNumber();
 }
 
 MemTable* ColumnFamilyMemTablesImpl::GetMemTable() const {
+  DBUG_TRACE;
   assert(current_ != nullptr);
   return current_->mem();
 }
 
 ColumnFamilyHandle* ColumnFamilyMemTablesImpl::GetColumnFamilyHandle() {
+  DBUG_TRACE;
   assert(current_ != nullptr);
   return &handle_;
 }
 
 uint32_t GetColumnFamilyID(ColumnFamilyHandle* column_family) {
+  DBUG_TRACE;
   uint32_t column_family_id = 0;
   if (column_family != nullptr) {
     auto cfh = static_cast_with_check<ColumnFamilyHandleImpl>(column_family);
@@ -1834,6 +1900,7 @@ uint32_t GetColumnFamilyID(ColumnFamilyHandle* column_family) {
 
 const Comparator* GetColumnFamilyUserComparator(
     ColumnFamilyHandle* column_family) {
+  DBUG_TRACE;
   if (column_family != nullptr) {
     return column_family->GetComparator();
   }
@@ -1841,6 +1908,7 @@ const Comparator* GetColumnFamilyUserComparator(
 }
 
 const ImmutableOptions& GetImmutableOptions(ColumnFamilyHandle* column_family) {
+  DBUG_TRACE;
   assert(column_family);
 
   ColumnFamilyHandleImpl* const handle =

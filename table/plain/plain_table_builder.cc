@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "table/plain/plain_table_builder.h"
 
 #include <cassert>
@@ -37,6 +38,7 @@ namespace {
 //   @block_handle the block handle this particular block.
 IOStatus WriteBlock(const Slice& block_contents, WritableFileWriter* file,
                     uint64_t* offset, BlockHandle* block_handle) {
+  DBUG_TRACE;
   block_handle->set_offset(*offset);
   block_handle->set_size(block_contents.size());
   IOStatus io_s = file->Append(IOOptions(), block_contents);
@@ -135,6 +137,7 @@ PlainTableBuilder::~PlainTableBuilder() {
 }
 
 void PlainTableBuilder::Add(const Slice& key, const Slice& value) {
+  DBUG_TRACE;
   // temp buffer for metadata bytes between key and value.
   char meta_bytes_buf[6];
   size_t meta_bytes_buf_size = 0;
@@ -208,6 +211,7 @@ void PlainTableBuilder::Add(const Slice& key, const Slice& value) {
 }
 
 Status PlainTableBuilder::Finish() {
+  DBUG_TRACE;
   assert(!closed_);
   closed_ = true;
 
@@ -316,15 +320,17 @@ Status PlainTableBuilder::Finish() {
   return status_;
 }
 
-void PlainTableBuilder::Abandon() { closed_ = true; }
+void PlainTableBuilder::Abandon() { DBUG_TRACE; closed_ = true; }
 
 uint64_t PlainTableBuilder::NumEntries() const {
+  DBUG_TRACE;
   return properties_.num_entries;
 }
 
-uint64_t PlainTableBuilder::FileSize() const { return offset_; }
+uint64_t PlainTableBuilder::FileSize() const { DBUG_TRACE; return offset_; }
 
 std::string PlainTableBuilder::GetFileChecksum() const {
+  DBUG_TRACE;
   if (file_ != nullptr) {
     return file_->GetFileChecksum();
   } else {
@@ -333,6 +339,7 @@ std::string PlainTableBuilder::GetFileChecksum() const {
 }
 
 const char* PlainTableBuilder::GetFileChecksumFuncName() const {
+  DBUG_TRACE;
   if (file_ != nullptr) {
     return file_->GetFileChecksumFuncName();
   } else {
@@ -341,6 +348,7 @@ const char* PlainTableBuilder::GetFileChecksumFuncName() const {
 }
 void PlainTableBuilder::SetSeqnoTimeTableProperties(
     const SeqnoToTimeMapping& relevant_mapping, uint64_t uint_64) {
+  DBUG_TRACE;
   // TODO: storing seqno to time mapping is not yet support for plain table.
   TableBuilder::SetSeqnoTimeTableProperties(relevant_mapping, uint_64);
 }

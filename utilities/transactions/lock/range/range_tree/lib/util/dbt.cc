@@ -1,5 +1,6 @@
 /* -*- mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 // vim: ft=cpp:expandtab:ts=8:sw=4:softtabstop=4:
+#include "rocksdb/util/dbug.h"
 #ifndef OS_WIN
 #ident "$Id$"
 /*======
@@ -60,22 +61,26 @@ Copyright (c) 2006, 2015, Percona and/or its affiliates. All rights reserved.
 #include "../portability/memory.h"
 
 DBT *toku_init_dbt(DBT *dbt) {
+  DBUG_TRACE;
   memset(dbt, 0, sizeof(*dbt));
   return dbt;
 }
 
 DBT toku_empty_dbt(void) {
+  DBUG_TRACE;
   static const DBT empty_dbt = {.data = nullptr, .size = 0, .ulen = 0, .flags = 0};
   return empty_dbt;
 }
 
 DBT *toku_init_dbt_flags(DBT *dbt, uint32_t flags) {
+  DBUG_TRACE;
   toku_init_dbt(dbt);
   dbt->flags = flags;
   return dbt;
 }
 
 void toku_destroy_dbt(DBT *dbt) {
+  DBUG_TRACE;
   switch (dbt->flags) {
     case DB_DBT_MALLOC:
     case DB_DBT_REALLOC:
@@ -86,6 +91,7 @@ void toku_destroy_dbt(DBT *dbt) {
 }
 
 DBT *toku_fill_dbt(DBT *dbt, const void *k, size_t len) {
+  DBUG_TRACE;
   toku_init_dbt(dbt);
   dbt->size = len;
   dbt->data = (char *)k;
@@ -93,6 +99,7 @@ DBT *toku_fill_dbt(DBT *dbt, const void *k, size_t len) {
 }
 
 DBT *toku_memdup_dbt(DBT *dbt, const void *k, size_t len) {
+  DBUG_TRACE;
   toku_init_dbt_flags(dbt, DB_DBT_MALLOC);
   dbt->size = len;
   dbt->data = toku_xmemdup(k, len);
@@ -100,6 +107,7 @@ DBT *toku_memdup_dbt(DBT *dbt, const void *k, size_t len) {
 }
 
 DBT *toku_copyref_dbt(DBT *dst, const DBT src) {
+  DBUG_TRACE;
   dst->flags = 0;
   dst->ulen = 0;
   dst->size = src.size;
@@ -108,38 +116,45 @@ DBT *toku_copyref_dbt(DBT *dst, const DBT src) {
 }
 
 DBT *toku_clone_dbt(DBT *dst, const DBT &src) {
+  DBUG_TRACE;
   return toku_memdup_dbt(dst, src.data, src.size);
 }
 
 void toku_sdbt_cleanup(struct simple_dbt *sdbt) {
+  DBUG_TRACE;
   if (sdbt->data) toku_free(sdbt->data);
   memset(sdbt, 0, sizeof(*sdbt));
 }
 
 const DBT *toku_dbt_positive_infinity(void) {
+  DBUG_TRACE;
   static DBT positive_infinity_dbt = {
       .data = nullptr, .size = 0, .ulen = 0, .flags = 0};  // port
   return &positive_infinity_dbt;
 }
 
 const DBT *toku_dbt_negative_infinity(void) {
+  DBUG_TRACE;
   static DBT negative_infinity_dbt = {
       .data = nullptr, .size = 0, .ulen = 0, .flags = 0};  // port
   return &negative_infinity_dbt;
 }
 
 bool toku_dbt_is_infinite(const DBT *dbt) {
+  DBUG_TRACE;
   return dbt == toku_dbt_positive_infinity() ||
          dbt == toku_dbt_negative_infinity();
 }
 
 bool toku_dbt_is_empty(const DBT *dbt) {
+  DBUG_TRACE;
   // can't have a null data field with a non-zero size
   paranoid_invariant(dbt->data != nullptr || dbt->size == 0);
   return dbt->data == nullptr;
 }
 
 int toku_dbt_infinite_compare(const DBT *a, const DBT *b) {
+  DBUG_TRACE;
   if (a == b) {
     return 0;
   } else if (a == toku_dbt_positive_infinity()) {
@@ -155,6 +170,7 @@ int toku_dbt_infinite_compare(const DBT *a, const DBT *b) {
 }
 
 bool toku_dbt_equals(const DBT *a, const DBT *b) {
+  DBUG_TRACE;
   if (!toku_dbt_is_infinite(a) && !toku_dbt_is_infinite(b)) {
     return a->data == b->data && a->size == b->size;
   } else {

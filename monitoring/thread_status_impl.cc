@@ -4,6 +4,7 @@
 //  (found in the LICENSE.Apache file in the root directory).
 //
 
+#include "rocksdb/util/dbug.h"
 #include <sstream>
 
 #include "rocksdb/env.h"
@@ -16,6 +17,7 @@ namespace ROCKSDB_NAMESPACE {
 #ifdef ROCKSDB_USING_THREAD_STATUS
 std::string ThreadStatus::GetThreadTypeName(
     ThreadStatus::ThreadType thread_type) {
+  DBUG_TRACE;
   switch (thread_type) {
     case ThreadStatus::ThreadType::HIGH_PRIORITY:
       return "High Pri";
@@ -33,6 +35,7 @@ std::string ThreadStatus::GetThreadTypeName(
 
 const std::string& ThreadStatus::GetOperationName(
     ThreadStatus::OperationType op_type) {
+  DBUG_TRACE;
   if (op_type < 0 || op_type >= NUM_OP_TYPES) {
     return global_operation_table[OP_UNKNOWN].name;
   }
@@ -41,6 +44,7 @@ const std::string& ThreadStatus::GetOperationName(
 
 const std::string& ThreadStatus::GetOperationStageName(
     ThreadStatus::OperationStage stage) {
+  DBUG_TRACE;
   if (stage < 0 || stage >= NUM_OP_STAGES) {
     return global_op_stage_table[STAGE_UNKNOWN].name;
   }
@@ -49,6 +53,7 @@ const std::string& ThreadStatus::GetOperationStageName(
 
 const std::string& ThreadStatus::GetStateName(
     ThreadStatus::StateType state_type) {
+  DBUG_TRACE;
   if (state_type < 0 || state_type >= NUM_STATE_TYPES) {
     return global_state_table[STATE_UNKNOWN].name;
   }
@@ -56,6 +61,7 @@ const std::string& ThreadStatus::GetStateName(
 }
 
 const std::string ThreadStatus::MicrosToString(uint64_t micros) {
+  DBUG_TRACE;
   if (micros == 0) {
     return "";
   }
@@ -67,6 +73,7 @@ const std::string ThreadStatus::MicrosToString(uint64_t micros) {
 
 const std::string& ThreadStatus::GetOperationPropertyName(
     ThreadStatus::OperationType op_type, int i) {
+  DBUG_TRACE;
   static const std::string empty_str;
   switch (op_type) {
     case ThreadStatus::OP_COMPACTION:
@@ -86,6 +93,7 @@ const std::string& ThreadStatus::GetOperationPropertyName(
 
 std::map<std::string, uint64_t> ThreadStatus::InterpretOperationProperties(
     ThreadStatus::OperationType op_type, const uint64_t* op_properties) {
+  DBUG_TRACE;
   int num_properties;
   switch (op_type) {
     case OP_COMPACTION:

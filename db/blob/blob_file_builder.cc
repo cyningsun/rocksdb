@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "db/blob/blob_file_builder.h"
 
 #include <cassert>
@@ -98,6 +99,7 @@ BlobFileBuilder::~BlobFileBuilder() = default;
 
 Status BlobFileBuilder::Add(const Slice& key, const Slice& value,
                             std::string* blob_index) {
+  DBUG_TRACE;
   assert(blob_index);
   assert(blob_index->empty());
 
@@ -157,6 +159,7 @@ Status BlobFileBuilder::Add(const Slice& key, const Slice& value,
 }
 
 Status BlobFileBuilder::Finish() {
+  DBUG_TRACE;
   if (!IsBlobFileOpen()) {
     return Status::OK();
   }
@@ -164,7 +167,7 @@ Status BlobFileBuilder::Finish() {
   return CloseBlobFile();
 }
 
-bool BlobFileBuilder::IsBlobFileOpen() const { return !!writer_; }
+bool BlobFileBuilder::IsBlobFileOpen() const { DBUG_TRACE; return !!writer_; }
 
 Status BlobFileBuilder::OpenBlobFileIfNeeded() {
   if (IsBlobFileOpen()) {
@@ -291,6 +294,7 @@ Status BlobFileBuilder::CompressBlobIfNeeded(
 Status BlobFileBuilder::WriteBlobToFile(const Slice& key, const Slice& blob,
                                         uint64_t* blob_file_number,
                                         uint64_t* blob_offset) {
+  DBUG_TRACE;
   assert(IsBlobFileOpen());
   assert(blob_file_number);
   assert(blob_offset);
@@ -315,6 +319,7 @@ Status BlobFileBuilder::WriteBlobToFile(const Slice& key, const Slice& blob,
 }
 
 Status BlobFileBuilder::CloseBlobFile() {
+  DBUG_TRACE;
   assert(IsBlobFileOpen());
 
   BlobLogFooter footer;
@@ -361,6 +366,7 @@ Status BlobFileBuilder::CloseBlobFile() {
 }
 
 Status BlobFileBuilder::CloseBlobFileIfNeeded() {
+  DBUG_TRACE;
   assert(IsBlobFileOpen());
 
   const WritableFileWriter* const file_writer = writer_->file();
@@ -374,6 +380,7 @@ Status BlobFileBuilder::CloseBlobFileIfNeeded() {
 }
 
 void BlobFileBuilder::Abandon(const Status& s) {
+  DBUG_TRACE;
   if (!IsBlobFileOpen()) {
     return;
   }
@@ -396,6 +403,7 @@ void BlobFileBuilder::Abandon(const Status& s) {
 Status BlobFileBuilder::PutBlobIntoCacheIfNeeded(const Slice& blob,
                                                  uint64_t blob_file_number,
                                                  uint64_t blob_offset) const {
+  DBUG_TRACE;
   Status s = Status::OK();
 
   BlobSource::SharedCacheInterface blob_cache{immutable_options_->blob_cache};

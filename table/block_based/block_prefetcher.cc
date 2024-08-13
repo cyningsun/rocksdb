@@ -6,6 +6,7 @@
 // Copyright (c) 2011 The LevelDB Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
+#include "rocksdb/util/dbug.h"
 #include "table/block_based/block_prefetcher.h"
 
 #include "rocksdb/file_system.h"
@@ -18,6 +19,7 @@ void BlockPrefetcher::PrefetchIfNeeded(
     const bool no_sequential_checking, const ReadOptions& read_options,
     const std::function<void(bool, uint64_t&, uint64_t&)>& readaheadsize_cb,
     bool is_async_io_prefetch) {
+  DBUG_TRACE;
   if (read_options.read_tier == ReadTier::kBlockCacheTier) {
     // Disable prefetching when IO disallowed. (Note that we haven't allocated
     // any buffers yet despite the various tracked settings.)

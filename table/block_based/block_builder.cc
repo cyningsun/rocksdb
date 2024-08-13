@@ -31,6 +31,7 @@
 //     num_restarts: uint32
 // restarts[i] contains the offset within the block of the ith restart point.
 
+#include "rocksdb/util/dbug.h"
 #include "table/block_based/block_builder.h"
 
 #include <algorithm>
@@ -72,6 +73,7 @@ BlockBuilder::BlockBuilder(
 }
 
 void BlockBuilder::Reset() {
+  DBUG_TRACE;
   buffer_.clear();
   restarts_.resize(1);  // First restart point is at offset 0
   assert(restarts_[0] == 0);
@@ -88,12 +90,14 @@ void BlockBuilder::Reset() {
 }
 
 void BlockBuilder::SwapAndReset(std::string& buffer) {
+  DBUG_TRACE;
   std::swap(buffer_, buffer);
   Reset();
 }
 
 size_t BlockBuilder::EstimateSizeAfterKV(const Slice& key,
                                          const Slice& value) const {
+  DBUG_TRACE;
   size_t estimate = CurrentSizeEstimate();
   // Note: this is an imprecise estimate as it accounts for the whole key size
   // instead of non-shared key size.
@@ -124,6 +128,7 @@ size_t BlockBuilder::EstimateSizeAfterKV(const Slice& key,
 }
 
 Slice BlockBuilder::Finish() {
+  DBUG_TRACE;
   // Append restart array
   for (size_t i = 0; i < restarts_.size(); i++) {
     PutFixed32(&buffer_, restarts_[i]);
@@ -148,6 +153,7 @@ Slice BlockBuilder::Finish() {
 
 void BlockBuilder::Add(const Slice& key, const Slice& value,
                        const Slice* const delta_value) {
+  DBUG_TRACE;
   // Ensure no unsafe mixing of Add and AddWithLastKey
   assert(!add_with_last_key_called_);
 
@@ -163,6 +169,7 @@ void BlockBuilder::Add(const Slice& key, const Slice& value,
 void BlockBuilder::AddWithLastKey(const Slice& key, const Slice& value,
                                   const Slice& last_key_param,
                                   const Slice* const delta_value) {
+  DBUG_TRACE;
   // Ensure no unsafe mixing of Add and AddWithLastKey
   assert(last_key_.empty());
 #ifndef NDEBUG
@@ -189,6 +196,7 @@ inline void BlockBuilder::AddWithLastKeyImpl(const Slice& key,
                                              const Slice& last_key,
                                              const Slice* const delta_value,
                                              size_t buffer_size) {
+  DBUG_TRACE;
   assert(!finished_);
   assert(counter_ <= block_restart_interval_);
   assert(!use_value_delta_encoding_ || delta_value);
@@ -252,6 +260,7 @@ inline void BlockBuilder::AddWithLastKeyImpl(const Slice& key,
 
 const Slice BlockBuilder::MaybeStripTimestampFromKey(std::string* key_buf,
                                                      const Slice& key) {
+  DBUG_TRACE;
   Slice stripped_key = key;
   if (strip_ts_sz_ > 0) {
     if (is_user_key_) {

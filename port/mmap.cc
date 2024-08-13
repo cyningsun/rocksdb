@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "port/mmap.h"
 
 #include <cassert>
@@ -39,6 +40,7 @@ MemMapping::MemMapping(MemMapping&& other) noexcept {
 }
 
 MemMapping& MemMapping::operator=(MemMapping&& other) noexcept {
+  DBUG_TRACE;
   if (&other == this) {
     return *this;
   }
@@ -49,6 +51,7 @@ MemMapping& MemMapping::operator=(MemMapping&& other) noexcept {
 }
 
 MemMapping MemMapping::AllocateAnonymous(size_t length, bool huge) {
+  DBUG_TRACE;
   MemMapping mm;
   mm.length_ = length;
   assert(mm.addr_ == nullptr);
@@ -88,10 +91,12 @@ MemMapping MemMapping::AllocateAnonymous(size_t length, bool huge) {
 }
 
 MemMapping MemMapping::AllocateHuge(size_t length) {
+  DBUG_TRACE;
   return AllocateAnonymous(length, /*huge*/ true);
 }
 
 MemMapping MemMapping::AllocateLazyZeroed(size_t length) {
+  DBUG_TRACE;
   return AllocateAnonymous(length, /*huge*/ false);
 }
 

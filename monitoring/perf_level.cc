@@ -4,6 +4,7 @@
 //  (found in the LICENSE.Apache file in the root directory).
 //
 
+#include "rocksdb/util/dbug.h"
 #include <cassert>
 
 #include "monitoring/perf_level_imp.h"
@@ -13,11 +14,12 @@ namespace ROCKSDB_NAMESPACE {
 thread_local PerfLevel perf_level = kEnableCount;
 
 void SetPerfLevel(PerfLevel level) {
+  DBUG_TRACE;
   assert(level > kUninitialized);
   assert(level < kOutOfBounds);
   perf_level = level;
 }
 
-PerfLevel GetPerfLevel() { return perf_level; }
+PerfLevel GetPerfLevel() { DBUG_TRACE; return perf_level; }
 
 }  // namespace ROCKSDB_NAMESPACE

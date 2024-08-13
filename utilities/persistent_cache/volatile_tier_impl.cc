@@ -4,6 +4,7 @@
 //  (found in the LICENSE.Apache file in the root directory).
 //
 
+#include "rocksdb/util/dbug.h"
 #include "utilities/persistent_cache/volatile_tier_impl.h"
 
 #include <string>
@@ -11,6 +12,7 @@
 namespace ROCKSDB_NAMESPACE {
 
 void VolatileCacheTier::DeleteCacheData(VolatileCacheTier::CacheData* data) {
+  DBUG_TRACE;
   assert(data);
   delete data;
 }
@@ -18,6 +20,7 @@ void VolatileCacheTier::DeleteCacheData(VolatileCacheTier::CacheData* data) {
 VolatileCacheTier::~VolatileCacheTier() { index_.Clear(&DeleteCacheData); }
 
 PersistentCache::StatsType VolatileCacheTier::Stats() {
+  DBUG_TRACE;
   std::map<std::string, double> stat;
   stat.insert({"persistent_cache.volatile_cache.hits",
                static_cast<double>(stats_.cache_hits_)});
@@ -39,6 +42,7 @@ PersistentCache::StatsType VolatileCacheTier::Stats() {
 
 Status VolatileCacheTier::Insert(const Slice& page_key, const char* data,
                                  const size_t size) {
+  DBUG_TRACE;
   // precondition
   assert(data);
   assert(size);
@@ -81,6 +85,7 @@ Status VolatileCacheTier::Insert(const Slice& page_key, const char* data,
 Status VolatileCacheTier::Lookup(const Slice& page_key,
                                  std::unique_ptr<char[]>* result,
                                  size_t* size) {
+  DBUG_TRACE;
   CacheData key(std::move(page_key.ToString()));
   CacheData* kv;
   bool ok = index_.Find(&key, &kv);
@@ -106,11 +111,13 @@ Status VolatileCacheTier::Lookup(const Slice& page_key,
 }
 
 bool VolatileCacheTier::Erase(const Slice& /*key*/) {
+  DBUG_TRACE;
   assert(!"not supported");
   return true;
 }
 
 bool VolatileCacheTier::Evict() {
+  DBUG_TRACE;
   CacheData* edata = index_.Evict();
   if (!edata) {
     // not able to evict any object
@@ -135,4 +142,3 @@ bool VolatileCacheTier::Evict() {
 }
 
 }  // namespace ROCKSDB_NAMESPACE
-

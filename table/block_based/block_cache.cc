@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "table/block_based/block_cache.h"
 
 #include "table/block_based/block_based_table_reader.h"
@@ -11,6 +12,7 @@ namespace ROCKSDB_NAMESPACE {
 
 void BlockCreateContext::Create(std::unique_ptr<Block_kData>* parsed_out,
                                 BlockContents&& block) {
+  DBUG_TRACE;
   parsed_out->reset(new Block_kData(
       std::move(block), table_options->read_amp_bytes_per_bit, statistics));
   parsed_out->get()->InitializeDataBlockProtectionInfo(protection_bytes_per_key,
@@ -18,6 +20,7 @@ void BlockCreateContext::Create(std::unique_ptr<Block_kData>* parsed_out,
 }
 void BlockCreateContext::Create(std::unique_ptr<Block_kIndex>* parsed_out,
                                 BlockContents&& block) {
+  DBUG_TRACE;
   parsed_out->reset(new Block_kIndex(std::move(block),
                                      /*read_amp_bytes_per_bit*/ 0, statistics));
   parsed_out->get()->InitializeIndexBlockProtectionInfo(
@@ -27,6 +30,7 @@ void BlockCreateContext::Create(std::unique_ptr<Block_kIndex>* parsed_out,
 void BlockCreateContext::Create(
     std::unique_ptr<Block_kFilterPartitionIndex>* parsed_out,
     BlockContents&& block) {
+  DBUG_TRACE;
   parsed_out->reset(new Block_kFilterPartitionIndex(
       std::move(block), /*read_amp_bytes_per_bit*/ 0, statistics));
   parsed_out->get()->InitializeIndexBlockProtectionInfo(
@@ -35,11 +39,13 @@ void BlockCreateContext::Create(
 }
 void BlockCreateContext::Create(
     std::unique_ptr<Block_kRangeDeletion>* parsed_out, BlockContents&& block) {
+  DBUG_TRACE;
   parsed_out->reset(new Block_kRangeDeletion(
       std::move(block), /*read_amp_bytes_per_bit*/ 0, statistics));
 }
 void BlockCreateContext::Create(std::unique_ptr<Block_kMetaIndex>* parsed_out,
                                 BlockContents&& block) {
+  DBUG_TRACE;
   parsed_out->reset(new Block_kMetaIndex(
       std::move(block), /*read_amp_bytes_per_bit*/ 0, statistics));
   parsed_out->get()->InitializeMetaIndexBlockProtectionInfo(
@@ -48,12 +54,14 @@ void BlockCreateContext::Create(std::unique_ptr<Block_kMetaIndex>* parsed_out,
 
 void BlockCreateContext::Create(
     std::unique_ptr<ParsedFullFilterBlock>* parsed_out, BlockContents&& block) {
+  DBUG_TRACE;
   parsed_out->reset(new ParsedFullFilterBlock(
       table_options->filter_policy.get(), std::move(block)));
 }
 
 void BlockCreateContext::Create(std::unique_ptr<UncompressionDict>* parsed_out,
                                 BlockContents&& block) {
+  DBUG_TRACE;
   parsed_out->reset(new UncompressionDict(
       block.data, std::move(block.allocation), using_zstd));
 }
@@ -98,6 +106,7 @@ const std::array<const Cache::CacheItemHelper*,
 
 const Cache::CacheItemHelper* GetCacheItemHelper(
     BlockType block_type, CacheTier lowest_used_cache_tier) {
+  DBUG_TRACE;
   if (lowest_used_cache_tier > CacheTier::kVolatileTier) {
     return kCacheItemFullHelperForBlockType[static_cast<unsigned>(block_type)];
   } else {

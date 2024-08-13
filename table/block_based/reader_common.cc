@@ -6,6 +6,7 @@
 // Copyright (c) 2011 The LevelDB Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
+#include "rocksdb/util/dbug.h"
 #include "table/block_based/reader_common.h"
 
 #include "monitoring/perf_context_imp.h"
@@ -17,6 +18,7 @@
 
 namespace ROCKSDB_NAMESPACE {
 void ForceReleaseCachedEntry(void* arg, void* h) {
+  DBUG_TRACE;
   Cache* cache = static_cast<Cache*>(arg);
   Cache::Handle* handle = static_cast<Cache::Handle*>(h);
   cache->Release(handle, true /* erase_if_last_ref */);
@@ -26,6 +28,7 @@ void ForceReleaseCachedEntry(void* arg, void* h) {
 Status VerifyBlockChecksum(const Footer& footer, const char* data,
                            size_t block_size, const std::string& file_name,
                            uint64_t offset) {
+  DBUG_TRACE;
   PERF_TIMER_GUARD(block_checksum_time);
 
   assert(footer.GetBlockTrailerSize() == 5);

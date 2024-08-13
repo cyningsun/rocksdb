@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "utilities/transactions/pessimistic_transaction_db.h"
 
 #include <cinttypes>
@@ -72,6 +73,7 @@ PessimisticTransactionDB::~PessimisticTransactionDB() {
 
 Status PessimisticTransactionDB::VerifyCFOptions(
     const ColumnFamilyOptions& cf_options) {
+  DBUG_TRACE;
   const Comparator* const ucmp = cf_options.comparator;
   assert(ucmp);
   size_t ts_sz = ucmp->timestamp_size();
@@ -94,6 +96,7 @@ Status PessimisticTransactionDB::VerifyCFOptions(
 Status PessimisticTransactionDB::Initialize(
     const std::vector<size_t>& compaction_enabled_cf_indices,
     const std::vector<ColumnFamilyHandle*>& handles) {
+  DBUG_TRACE;
   for (auto cf_ptr : handles) {
     AddColumnFamily(cf_ptr);
   }
@@ -179,6 +182,7 @@ Status PessimisticTransactionDB::Initialize(
 Transaction* WriteCommittedTxnDB::BeginTransaction(
     const WriteOptions& write_options, const TransactionOptions& txn_options,
     Transaction* old_txn) {
+  DBUG_TRACE;
   if (old_txn != nullptr) {
     ReinitializeTransaction(old_txn, write_options, txn_options);
     return old_txn;
@@ -189,6 +193,7 @@ Transaction* WriteCommittedTxnDB::BeginTransaction(
 
 TransactionDBOptions PessimisticTransactionDB::ValidateTxnDBOptions(
     const TransactionDBOptions& txn_db_options) {
+  DBUG_TRACE;
   TransactionDBOptions validated = txn_db_options;
 
   if (txn_db_options.num_stripes == 0) {
@@ -201,6 +206,7 @@ TransactionDBOptions PessimisticTransactionDB::ValidateTxnDBOptions(
 Status TransactionDB::Open(const Options& options,
                            const TransactionDBOptions& txn_db_options,
                            const std::string& dbname, TransactionDB** dbptr) {
+  DBUG_TRACE;
   DBOptions db_options(options);
   ColumnFamilyOptions cf_options(options);
   std::vector<ColumnFamilyDescriptor> column_families;
@@ -223,6 +229,7 @@ Status TransactionDB::Open(
     const std::string& dbname,
     const std::vector<ColumnFamilyDescriptor>& column_families,
     std::vector<ColumnFamilyHandle*>* handles, TransactionDB** dbptr) {
+  DBUG_TRACE;
   Status s;
   DB* db = nullptr;
   if (txn_db_options.write_policy == WRITE_COMMITTED &&
@@ -272,6 +279,7 @@ Status TransactionDB::Open(
 void TransactionDB::PrepareWrap(
     DBOptions* db_options, std::vector<ColumnFamilyDescriptor>* column_families,
     std::vector<size_t>* compaction_enabled_cf_indices) {
+  DBUG_TRACE;
   compaction_enabled_cf_indices->clear();
 
   // Enable MemTable History if not already enabled
@@ -343,6 +351,7 @@ Status TransactionDB::WrapDB(
     DB* db, const TransactionDBOptions& txn_db_options,
     const std::vector<size_t>& compaction_enabled_cf_indices,
     const std::vector<ColumnFamilyHandle*>& handles, TransactionDB** dbptr) {
+  DBUG_TRACE;
   return WrapAnotherDBInternal(db, txn_db_options,
                                compaction_enabled_cf_indices, handles, dbptr);
 }
@@ -353,6 +362,7 @@ Status TransactionDB::WrapStackableDB(
     StackableDB* db, const TransactionDBOptions& txn_db_options,
     const std::vector<size_t>& compaction_enabled_cf_indices,
     const std::vector<ColumnFamilyHandle*>& handles, TransactionDB** dbptr) {
+  DBUG_TRACE;
   return WrapAnotherDBInternal(db, txn_db_options,
                                compaction_enabled_cf_indices, handles, dbptr);
 }
@@ -361,12 +371,14 @@ Status TransactionDB::WrapStackableDB(
 // allocate a LockMap for it.
 void PessimisticTransactionDB::AddColumnFamily(
     const ColumnFamilyHandle* handle) {
+  DBUG_TRACE;
   lock_manager_->AddColumnFamily(handle);
 }
 
 Status PessimisticTransactionDB::CreateColumnFamily(
     const ColumnFamilyOptions& options, const std::string& column_family_name,
     ColumnFamilyHandle** handle) {
+  DBUG_TRACE;
   InstrumentedMutexLock l(&column_family_mutex_);
   Status s = VerifyCFOptions(options);
   if (!s.ok()) {
@@ -386,6 +398,7 @@ Status PessimisticTransactionDB::CreateColumnFamilies(
     const ColumnFamilyOptions& options,
     const std::vector<std::string>& column_family_names,
     std::vector<ColumnFamilyHandle*>* handles) {
+  DBUG_TRACE;
   InstrumentedMutexLock l(&column_family_mutex_);
 
   Status s = VerifyCFOptions(options);
@@ -407,6 +420,7 @@ Status PessimisticTransactionDB::CreateColumnFamilies(
 Status PessimisticTransactionDB::CreateColumnFamilies(
     const std::vector<ColumnFamilyDescriptor>& column_families,
     std::vector<ColumnFamilyHandle*>* handles) {
+  DBUG_TRACE;
   InstrumentedMutexLock l(&column_family_mutex_);
 
   for (auto& cf_desc : column_families) {
@@ -432,6 +446,7 @@ Status PessimisticTransactionDB::CreateColumnFamilyWithImport(
     const ImportColumnFamilyOptions& import_options,
     const std::vector<const ExportImportFilesMetaData*>& metadatas,
     ColumnFamilyHandle** handle) {
+  DBUG_TRACE;
   InstrumentedMutexLock l(&column_family_mutex_);
   Status s = VerifyCFOptions(options);
   if (!s.ok()) {
@@ -452,6 +467,7 @@ Status PessimisticTransactionDB::CreateColumnFamilyWithImport(
 // column family.
 Status PessimisticTransactionDB::DropColumnFamily(
     ColumnFamilyHandle* column_family) {
+  DBUG_TRACE;
   InstrumentedMutexLock l(&column_family_mutex_);
 
   Status s = db_->DropColumnFamily(column_family);
@@ -464,6 +480,7 @@ Status PessimisticTransactionDB::DropColumnFamily(
 
 Status PessimisticTransactionDB::DropColumnFamilies(
     const std::vector<ColumnFamilyHandle*>& column_families) {
+  DBUG_TRACE;
   InstrumentedMutexLock l(&column_family_mutex_);
 
   Status s = db_->DropColumnFamilies(column_families);
@@ -480,6 +497,7 @@ Status PessimisticTransactionDB::TryLock(PessimisticTransaction* txn,
                                          uint32_t cfh_id,
                                          const std::string& key,
                                          bool exclusive) {
+  DBUG_TRACE;
   return lock_manager_->TryLock(txn, cfh_id, key, GetEnv(), exclusive);
 }
 
@@ -487,23 +505,27 @@ Status PessimisticTransactionDB::TryRangeLock(PessimisticTransaction* txn,
                                               uint32_t cfh_id,
                                               const Endpoint& start_endp,
                                               const Endpoint& end_endp) {
+  DBUG_TRACE;
   return lock_manager_->TryLock(txn, cfh_id, start_endp, end_endp, GetEnv(),
                                 /*exclusive=*/true);
 }
 
 void PessimisticTransactionDB::UnLock(PessimisticTransaction* txn,
                                       const LockTracker& keys) {
+  DBUG_TRACE;
   lock_manager_->UnLock(txn, keys, GetEnv());
 }
 
 void PessimisticTransactionDB::UnLock(PessimisticTransaction* txn,
                                       uint32_t cfh_id, const std::string& key) {
+  DBUG_TRACE;
   lock_manager_->UnLock(txn, cfh_id, key, GetEnv());
 }
 
 // Used when wrapping DB write operations in a transaction
 Transaction* PessimisticTransactionDB::BeginInternalTransaction(
     const WriteOptions& options) {
+  DBUG_TRACE;
   TransactionOptions txn_options;
   Transaction* txn = BeginTransaction(options, txn_options, nullptr);
 
@@ -524,6 +546,7 @@ Transaction* PessimisticTransactionDB::BeginInternalTransaction(
 Status PessimisticTransactionDB::Put(const WriteOptions& options,
                                      ColumnFamilyHandle* column_family,
                                      const Slice& key, const Slice& val) {
+  DBUG_TRACE;
   Status s = FailIfCfEnablesTs(this, column_family);
   if (!s.ok()) {
     return s;
@@ -549,6 +572,7 @@ Status PessimisticTransactionDB::PutEntity(const WriteOptions& options,
                                            ColumnFamilyHandle* column_family,
                                            const Slice& key,
                                            const WideColumns& columns) {
+  DBUG_TRACE;
   {
     const Status s = FailIfCfEnablesTs(this, column_family);
     if (!s.ok()) {
@@ -584,6 +608,7 @@ Status PessimisticTransactionDB::PutEntity(const WriteOptions& options,
 Status PessimisticTransactionDB::Delete(const WriteOptions& wopts,
                                         ColumnFamilyHandle* column_family,
                                         const Slice& key) {
+  DBUG_TRACE;
   Status s = FailIfCfEnablesTs(this, column_family);
   if (!s.ok()) {
     return s;
@@ -609,6 +634,7 @@ Status PessimisticTransactionDB::Delete(const WriteOptions& wopts,
 Status PessimisticTransactionDB::SingleDelete(const WriteOptions& wopts,
                                               ColumnFamilyHandle* column_family,
                                               const Slice& key) {
+  DBUG_TRACE;
   Status s = FailIfCfEnablesTs(this, column_family);
   if (!s.ok()) {
     return s;
@@ -634,6 +660,7 @@ Status PessimisticTransactionDB::SingleDelete(const WriteOptions& wopts,
 Status PessimisticTransactionDB::Merge(const WriteOptions& options,
                                        ColumnFamilyHandle* column_family,
                                        const Slice& key, const Slice& value) {
+  DBUG_TRACE;
   Status s = FailIfCfEnablesTs(this, column_family);
   if (!s.ok()) {
     return s;
@@ -658,11 +685,13 @@ Status PessimisticTransactionDB::Merge(const WriteOptions& options,
 
 Status PessimisticTransactionDB::Write(const WriteOptions& opts,
                                        WriteBatch* updates) {
+  DBUG_TRACE;
   return WriteWithConcurrencyControl(opts, updates);
 }
 
 Status WriteCommittedTxnDB::Write(const WriteOptions& opts,
                                   WriteBatch* updates) {
+  DBUG_TRACE;
   Status s = FailIfBatchHasTs(updates);
   if (!s.ok()) {
     return s;
@@ -677,6 +706,7 @@ Status WriteCommittedTxnDB::Write(const WriteOptions& opts,
 Status WriteCommittedTxnDB::Write(
     const WriteOptions& opts,
     const TransactionDBWriteOptimizations& optimizations, WriteBatch* updates) {
+  DBUG_TRACE;
   Status s = FailIfBatchHasTs(updates);
   if (!s.ok()) {
     return s;
@@ -690,18 +720,21 @@ Status WriteCommittedTxnDB::Write(
 
 void PessimisticTransactionDB::InsertExpirableTransaction(
     TransactionID tx_id, PessimisticTransaction* tx) {
+  DBUG_TRACE;
   assert(tx->GetExpirationTime() > 0);
   std::lock_guard<std::mutex> lock(map_mutex_);
   expirable_transactions_map_.insert({tx_id, tx});
 }
 
 void PessimisticTransactionDB::RemoveExpirableTransaction(TransactionID tx_id) {
+  DBUG_TRACE;
   std::lock_guard<std::mutex> lock(map_mutex_);
   expirable_transactions_map_.erase(tx_id);
 }
 
 bool PessimisticTransactionDB::TryStealingExpiredTransactionLocks(
     TransactionID tx_id) {
+  DBUG_TRACE;
   std::lock_guard<std::mutex> lock(map_mutex_);
 
   auto tx_it = expirable_transactions_map_.find(tx_id);
@@ -715,6 +748,7 @@ bool PessimisticTransactionDB::TryStealingExpiredTransactionLocks(
 void PessimisticTransactionDB::ReinitializeTransaction(
     Transaction* txn, const WriteOptions& write_options,
     const TransactionOptions& txn_options) {
+  DBUG_TRACE;
   auto txn_impl = static_cast_with_check<PessimisticTransaction>(txn);
 
   txn_impl->Reinitialize(this, write_options, txn_options);
@@ -722,12 +756,14 @@ void PessimisticTransactionDB::ReinitializeTransaction(
 
 Transaction* PessimisticTransactionDB::GetTransactionByName(
     const TransactionName& name) {
+  DBUG_TRACE;
   std::lock_guard<std::mutex> lock(name_map_mutex_);
   return GetTransactionByNameLocked(name);
 }
 
 Transaction* PessimisticTransactionDB::GetTransactionByNameLocked(
     const TransactionName& name) {
+  DBUG_TRACE;
   auto it = transactions_.find(name);
   if (it == transactions_.end()) {
     return nullptr;
@@ -738,6 +774,7 @@ Transaction* PessimisticTransactionDB::GetTransactionByNameLocked(
 
 void PessimisticTransactionDB::GetAllPreparedTransactions(
     std::vector<Transaction*>* transv) {
+  DBUG_TRACE;
   assert(transv);
   transv->clear();
   std::lock_guard<std::mutex> lock(name_map_mutex_);
@@ -749,18 +786,22 @@ void PessimisticTransactionDB::GetAllPreparedTransactions(
 }
 
 LockManager::PointLockStatus PessimisticTransactionDB::GetLockStatusData() {
+  DBUG_TRACE;
   return lock_manager_->GetPointLockStatus();
 }
 
 std::vector<DeadlockPath> PessimisticTransactionDB::GetDeadlockInfoBuffer() {
+  DBUG_TRACE;
   return lock_manager_->GetDeadlockInfoBuffer();
 }
 
 void PessimisticTransactionDB::SetDeadlockInfoBufferSize(uint32_t target_size) {
+  DBUG_TRACE;
   lock_manager_->Resize(target_size);
 }
 
 Status PessimisticTransactionDB::RegisterTransaction(Transaction* txn) {
+  DBUG_TRACE;
   assert(txn);
   assert(txn->GetName().length() > 0);
   assert(txn->GetState() == Transaction::STARTED);
@@ -772,6 +813,7 @@ Status PessimisticTransactionDB::RegisterTransaction(Transaction* txn) {
 }
 
 void PessimisticTransactionDB::UnregisterTransaction(Transaction* txn) {
+  DBUG_TRACE;
   assert(txn);
   std::lock_guard<std::mutex> lock(name_map_mutex_);
   auto it = transactions_.find(txn->GetName());
@@ -781,6 +823,7 @@ void PessimisticTransactionDB::UnregisterTransaction(Transaction* txn) {
 
 std::pair<Status, std::shared_ptr<const Snapshot>>
 PessimisticTransactionDB::CreateTimestampedSnapshot(TxnTimestamp ts) {
+  DBUG_TRACE;
   if (kMaxTxnTimestamp == ts) {
     return std::make_pair(Status::InvalidArgument("invalid ts"), nullptr);
   }
@@ -790,12 +833,14 @@ PessimisticTransactionDB::CreateTimestampedSnapshot(TxnTimestamp ts) {
 
 std::shared_ptr<const Snapshot>
 PessimisticTransactionDB::GetTimestampedSnapshot(TxnTimestamp ts) const {
+  DBUG_TRACE;
   assert(db_impl_);
   return db_impl_->GetTimestampedSnapshot(ts);
 }
 
 void PessimisticTransactionDB::ReleaseTimestampedSnapshotsOlderThan(
     TxnTimestamp ts) {
+  DBUG_TRACE;
   assert(db_impl_);
   db_impl_->ReleaseTimestampedSnapshotsOlderThan(ts);
 }
@@ -803,12 +848,14 @@ void PessimisticTransactionDB::ReleaseTimestampedSnapshotsOlderThan(
 Status PessimisticTransactionDB::GetTimestampedSnapshots(
     TxnTimestamp ts_lb, TxnTimestamp ts_ub,
     std::vector<std::shared_ptr<const Snapshot>>& timestamped_snapshots) const {
+  DBUG_TRACE;
   assert(db_impl_);
   return db_impl_->GetTimestampedSnapshots(ts_lb, ts_ub, timestamped_snapshots);
 }
 
 Status SnapshotCreationCallback::operator()(SequenceNumber seq,
                                             bool disable_memtable) {
+  DBUG_TRACE;
   assert(db_impl_);
   assert(commit_ts_ != kMaxTxnTimestamp);
 

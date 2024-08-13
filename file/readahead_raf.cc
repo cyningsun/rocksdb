@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "file/readahead_raf.h"
 
 #include <algorithm>
@@ -40,6 +41,7 @@ class ReadaheadRandomAccessFile : public FSRandomAccessFile {
   IOStatus Read(uint64_t offset, size_t n, const IOOptions& options,
                 Slice* result, char* scratch,
                 IODebugContext* dbg) const override {
+    DBUG_TRACE;
     // Read-ahead only make sense if we have some slack left after reading
     if (n + alignment_ >= readahead_size_) {
       return file_->Read(offset, n, options, result, scratch, dbg);
@@ -76,6 +78,7 @@ class ReadaheadRandomAccessFile : public FSRandomAccessFile {
 
   IOStatus Prefetch(uint64_t offset, size_t n, const IOOptions& options,
                     IODebugContext* dbg) override {
+    DBUG_TRACE;
     if (n < readahead_size_) {
       // Don't allow smaller prefetches than the configured `readahead_size_`.
       // `Read()` assumes a smaller prefetch buffer indicates EOF was reached.
@@ -95,18 +98,20 @@ class ReadaheadRandomAccessFile : public FSRandomAccessFile {
   }
 
   size_t GetUniqueId(char* id, size_t max_size) const override {
+    DBUG_TRACE;
     return file_->GetUniqueId(id, max_size);
   }
 
-  void Hint(AccessPattern pattern) override { file_->Hint(pattern); }
+  void Hint(AccessPattern pattern) override { DBUG_TRACE; file_->Hint(pattern); }
 
   IOStatus InvalidateCache(size_t offset, size_t length) override {
+    DBUG_TRACE;
     std::unique_lock<std::mutex> lk(lock_);
     buffer_.Clear();
     return file_->InvalidateCache(offset, length);
   }
 
-  bool use_direct_io() const override { return file_->use_direct_io(); }
+  bool use_direct_io() const override { DBUG_TRACE; return file_->use_direct_io(); }
 
  private:
   // Tries to read from buffer_ n bytes starting at offset. If anything was read
@@ -115,6 +120,7 @@ class ReadaheadRandomAccessFile : public FSRandomAccessFile {
   // If nothing was read sets cached_len to 0 and returns false.
   bool TryReadFromCache(uint64_t offset, size_t n, size_t* cached_len,
                         char* scratch) const {
+    DBUG_TRACE;
     if (offset < buffer_offset_ ||
         offset >= buffer_offset_ + buffer_.CurrentSize()) {
       *cached_len = 0;
@@ -132,6 +138,7 @@ class ReadaheadRandomAccessFile : public FSRandomAccessFile {
   // Returns the status of the read operastion on the file.
   IOStatus ReadIntoBuffer(uint64_t offset, size_t n, const IOOptions& options,
                           IODebugContext* dbg) const {
+    DBUG_TRACE;
     if (n > buffer_.Capacity()) {
       n = buffer_.Capacity();
     }
@@ -162,6 +169,7 @@ class ReadaheadRandomAccessFile : public FSRandomAccessFile {
 
 std::unique_ptr<FSRandomAccessFile> NewReadaheadRandomAccessFile(
     std::unique_ptr<FSRandomAccessFile>&& file, size_t readahead_size) {
+  DBUG_TRACE;
   std::unique_ptr<FSRandomAccessFile> result(
       new ReadaheadRandomAccessFile(std::move(file), readahead_size));
   return result;

@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "options/cf_options.h"
 
 #include <cassert>
@@ -40,6 +41,7 @@ namespace ROCKSDB_NAMESPACE {
 static Status ParseCompressionOptions(const std::string& value,
                                       const std::string& name,
                                       CompressionOptions& compression_opts) {
+  DBUG_TRACE;
   const char kDelimiter = ':';
   std::istringstream field_stream(value);
   std::string field;
@@ -857,6 +859,7 @@ class ConfigurableCFOptions : public ConfigurableMutableCFOptions {
       const ConfigOptions& config_options,
       const std::unordered_map<std::string, std::string>& opts_map,
       std::unordered_map<std::string, std::string>* unused) override {
+    DBUG_TRACE;
     Status s = Configurable::ConfigureOptions(config_options, opts_map, unused);
     if (s.ok()) {
       UpdateColumnFamilyOptions(mutable_, &cf_options_);
@@ -867,6 +870,7 @@ class ConfigurableCFOptions : public ConfigurableMutableCFOptions {
   }
 
   const void* GetOptionsPtr(const std::string& name) const override {
+    DBUG_TRACE;
     if (name == OptionsHelper::kCFOptionsName) {
       return &cf_options_;
     } else {
@@ -879,6 +883,7 @@ class ConfigurableCFOptions : public ConfigurableMutableCFOptions {
                        const std::string& opt_name, const void* const this_ptr,
                        const void* const that_ptr,
                        std::string* mismatch) const override {
+    DBUG_TRACE;
     bool equals = opt_info.AreEqual(config_options, opt_name, this_ptr,
                                     that_ptr, mismatch);
     if (!equals && opt_info.IsByName()) {
@@ -921,12 +926,14 @@ class ConfigurableCFOptions : public ConfigurableMutableCFOptions {
 
 std::unique_ptr<Configurable> CFOptionsAsConfigurable(
     const MutableCFOptions& opts) {
+  DBUG_TRACE;
   std::unique_ptr<Configurable> ptr(new ConfigurableMutableCFOptions(opts));
   return ptr;
 }
 std::unique_ptr<Configurable> CFOptionsAsConfigurable(
     const ColumnFamilyOptions& opts,
     const std::unordered_map<std::string, std::string>* opt_map) {
+  DBUG_TRACE;
   std::unique_ptr<Configurable> ptr(new ConfigurableCFOptions(opts, opt_map));
   return ptr;
 }
@@ -995,6 +1002,7 @@ ImmutableOptions::ImmutableOptions(const ImmutableDBOptions& db_options,
 
 // Multiple two operands. If they overflow, return op1.
 uint64_t MultiplyCheckOverflow(uint64_t op1, double op2) {
+  DBUG_TRACE;
   if (op1 == 0 || op2 <= 0) {
     return 0;
   }
@@ -1010,6 +1018,7 @@ uint64_t MultiplyCheckOverflow(uint64_t op1, double op2) {
 uint64_t MaxFileSizeForLevel(const MutableCFOptions& cf_options,
     int level, CompactionStyle compaction_style, int base_level,
     bool level_compaction_dynamic_level_bytes) {
+  DBUG_TRACE;
   if (!level_compaction_dynamic_level_bytes || level < base_level ||
       compaction_style != kCompactionStyleLevel) {
     assert(level >= 0);
@@ -1023,6 +1032,7 @@ uint64_t MaxFileSizeForLevel(const MutableCFOptions& cf_options,
 }
 
 size_t MaxFileSizeForL0MetaPin(const MutableCFOptions& cf_options) {
+  DBUG_TRACE;
   // We do not want to pin meta-blocks that almost certainly came from intra-L0
   // or a former larger `write_buffer_size` value to avoid surprising users with
   // pinned memory usage. We use a factor of 1.5 to account for overhead
@@ -1036,6 +1046,7 @@ size_t MaxFileSizeForL0MetaPin(const MutableCFOptions& cf_options) {
 
 void MutableCFOptions::RefreshDerivedOptions(int num_levels,
                                              CompactionStyle compaction_style) {
+  DBUG_TRACE;
   max_file_size.resize(num_levels);
   for (int i = 0; i < num_levels; ++i) {
     if (i == 0 && compaction_style == kCompactionStyleUniversal) {
@@ -1050,6 +1061,7 @@ void MutableCFOptions::RefreshDerivedOptions(int num_levels,
 }
 
 void MutableCFOptions::Dump(Logger* log) const {
+  DBUG_TRACE;
   // Memtable related options
   ROCKS_LOG_INFO(log,
                  "                        write_buffer_size: %" ROCKSDB_PRIszt,
@@ -1196,6 +1208,7 @@ Status GetMutableOptionsFromStrings(
     const MutableCFOptions& base_options,
     const std::unordered_map<std::string, std::string>& options_map,
     Logger* /*info_log*/, MutableCFOptions* new_options) {
+  DBUG_TRACE;
   assert(new_options);
   *new_options = base_options;
   ConfigOptions config_options;
@@ -1210,6 +1223,7 @@ Status GetMutableOptionsFromStrings(
 Status GetStringFromMutableCFOptions(const ConfigOptions& config_options,
                                      const MutableCFOptions& mutable_opts,
                                      std::string* opt_string) {
+  DBUG_TRACE;
   assert(opt_string);
   opt_string->clear();
   return OptionTypeInfo::SerializeType(

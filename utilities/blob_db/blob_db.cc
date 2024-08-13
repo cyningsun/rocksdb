@@ -4,6 +4,7 @@
 //  (found in the LICENSE.Apache file in the root directory).
 //
 
+#include "rocksdb/util/dbug.h"
 #include "utilities/blob_db/blob_db.h"
 
 #include <cinttypes>
@@ -15,6 +16,7 @@ namespace ROCKSDB_NAMESPACE::blob_db {
 
 Status BlobDB::Open(const Options& options, const BlobDBOptions& bdb_options,
                     const std::string& dbname, BlobDB** blob_db) {
+  DBUG_TRACE;
   *blob_db = nullptr;
   DBOptions db_options(options);
   ColumnFamilyOptions cf_options(options);
@@ -37,6 +39,7 @@ Status BlobDB::Open(const DBOptions& db_options,
                     const std::vector<ColumnFamilyDescriptor>& column_families,
                     std::vector<ColumnFamilyHandle*>* handles,
                     BlobDB** blob_db) {
+  DBUG_TRACE;
   assert(handles);
 
   if (column_families.size() != 1 ||
@@ -68,6 +71,7 @@ Status BlobDB::Open(const DBOptions& db_options,
 BlobDB::BlobDB() : StackableDB(nullptr) {}
 
 void BlobDBOptions::Dump(Logger* log) const {
+  DBUG_TRACE;
   ROCKS_LOG_HEADER(
       log, "                                  BlobDBOptions.blob_dir: %s",
       blob_dir.c_str());

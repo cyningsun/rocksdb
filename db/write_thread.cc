@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "db/write_thread.h"
 
 #include <chrono>
@@ -34,6 +35,7 @@ WriteThread::WriteThread(const ImmutableDBOptions& db_options)
       stall_cv_(&stall_mu_) {}
 
 uint8_t WriteThread::BlockingAwaitState(Writer* w, uint8_t goal_mask) {
+  DBUG_TRACE;
   // We're going to block.  Lazily create the mutex.  We guarantee
   // propagation of this construction to the waker via the
   // STATE_LOCKED_WAITING state.  The waker won't try to touch the mutex
@@ -63,6 +65,7 @@ uint8_t WriteThread::BlockingAwaitState(Writer* w, uint8_t goal_mask) {
 
 uint8_t WriteThread::AwaitState(Writer* w, uint8_t goal_mask,
                                 AdaptationContext* ctx) {
+  DBUG_TRACE;
   uint8_t state = 0;
 
   // 1. Busy loop using "pause" for 1 micro sec
@@ -210,6 +213,7 @@ uint8_t WriteThread::AwaitState(Writer* w, uint8_t goal_mask,
 }
 
 void WriteThread::SetState(Writer* w, uint8_t new_state) {
+  DBUG_TRACE;
   assert(w);
   auto state = w->state.load(std::memory_order_acquire);
   if (state == STATE_LOCKED_WAITING ||
@@ -224,6 +228,7 @@ void WriteThread::SetState(Writer* w, uint8_t new_state) {
 }
 
 bool WriteThread::LinkOne(Writer* w, std::atomic<Writer*>* newest_writer) {
+  DBUG_TRACE;
   assert(newest_writer != nullptr);
   assert(w->state == STATE_INIT);
   Writer* writers = newest_writer->load(std::memory_order_relaxed);
@@ -261,6 +266,7 @@ bool WriteThread::LinkOne(Writer* w, std::atomic<Writer*>* newest_writer) {
 
 bool WriteThread::LinkGroup(WriteGroup& write_group,
                             std::atomic<Writer*>* newest_writer) {
+  DBUG_TRACE;
   assert(newest_writer != nullptr);
   Writer* leader = write_group.leader;
   Writer* last_writer = write_group.last_writer;
@@ -285,6 +291,7 @@ bool WriteThread::LinkGroup(WriteGroup& write_group,
 }
 
 void WriteThread::CreateMissingNewerLinks(Writer* head) {
+  DBUG_TRACE;
   while (true) {
     Writer* next = head->link_older;
     if (next == nullptr || next->link_newer != nullptr) {
@@ -297,6 +304,7 @@ void WriteThread::CreateMissingNewerLinks(Writer* head) {
 }
 
 void WriteThread::CompleteLeader(WriteGroup& write_group) {
+  DBUG_TRACE;
   assert(write_group.size > 0);
   Writer* leader = write_group.leader;
   if (write_group.size == 1) {
@@ -312,6 +320,7 @@ void WriteThread::CompleteLeader(WriteGroup& write_group) {
 }
 
 void WriteThread::CompleteFollower(Writer* w, WriteGroup& write_group) {
+  DBUG_TRACE;
   assert(write_group.size > 1);
   assert(w != write_group.leader);
   if (w == write_group.last_writer) {
@@ -326,6 +335,7 @@ void WriteThread::CompleteFollower(Writer* w, WriteGroup& write_group) {
 }
 
 void WriteThread::BeginWriteStall() {
+  DBUG_TRACE;
   ++stall_begun_count_;
   LinkOne(&write_stall_dummy_, &newest_writer_);
 
@@ -357,6 +367,7 @@ void WriteThread::BeginWriteStall() {
 }
 
 void WriteThread::EndWriteStall() {
+  DBUG_TRACE;
   MutexLock lock(&stall_mu_);
 
   // Unlink write_stall_dummy_ from the write queue. This will unblock
@@ -376,6 +387,7 @@ void WriteThread::EndWriteStall() {
 }
 
 uint64_t WriteThread::GetBegunCountOfOutstandingStall() {
+  DBUG_TRACE;
   if (stall_begun_count_ > stall_ended_count_) {
     // Oustanding stall in queue
     assert(newest_writer_.load(std::memory_order_relaxed) ==
@@ -390,6 +402,7 @@ uint64_t WriteThread::GetBegunCountOfOutstandingStall() {
 }
 
 void WriteThread::WaitForStallEndedCount(uint64_t stall_count) {
+  DBUG_TRACE;
   MutexLock lock(&stall_mu_);
 
   while (stall_ended_count_ < stall_count) {
@@ -399,6 +412,7 @@ void WriteThread::WaitForStallEndedCount(uint64_t stall_count) {
 
 static WriteThread::AdaptationContext jbg_ctx("JoinBatchGroup");
 void WriteThread::JoinBatchGroup(Writer* w) {
+  DBUG_TRACE;
   TEST_SYNC_POINT_CALLBACK("WriteThread::JoinBatchGroup:Start", w);
   assert(w->batch != nullptr);
 
@@ -439,6 +453,7 @@ void WriteThread::JoinBatchGroup(Writer* w) {
 
 size_t WriteThread::EnterAsBatchGroupLeader(Writer* leader,
                                             WriteGroup* write_group) {
+  DBUG_TRACE;
   assert(leader->link_older == nullptr);
   assert(leader->batch != nullptr);
   assert(write_group != nullptr);
@@ -568,6 +583,7 @@ size_t WriteThread::EnterAsBatchGroupLeader(Writer* leader,
 
 void WriteThread::EnterAsMemTableWriter(Writer* leader,
                                         WriteGroup* write_group) {
+  DBUG_TRACE;
   assert(leader != nullptr);
   assert(leader->link_older == nullptr);
   assert(leader->batch != nullptr);
@@ -628,6 +644,7 @@ void WriteThread::EnterAsMemTableWriter(Writer* leader,
 
 void WriteThread::ExitAsMemTableWriter(Writer* /*self*/,
                                        WriteGroup& write_group) {
+  DBUG_TRACE;
   Writer* leader = write_group.leader;
   Writer* last_writer = write_group.last_writer;
 
@@ -660,6 +677,7 @@ void WriteThread::ExitAsMemTableWriter(Writer* /*self*/,
 }
 
 void WriteThread::SetMemWritersEachStride(Writer* w) {
+  DBUG_TRACE;
   WriteGroup* write_group = w->write_group;
   Writer* last_writer = write_group->last_writer;
 
@@ -676,6 +694,7 @@ void WriteThread::SetMemWritersEachStride(Writer* w) {
 }
 
 void WriteThread::LaunchParallelMemTableWriters(WriteGroup* write_group) {
+  DBUG_TRACE;
   assert(write_group != nullptr);
   size_t group_size = write_group->size;
   write_group->running.store(group_size);
@@ -716,6 +735,7 @@ static WriteThread::AdaptationContext cpmtw_ctx(
     "CompleteParallelMemTableWriter");
 // This method is called by both the leader and parallel followers
 bool WriteThread::CompleteParallelMemTableWriter(Writer* w) {
+  DBUG_TRACE;
   auto* write_group = w->write_group;
   if (!w->status.ok()) {
     std::lock_guard<std::mutex> guard(write_group->leader->StateMutex());
@@ -735,6 +755,7 @@ bool WriteThread::CompleteParallelMemTableWriter(Writer* w) {
 }
 
 void WriteThread::ExitAsBatchGroupFollower(Writer* w) {
+  DBUG_TRACE;
   auto* write_group = w->write_group;
 
   assert(w->state == STATE_PARALLEL_MEMTABLE_WRITER);
@@ -748,6 +769,7 @@ void WriteThread::ExitAsBatchGroupFollower(Writer* w) {
 static WriteThread::AdaptationContext eabgl_ctx("ExitAsBatchGroupLeader");
 void WriteThread::ExitAsBatchGroupLeader(WriteGroup& write_group,
                                          Status& status) {
+  DBUG_TRACE;
   TEST_SYNC_POINT_CALLBACK("WriteThread::ExitAsBatchGroupLeader:Start",
                            &write_group);
 
@@ -889,6 +911,7 @@ void WriteThread::ExitAsBatchGroupLeader(WriteGroup& write_group,
 
 static WriteThread::AdaptationContext eu_ctx("EnterUnbatched");
 void WriteThread::EnterUnbatched(Writer* w, InstrumentedMutex* mu) {
+  DBUG_TRACE;
   assert(w != nullptr && w->batch == nullptr);
   mu->Unlock();
   bool linked_as_leader = LinkOne(w, &newest_writer_);
@@ -904,6 +927,7 @@ void WriteThread::EnterUnbatched(Writer* w, InstrumentedMutex* mu) {
 }
 
 void WriteThread::ExitUnbatched(Writer* w) {
+  DBUG_TRACE;
   assert(w != nullptr);
   Writer* newest_writer = w;
   if (!newest_writer_.compare_exchange_strong(newest_writer, nullptr)) {
@@ -917,6 +941,7 @@ void WriteThread::ExitUnbatched(Writer* w) {
 
 static WriteThread::AdaptationContext wfmw_ctx("WaitForMemTableWriters");
 void WriteThread::WaitForMemTableWriters() {
+  DBUG_TRACE;
   assert(enable_pipelined_write_);
   if (newest_memtable_writer_.load() == nullptr) {
     return;

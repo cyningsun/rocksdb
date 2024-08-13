@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "table/merging_iterator.h"
 
 #include "db/arena_wrapped_db_iter.h"
@@ -71,12 +72,14 @@ class MergingIterator : public InternalIterator {
   }
 
   void considerStatus(Status s) {
+    DBUG_TRACE;
     if (!s.ok() && status_.ok()) {
       status_ = s;
     }
   }
 
   virtual void AddIterator(InternalIterator* iter) {
+    DBUG_TRACE;
     children_.emplace_back(children_.size(), iter);
     if (pinned_iters_mgr_) {
       iter->SetPinnedItersMgr(pinned_iters_mgr_);
@@ -98,6 +101,7 @@ class MergingIterator : public InternalIterator {
   // range_tombstone_iters_.
   void AddRangeTombstoneIterator(
       std::unique_ptr<TruncatedRangeDelIterator>&& iter) {
+    DBUG_TRACE;
     range_tombstone_iters_.emplace_back(std::move(iter));
   }
 
@@ -105,6 +109,7 @@ class MergingIterator : public InternalIterator {
   // tombstone iterators are added. Initializes HeapItems for range tombstone
   // iterators.
   void Finish() {
+    DBUG_TRACE;
     if (!range_tombstone_iters_.empty()) {
       assert(range_tombstone_iters_.size() == children_.size());
       pinned_heap_item_.resize(range_tombstone_iters_.size());
@@ -135,6 +140,7 @@ class MergingIterator : public InternalIterator {
   }
 
   void SetRangeDelReadSeqno(SequenceNumber read_seqno) override {
+    DBUG_TRACE;
     for (auto& child : children_) {
       // This should only be needed for LevelIterator (iterators from L1+).
       child.iter.SetRangeDelReadSeqno(read_seqno);
@@ -146,9 +152,9 @@ class MergingIterator : public InternalIterator {
     }
   }
 
-  bool Valid() const override { return current_ != nullptr && status_.ok(); }
+  bool Valid() const override { DBUG_TRACE; return current_ != nullptr && status_.ok(); }
 
-  Status status() const override { return status_; }
+  Status status() const override { DBUG_TRACE; return status_; }
 
   // Add range_tombstone_iters_[level] into min heap.
   // Updates active_ if the end key of a range tombstone is inserted.
@@ -159,6 +165,7 @@ class MergingIterator : public InternalIterator {
   // @param start_key specifies which end point of the range tombstone to add.
   void InsertRangeTombstoneToMinHeap(size_t level, bool start_key = true,
                                      bool replace_top = false) {
+    DBUG_TRACE;
     assert(!range_tombstone_iters_.empty() &&
            range_tombstone_iters_[level]->Valid());
     // Maintains Invariant(phi)
@@ -202,6 +209,7 @@ class MergingIterator : public InternalIterator {
   // @param end_key specifies which end point of the range tombstone to add.
   void InsertRangeTombstoneToMaxHeap(size_t level, bool end_key = true,
                                      bool replace_top = false) {
+    DBUG_TRACE;
     assert(!range_tombstone_iters_.empty() &&
            range_tombstone_iters_[level]->Valid());
     if (end_key) {
@@ -227,6 +235,7 @@ class MergingIterator : public InternalIterator {
   // DELETE_RANGE_START. Each such item means a range tombstone becomes active,
   // so `active_` is updated accordingly.
   void PopDeleteRangeStart() {
+    DBUG_TRACE;
     while (!minHeap_.empty() &&
            minHeap_.top()->type == HeapItem::Type::DELETE_RANGE_START) {
       TEST_SYNC_POINT_CALLBACK("MergeIterator::PopDeleteRangeStart", nullptr);
@@ -244,6 +253,7 @@ class MergingIterator : public InternalIterator {
   // DELETE_RANGE_END. Each such item means a range tombstone becomes active,
   // so `active_` is updated accordingly.
   void PopDeleteRangeEnd() {
+    DBUG_TRACE;
     while (!maxHeap_->empty() &&
            maxHeap_->top()->type == HeapItem::Type::DELETE_RANGE_END) {
       // insert start key of this range tombstone and updates active_
@@ -253,6 +263,7 @@ class MergingIterator : public InternalIterator {
   }
 
   void SeekToFirst() override {
+    DBUG_TRACE;
     ClearHeaps();
     status_ = Status::OK();
     for (auto& child : children_) {
@@ -275,6 +286,7 @@ class MergingIterator : public InternalIterator {
   }
 
   void SeekToLast() override {
+    DBUG_TRACE;
     ClearHeaps();
     InitMaxHeap();
     status_ = Status::OK();
@@ -311,6 +323,7 @@ class MergingIterator : public InternalIterator {
   // the target key is `end`. This optimization is applied at each level and
   // hence the name "cascading seek".
   void Seek(const Slice& target) override {
+    DBUG_TRACE;
     // Define LevelNextVisible(i, k) to be the first key >= k in level i that is
     // not covered by any range tombstone.
     // After SeekImpl(target, 0), invariants (3) and (4) hold.
@@ -331,6 +344,7 @@ class MergingIterator : public InternalIterator {
   }
 
   void SeekForPrev(const Slice& target) override {
+    DBUG_TRACE;
     assert(range_tombstone_iters_.empty() ||
            range_tombstone_iters_.size() == children_.size());
     status_ = Status::OK();
@@ -345,6 +359,7 @@ class MergingIterator : public InternalIterator {
   }
 
   void Next() override {
+    DBUG_TRACE;
     assert(Valid());
     // Ensure that all children are positioned after key().
     // If we are moving in the forward direction, it is already
@@ -383,6 +398,7 @@ class MergingIterator : public InternalIterator {
   }
 
   bool NextAndGetResult(IterateResult* result) override {
+    DBUG_TRACE;
     Next();
     bool is_valid = Valid();
     if (is_valid) {
@@ -394,6 +410,7 @@ class MergingIterator : public InternalIterator {
   }
 
   void Prev() override {
+    DBUG_TRACE;
     assert(Valid());
     // Ensure that all children are positioned before key().
     // If we are moving in the reverse direction, it is already
@@ -425,21 +442,25 @@ class MergingIterator : public InternalIterator {
   }
 
   Slice key() const override {
+    DBUG_TRACE;
     assert(Valid());
     return current_->key();
   }
 
   uint64_t write_unix_time() const override {
+    DBUG_TRACE;
     assert(Valid());
     return current_->write_unix_time();
   }
 
   Slice value() const override {
+    DBUG_TRACE;
     assert(Valid());
     return current_->value();
   }
 
   bool PrepareValue() override {
+    DBUG_TRACE;
     assert(Valid());
     if (current_->PrepareValue()) {
       return true;
@@ -454,16 +475,19 @@ class MergingIterator : public InternalIterator {
   // from current child iterator. Potentially as long as one of child iterator
   // report out of bound is not possible, we know current key is within bound.
   bool MayBeOutOfLowerBound() override {
+    DBUG_TRACE;
     assert(Valid());
     return current_->MayBeOutOfLowerBound();
   }
 
   IterBoundCheck UpperBoundCheckResult() override {
+    DBUG_TRACE;
     assert(Valid());
     return current_->UpperBoundCheckResult();
   }
 
   void SetPinnedItersMgr(PinnedIteratorsManager* pinned_iters_mgr) override {
+    DBUG_TRACE;
     pinned_iters_mgr_ = pinned_iters_mgr;
     for (auto& child : children_) {
       child.iter.SetPinnedItersMgr(pinned_iters_mgr);
@@ -471,12 +495,14 @@ class MergingIterator : public InternalIterator {
   }
 
   bool IsKeyPinned() const override {
+    DBUG_TRACE;
     assert(Valid());
     return pinned_iters_mgr_ && pinned_iters_mgr_->PinningEnabled() &&
            current_->IsKeyPinned();
   }
 
   bool IsValuePinned() const override {
+    DBUG_TRACE;
     assert(Valid());
     return pinned_iters_mgr_ && pinned_iters_mgr_->PinningEnabled() &&
            current_->IsValuePinned();
@@ -506,6 +532,7 @@ class MergingIterator : public InternalIterator {
     }
 
     void SetTombstoneKey(ParsedInternalKey&& pik) {
+      DBUG_TRACE;
       // op_type is already initialized in MergingIterator::Finish().
       tombstone_pik.user_key = pik.user_key;
       tombstone_pik.sequence = pik.sequence;
@@ -518,6 +545,7 @@ class MergingIterator : public InternalIterator {
         : comparator_(comparator) {}
 
     bool operator()(HeapItem* a, HeapItem* b) const {
+      DBUG_TRACE;
       if (LIKELY(a->type == HeapItem::Type::ITERATOR)) {
         if (LIKELY(b->type == HeapItem::Type::ITERATOR)) {
           return comparator_->Compare(a->iter.key(), b->iter.key()) > 0;
@@ -543,6 +571,7 @@ class MergingIterator : public InternalIterator {
         : comparator_(comparator) {}
 
     bool operator()(HeapItem* a, HeapItem* b) const {
+      DBUG_TRACE;
       if (LIKELY(a->type == HeapItem::Type::ITERATOR)) {
         if (LIKELY(b->type == HeapItem::Type::ITERATOR)) {
           return comparator_->Compare(a->iter.key(), b->iter.key()) < 0;
@@ -675,6 +704,7 @@ class MergingIterator : public InternalIterator {
   void SwitchToBackward();
 
   IteratorWrapper* CurrentForward() const {
+    DBUG_TRACE;
     assert(direction_ == kForward);
     assert(minHeap_.empty() ||
            minHeap_.top()->type == HeapItem::Type::ITERATOR);
@@ -682,6 +712,7 @@ class MergingIterator : public InternalIterator {
   }
 
   IteratorWrapper* CurrentReverse() const {
+    DBUG_TRACE;
     assert(direction_ == kReverse);
     assert(maxHeap_);
     assert(maxHeap_->empty() ||
@@ -765,6 +796,7 @@ class MergingIterator : public InternalIterator {
 // minHeap_.
 void MergingIterator::SeekImpl(const Slice& target, size_t starting_level,
                                bool range_tombstone_reseek) {
+  DBUG_TRACE;
   // active range tombstones before `starting_level` remain active
   ClearHeaps(false /* clear_active */);
   ParsedInternalKey pik;
@@ -933,6 +965,7 @@ void MergingIterator::SeekImpl(const Slice& target, size_t starting_level,
 // - min heap is currently not empty, and iter is in kForward direction.
 // - minHeap_ top is not DELETE_RANGE_START (so that `active_` is current).
 bool MergingIterator::SkipNextDeleted() {
+  DBUG_TRACE;
   // 3 types of keys:
   // - point key
   // - file boundary sentinel keys
@@ -1074,6 +1107,7 @@ bool MergingIterator::SkipNextDeleted() {
 void MergingIterator::SeekForPrevImpl(const Slice& target,
                                       size_t starting_level,
                                       bool range_tombstone_reseek) {
+  DBUG_TRACE;
   // active range tombstones before `starting_level` remain active
   ClearHeaps(false /* clear_active */);
   InitMaxHeap();
@@ -1192,6 +1226,7 @@ void MergingIterator::SeekForPrevImpl(const Slice& target,
 // - max heap is currently not empty, and iter is in kReverse direction.
 // - maxHeap_ top is not DELETE_RANGE_END (so that `active_` is current).
 bool MergingIterator::SkipPrevDeleted() {
+  DBUG_TRACE;
   // 3 types of keys:
   // - point key
   // - file boundary sentinel keys
@@ -1285,6 +1320,7 @@ bool MergingIterator::SkipPrevDeleted() {
 }
 
 void MergingIterator::AddToMinHeapOrCheckStatus(HeapItem* child) {
+  DBUG_TRACE;
   // Invariant(children_)
   if (child->iter.Valid()) {
     assert(child->iter.status().ok());
@@ -1295,6 +1331,7 @@ void MergingIterator::AddToMinHeapOrCheckStatus(HeapItem* child) {
 }
 
 void MergingIterator::AddToMaxHeapOrCheckStatus(HeapItem* child) {
+  DBUG_TRACE;
   if (child->iter.Valid()) {
     assert(child->iter.status().ok());
     maxHeap_->push(child);
@@ -1311,6 +1348,7 @@ void MergingIterator::AddToMaxHeapOrCheckStatus(HeapItem* child) {
 // TODO: potentially do cascading seek here too
 // TODO: show that invariants hold
 void MergingIterator::SwitchToForward() {
+  DBUG_TRACE;
   ClearHeaps();
   Slice target = key();
   for (auto& child : children_) {
@@ -1379,6 +1417,7 @@ void MergingIterator::SwitchToForward() {
 // Advance all range tombstones iters, including the one corresponding to
 // current_, to the first tombstone with start_key <= current_.key().
 void MergingIterator::SwitchToBackward() {
+  DBUG_TRACE;
   ClearHeaps();
   InitMaxHeap();
   Slice target = key();
@@ -1434,6 +1473,7 @@ void MergingIterator::SwitchToBackward() {
 }
 
 void MergingIterator::ClearHeaps(bool clear_active) {
+  DBUG_TRACE;
   minHeap_.clear();
   if (maxHeap_) {
     maxHeap_->clear();
@@ -1444,6 +1484,7 @@ void MergingIterator::ClearHeaps(bool clear_active) {
 }
 
 void MergingIterator::InitMaxHeap() {
+  DBUG_TRACE;
   if (!maxHeap_) {
     maxHeap_ =
         std::make_unique<MergerMaxIterHeap>(MaxHeapItemComparator(comparator_));
@@ -1617,6 +1658,7 @@ void MergingIterator::InitMaxHeap() {
 // these cases, iterators are being advanced, so the minimum key should increase
 // in a finite number of steps.
 inline void MergingIterator::FindNextVisibleKey() {
+  DBUG_TRACE;
   PopDeleteRangeStart();
   // PopDeleteRangeStart() implies heap top is not DELETE_RANGE_START
   // active_ being empty implies no DELETE_RANGE_END in heap.
@@ -1632,6 +1674,7 @@ inline void MergingIterator::FindNextVisibleKey() {
 }
 
 inline void MergingIterator::FindPrevVisibleKey() {
+  DBUG_TRACE;
   PopDeleteRangeEnd();
   // PopDeleteRangeEnd() implies heap top is not DELETE_RANGE_END
   // active_ being empty implies no DELETE_RANGE_START in heap.
@@ -1647,6 +1690,7 @@ inline void MergingIterator::FindPrevVisibleKey() {
 InternalIterator* NewMergingIterator(const InternalKeyComparator* cmp,
                                      InternalIterator** list, int n,
                                      Arena* arena, bool prefix_seek_mode) {
+  DBUG_TRACE;
   assert(n >= 0);
   if (n == 0) {
     return NewEmptyInternalIterator<Slice>(arena);
@@ -1681,6 +1725,7 @@ MergeIteratorBuilder::~MergeIteratorBuilder() {
 }
 
 void MergeIteratorBuilder::AddIterator(InternalIterator* iter) {
+  DBUG_TRACE;
   if (!use_merging_iter && first_iter != nullptr) {
     merge_iter->AddIterator(first_iter);
     use_merging_iter = true;
@@ -1697,6 +1742,7 @@ void MergeIteratorBuilder::AddPointAndTombstoneIterator(
     InternalIterator* point_iter,
     std::unique_ptr<TruncatedRangeDelIterator>&& tombstone_iter,
     std::unique_ptr<TruncatedRangeDelIterator>** tombstone_iter_ptr) {
+  DBUG_TRACE;
   // tombstone_iter_ptr != nullptr means point_iter is a LevelIterator.
   bool add_range_tombstone = tombstone_iter ||
                              !merge_iter->range_tombstone_iters_.empty() ||
@@ -1732,6 +1778,7 @@ void MergeIteratorBuilder::AddPointAndTombstoneIterator(
 }
 
 InternalIterator* MergeIteratorBuilder::Finish(ArenaWrappedDBIter* db_iter) {
+  DBUG_TRACE;
   InternalIterator* ret = nullptr;
   if (!use_merging_iter) {
     ret = first_iter;

@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/utilities/write_batch_with_index.h"
 
 #include <cassert>
@@ -51,7 +52,7 @@ struct WriteBatchWithIndex::Rep {
 
   // Remember current offset of internal write batch, which is used as
   // the starting offset of the next record.
-  void SetLastEntryOffset() { last_entry_offset = write_batch.GetDataSize(); }
+  void SetLastEntryOffset() { DBUG_TRACE; last_entry_offset = write_batch.GetDataSize(); }
 
   // In overwrite mode, find the existing entry for the same key and update it
   // to point to the current entry.
@@ -82,12 +83,14 @@ struct WriteBatchWithIndex::Rep {
 
 bool WriteBatchWithIndex::Rep::UpdateExistingEntry(
     ColumnFamilyHandle* column_family, const Slice& key, WriteType type) {
+  DBUG_TRACE;
   uint32_t cf_id = GetColumnFamilyID(column_family);
   return UpdateExistingEntryWithCfId(cf_id, key, type);
 }
 
 bool WriteBatchWithIndex::Rep::UpdateExistingEntryWithCfId(
     uint32_t column_family_id, const Slice& key, WriteType type) {
+  DBUG_TRACE;
   if (!overwrite_key) {
     return false;
   }
@@ -124,6 +127,7 @@ bool WriteBatchWithIndex::Rep::UpdateExistingEntryWithCfId(
 
 void WriteBatchWithIndex::Rep::AddOrUpdateIndex(
     ColumnFamilyHandle* column_family, const Slice& key, WriteType type) {
+  DBUG_TRACE;
   if (!UpdateExistingEntry(column_family, key, type)) {
     uint32_t cf_id = GetColumnFamilyID(column_family);
     const auto* cf_cmp = GetColumnFamilyUserComparator(column_family);
@@ -136,12 +140,14 @@ void WriteBatchWithIndex::Rep::AddOrUpdateIndex(
 
 void WriteBatchWithIndex::Rep::AddOrUpdateIndex(const Slice& key,
                                                 WriteType type) {
+  DBUG_TRACE;
   if (!UpdateExistingEntryWithCfId(0, key, type)) {
     AddNewEntry(0);
   }
 }
 
 void WriteBatchWithIndex::Rep::AddNewEntry(uint32_t column_family_id) {
+  DBUG_TRACE;
   const std::string& wb_data = write_batch.Data();
   Slice entry_ptr = Slice(wb_data.data() + last_entry_offset,
                           wb_data.size() - last_entry_offset);
@@ -169,11 +175,13 @@ void WriteBatchWithIndex::Rep::AddNewEntry(uint32_t column_family_id) {
 }
 
 void WriteBatchWithIndex::Rep::Clear() {
+  DBUG_TRACE;
   write_batch.Clear();
   ClearIndex();
 }
 
 void WriteBatchWithIndex::Rep::ClearIndex() {
+  DBUG_TRACE;
   skip_list.~WriteBatchEntrySkipList();
   arena.~Arena();
   new (&arena) Arena();
@@ -184,6 +192,7 @@ void WriteBatchWithIndex::Rep::ClearIndex() {
 }
 
 Status WriteBatchWithIndex::Rep::ReBuildIndex() {
+  DBUG_TRACE;
   Status s;
 
   ClearIndex();
@@ -297,17 +306,19 @@ WriteBatchWithIndex::WriteBatchWithIndex(WriteBatchWithIndex&&) = default;
 WriteBatchWithIndex& WriteBatchWithIndex::operator=(WriteBatchWithIndex&&) =
     default;
 
-WriteBatch* WriteBatchWithIndex::GetWriteBatch() { return &rep->write_batch; }
+WriteBatch* WriteBatchWithIndex::GetWriteBatch() { DBUG_TRACE; return &rep->write_batch; }
 
-size_t WriteBatchWithIndex::SubBatchCnt() { return rep->sub_batch_cnt; }
+size_t WriteBatchWithIndex::SubBatchCnt() { DBUG_TRACE; return rep->sub_batch_cnt; }
 
 WBWIIterator* WriteBatchWithIndex::NewIterator() {
+  DBUG_TRACE;
   return new WBWIIteratorImpl(0, &(rep->skip_list), &rep->write_batch,
                               &(rep->comparator));
 }
 
 WBWIIterator* WriteBatchWithIndex::NewIterator(
     ColumnFamilyHandle* column_family) {
+  DBUG_TRACE;
   return new WBWIIteratorImpl(GetColumnFamilyID(column_family),
                               &(rep->skip_list), &rep->write_batch,
                               &(rep->comparator));
@@ -316,6 +327,7 @@ WBWIIterator* WriteBatchWithIndex::NewIterator(
 Iterator* WriteBatchWithIndex::NewIteratorWithBase(
     ColumnFamilyHandle* column_family, Iterator* base_iterator,
     const ReadOptions* read_options) {
+  DBUG_TRACE;
   WBWIIteratorImpl* wbwiii;
   if (read_options != nullptr) {
     wbwiii = new WBWIIteratorImpl(
@@ -333,6 +345,7 @@ Iterator* WriteBatchWithIndex::NewIteratorWithBase(
 }
 
 Iterator* WriteBatchWithIndex::NewIteratorWithBase(Iterator* base_iterator) {
+  DBUG_TRACE;
   // default column family's comparator
   auto wbwiii = new WBWIIteratorImpl(0, &(rep->skip_list), &rep->write_batch,
                                      &rep->comparator);
@@ -342,6 +355,7 @@ Iterator* WriteBatchWithIndex::NewIteratorWithBase(Iterator* base_iterator) {
 
 Status WriteBatchWithIndex::Put(ColumnFamilyHandle* column_family,
                                 const Slice& key, const Slice& value) {
+  DBUG_TRACE;
   rep->SetLastEntryOffset();
   auto s = rep->write_batch.Put(column_family, key, value);
   if (s.ok()) {
@@ -351,6 +365,7 @@ Status WriteBatchWithIndex::Put(ColumnFamilyHandle* column_family,
 }
 
 Status WriteBatchWithIndex::Put(const Slice& key, const Slice& value) {
+  DBUG_TRACE;
   rep->SetLastEntryOffset();
   auto s = rep->write_batch.Put(key, value);
   if (s.ok()) {
@@ -362,6 +377,7 @@ Status WriteBatchWithIndex::Put(const Slice& key, const Slice& value) {
 Status WriteBatchWithIndex::Put(ColumnFamilyHandle* column_family,
                                 const Slice& /*key*/, const Slice& /*ts*/,
                                 const Slice& /*value*/) {
+  DBUG_TRACE;
   if (!column_family) {
     return Status::InvalidArgument("column family handle cannot be nullptr");
   }
@@ -372,6 +388,7 @@ Status WriteBatchWithIndex::Put(ColumnFamilyHandle* column_family,
 Status WriteBatchWithIndex::PutEntity(ColumnFamilyHandle* column_family,
                                       const Slice& key,
                                       const WideColumns& columns) {
+  DBUG_TRACE;
   assert(rep);
 
   rep->SetLastEntryOffset();
@@ -387,6 +404,7 @@ Status WriteBatchWithIndex::PutEntity(ColumnFamilyHandle* column_family,
 
 Status WriteBatchWithIndex::Delete(ColumnFamilyHandle* column_family,
                                    const Slice& key) {
+  DBUG_TRACE;
   rep->SetLastEntryOffset();
   auto s = rep->write_batch.Delete(column_family, key);
   if (s.ok()) {
@@ -396,6 +414,7 @@ Status WriteBatchWithIndex::Delete(ColumnFamilyHandle* column_family,
 }
 
 Status WriteBatchWithIndex::Delete(const Slice& key) {
+  DBUG_TRACE;
   rep->SetLastEntryOffset();
   auto s = rep->write_batch.Delete(key);
   if (s.ok()) {
@@ -406,6 +425,7 @@ Status WriteBatchWithIndex::Delete(const Slice& key) {
 
 Status WriteBatchWithIndex::Delete(ColumnFamilyHandle* column_family,
                                    const Slice& /*key*/, const Slice& /*ts*/) {
+  DBUG_TRACE;
   if (!column_family) {
     return Status::InvalidArgument("column family handle cannot be nullptr");
   }
@@ -415,6 +435,7 @@ Status WriteBatchWithIndex::Delete(ColumnFamilyHandle* column_family,
 
 Status WriteBatchWithIndex::SingleDelete(ColumnFamilyHandle* column_family,
                                          const Slice& key) {
+  DBUG_TRACE;
   rep->SetLastEntryOffset();
   auto s = rep->write_batch.SingleDelete(column_family, key);
   if (s.ok()) {
@@ -424,6 +445,7 @@ Status WriteBatchWithIndex::SingleDelete(ColumnFamilyHandle* column_family,
 }
 
 Status WriteBatchWithIndex::SingleDelete(const Slice& key) {
+  DBUG_TRACE;
   rep->SetLastEntryOffset();
   auto s = rep->write_batch.SingleDelete(key);
   if (s.ok()) {
@@ -435,6 +457,7 @@ Status WriteBatchWithIndex::SingleDelete(const Slice& key) {
 Status WriteBatchWithIndex::SingleDelete(ColumnFamilyHandle* column_family,
                                          const Slice& /*key*/,
                                          const Slice& /*ts*/) {
+  DBUG_TRACE;
   if (!column_family) {
     return Status::InvalidArgument("column family handle cannot be nullptr");
   }
@@ -444,6 +467,7 @@ Status WriteBatchWithIndex::SingleDelete(ColumnFamilyHandle* column_family,
 
 Status WriteBatchWithIndex::Merge(ColumnFamilyHandle* column_family,
                                   const Slice& key, const Slice& value) {
+  DBUG_TRACE;
   rep->SetLastEntryOffset();
   auto s = rep->write_batch.Merge(column_family, key, value);
   if (s.ok()) {
@@ -453,6 +477,7 @@ Status WriteBatchWithIndex::Merge(ColumnFamilyHandle* column_family,
 }
 
 Status WriteBatchWithIndex::Merge(const Slice& key, const Slice& value) {
+  DBUG_TRACE;
   rep->SetLastEntryOffset();
   auto s = rep->write_batch.Merge(key, value);
   if (s.ok()) {
@@ -462,14 +487,16 @@ Status WriteBatchWithIndex::Merge(const Slice& key, const Slice& value) {
 }
 
 Status WriteBatchWithIndex::PutLogData(const Slice& blob) {
+  DBUG_TRACE;
   return rep->write_batch.PutLogData(blob);
 }
 
-void WriteBatchWithIndex::Clear() { rep->Clear(); }
+void WriteBatchWithIndex::Clear() { DBUG_TRACE; rep->Clear(); }
 
 namespace {
 Status PostprocessStatusBatchOnly(const Status& s,
                                   WBWIIteratorImpl::Result result) {
+  DBUG_TRACE;
   if (result == WBWIIteratorImpl::kDeleted ||
       result == WBWIIteratorImpl::kNotFound) {
     s.PermitUncheckedError();
@@ -490,6 +517,7 @@ Status PostprocessStatusBatchOnly(const Status& s,
 Status WriteBatchWithIndex::GetFromBatch(ColumnFamilyHandle* column_family,
                                          const DBOptions& /* options */,
                                          const Slice& key, std::string* value) {
+  DBUG_TRACE;
   MergeContext merge_context;
   Status s;
   auto result = WriteBatchWithIndexInternal::GetFromBatch(
@@ -501,6 +529,7 @@ Status WriteBatchWithIndex::GetFromBatch(ColumnFamilyHandle* column_family,
 Status WriteBatchWithIndex::GetEntityFromBatch(
     ColumnFamilyHandle* column_family, const Slice& key,
     PinnableWideColumns* columns) {
+  DBUG_TRACE;
   if (!column_family) {
     return Status::InvalidArgument(
         "Cannot call GetEntityFromBatch without a column family handle");
@@ -523,6 +552,7 @@ Status WriteBatchWithIndex::GetFromBatchAndDB(DB* db,
                                               const ReadOptions& read_options,
                                               const Slice& key,
                                               std::string* value) {
+  DBUG_TRACE;
   assert(value != nullptr);
   PinnableSlice pinnable_val(value);
   assert(!pinnable_val.IsPinned());
@@ -538,6 +568,7 @@ Status WriteBatchWithIndex::GetFromBatchAndDB(DB* db,
                                               const ReadOptions& read_options,
                                               const Slice& key,
                                               PinnableSlice* pinnable_val) {
+  DBUG_TRACE;
   return GetFromBatchAndDB(db, read_options, db->DefaultColumnFamily(), key,
                            pinnable_val);
 }
@@ -547,6 +578,7 @@ Status WriteBatchWithIndex::GetFromBatchAndDB(DB* db,
                                               ColumnFamilyHandle* column_family,
                                               const Slice& key,
                                               std::string* value) {
+  DBUG_TRACE;
   assert(value != nullptr);
   PinnableSlice pinnable_val(value);
   assert(!pinnable_val.IsPinned());
@@ -563,6 +595,7 @@ Status WriteBatchWithIndex::GetFromBatchAndDB(DB* db,
                                               ColumnFamilyHandle* column_family,
                                               const Slice& key,
                                               PinnableSlice* pinnable_val) {
+  DBUG_TRACE;
   return GetFromBatchAndDB(db, read_options, column_family, key, pinnable_val,
                            nullptr);
 }
@@ -571,6 +604,7 @@ void WriteBatchWithIndex::MergeAcrossBatchAndDBImpl(
     ColumnFamilyHandle* column_family, const Slice& key,
     const PinnableWideColumns& existing, const MergeContext& merge_context,
     std::string* value, PinnableWideColumns* columns, Status* status) {
+  DBUG_TRACE;
   assert(value || columns);
   assert(!value || !columns);
   assert(status);
@@ -626,6 +660,7 @@ void WriteBatchWithIndex::MergeAcrossBatchAndDB(
 Status WriteBatchWithIndex::GetFromBatchAndDB(
     DB* db, const ReadOptions& read_options, ColumnFamilyHandle* column_family,
     const Slice& key, PinnableSlice* pinnable_val, ReadCallback* callback) {
+  DBUG_TRACE;
   assert(db);
   assert(pinnable_val);
 
@@ -697,6 +732,7 @@ void WriteBatchWithIndex::MultiGetFromBatchAndDB(
     DB* db, const ReadOptions& read_options, ColumnFamilyHandle* column_family,
     const size_t num_keys, const Slice* keys, PinnableSlice* values,
     Status* statuses, bool sorted_input) {
+  DBUG_TRACE;
   MultiGetFromBatchAndDB(db, read_options, column_family, num_keys, keys,
                          values, statuses, sorted_input, nullptr);
 }
@@ -705,6 +741,7 @@ void WriteBatchWithIndex::MultiGetFromBatchAndDB(
     DB* db, const ReadOptions& read_options, ColumnFamilyHandle* column_family,
     const size_t num_keys, const Slice* keys, PinnableSlice* values,
     Status* statuses, bool sorted_input, ReadCallback* callback) {
+  DBUG_TRACE;
   assert(db);
   assert(keys);
   assert(values);
@@ -825,6 +862,7 @@ void WriteBatchWithIndex::MultiGetFromBatchAndDB(
 Status WriteBatchWithIndex::GetEntityFromBatchAndDB(
     DB* db, const ReadOptions& _read_options, ColumnFamilyHandle* column_family,
     const Slice& key, PinnableWideColumns* columns, ReadCallback* callback) {
+  DBUG_TRACE;
   if (!db) {
     return Status::InvalidArgument(
         "Cannot call GetEntityFromBatchAndDB without a DB object");
@@ -920,6 +958,7 @@ void WriteBatchWithIndex::MultiGetEntityFromBatchAndDB(
     DB* db, const ReadOptions& _read_options, ColumnFamilyHandle* column_family,
     size_t num_keys, const Slice* keys, PinnableWideColumns* results,
     Status* statuses, bool sorted_input, ReadCallback* callback) {
+  DBUG_TRACE;
   assert(statuses);
 
   if (!db) {
@@ -1099,9 +1138,10 @@ void WriteBatchWithIndex::MultiGetEntityFromBatchAndDB(
   }
 }
 
-void WriteBatchWithIndex::SetSavePoint() { rep->write_batch.SetSavePoint(); }
+void WriteBatchWithIndex::SetSavePoint() { DBUG_TRACE; rep->write_batch.SetSavePoint(); }
 
 Status WriteBatchWithIndex::RollbackToSavePoint() {
+  DBUG_TRACE;
   Status s = rep->write_batch.RollbackToSavePoint();
 
   if (s.ok()) {
@@ -1114,19 +1154,23 @@ Status WriteBatchWithIndex::RollbackToSavePoint() {
 }
 
 Status WriteBatchWithIndex::PopSavePoint() {
+  DBUG_TRACE;
   return rep->write_batch.PopSavePoint();
 }
 
 void WriteBatchWithIndex::SetMaxBytes(size_t max_bytes) {
+  DBUG_TRACE;
   rep->write_batch.SetMaxBytes(max_bytes);
 }
 
 size_t WriteBatchWithIndex::GetDataSize() const {
+  DBUG_TRACE;
   return rep->write_batch.GetDataSize();
 }
 
 const Comparator* WriteBatchWithIndexInternal::GetUserComparator(
     const WriteBatchWithIndex& wbwi, uint32_t cf_id) {
+  DBUG_TRACE;
   const WriteBatchEntryComparator& ucmps = wbwi.rep->comparator;
   return ucmps.GetComparator(cf_id);
 }

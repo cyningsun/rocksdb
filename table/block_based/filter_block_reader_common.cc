@@ -4,6 +4,7 @@
 //  (found in the LICENSE.Apache file in the root directory).
 //
 
+#include "rocksdb/util/dbug.h"
 #include "table/block_based/filter_block_reader_common.h"
 
 #include "block_cache.h"
@@ -19,6 +20,7 @@ Status FilterBlockReaderCommon<TBlocklike>::ReadFilterBlock(
     const ReadOptions& read_options, bool use_cache, GetContext* get_context,
     BlockCacheLookupContext* lookup_context,
     CachableEntry<TBlocklike>* filter_block) {
+  DBUG_TRACE;
   PERF_TIMER_GUARD(read_filter_block_nanos);
 
   assert(table);
@@ -41,6 +43,7 @@ Status FilterBlockReaderCommon<TBlocklike>::ReadFilterBlock(
 template <typename TBlocklike>
 const SliceTransform*
 FilterBlockReaderCommon<TBlocklike>::table_prefix_extractor() const {
+  DBUG_TRACE;
   assert(table_);
 
   const BlockBasedTable::Rep* const rep = table_->get_rep();
@@ -51,6 +54,7 @@ FilterBlockReaderCommon<TBlocklike>::table_prefix_extractor() const {
 
 template <typename TBlocklike>
 bool FilterBlockReaderCommon<TBlocklike>::whole_key_filtering() const {
+  DBUG_TRACE;
   assert(table_);
   assert(table_->get_rep());
 
@@ -59,6 +63,7 @@ bool FilterBlockReaderCommon<TBlocklike>::whole_key_filtering() const {
 
 template <typename TBlocklike>
 bool FilterBlockReaderCommon<TBlocklike>::cache_filter_blocks() const {
+  DBUG_TRACE;
   assert(table_);
   assert(table_->get_rep());
 
@@ -70,6 +75,7 @@ Status FilterBlockReaderCommon<TBlocklike>::GetOrReadFilterBlock(
     GetContext* get_context, BlockCacheLookupContext* lookup_context,
     CachableEntry<TBlocklike>* filter_block,
     const ReadOptions& read_options) const {
+  DBUG_TRACE;
   assert(filter_block);
 
   if (!filter_block_.IsEmpty()) {
@@ -85,6 +91,7 @@ Status FilterBlockReaderCommon<TBlocklike>::GetOrReadFilterBlock(
 template <typename TBlocklike>
 size_t FilterBlockReaderCommon<TBlocklike>::ApproximateFilterBlockMemoryUsage()
     const {
+  DBUG_TRACE;
   assert(!filter_block_.GetOwnValue() || filter_block_.GetValue() != nullptr);
   return filter_block_.GetOwnValue()
              ? filter_block_.GetValue()->ApproximateMemoryUsage()
@@ -98,6 +105,7 @@ bool FilterBlockReaderCommon<TBlocklike>::RangeMayExist(
     const Slice* const const_ikey_ptr, bool* filter_checked,
     bool need_upper_bound_check, BlockCacheLookupContext* lookup_context,
     const ReadOptions& read_options) {
+  DBUG_TRACE;
   if (!prefix_extractor || !prefix_extractor->InDomain(user_key_without_ts)) {
     *filter_checked = false;
     return true;
@@ -119,6 +127,7 @@ template <typename TBlocklike>
 bool FilterBlockReaderCommon<TBlocklike>::IsFilterCompatible(
     const Slice* iterate_upper_bound, const Slice& prefix,
     const Comparator* comparator) const {
+  DBUG_TRACE;
   // Try to reuse the bloom filter in the SST table if prefix_extractor in
   // mutable_cf_options has changed. If range [user_key, upper_bound) all
   // share the same prefix then we may still be able to use the bloom filter.
@@ -152,6 +161,7 @@ bool FilterBlockReaderCommon<TBlocklike>::IsFilterCompatible(
 template <typename TBlocklike>
 void FilterBlockReaderCommon<TBlocklike>::EraseFromCacheBeforeDestruction(
     uint32_t uncache_aggressiveness) {
+  DBUG_TRACE;
   if (uncache_aggressiveness > 0) {
     if (filter_block_.IsCached()) {
       filter_block_.ResetEraseIfLastRef();

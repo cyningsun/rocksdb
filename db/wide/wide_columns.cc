@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/wide_columns.h"
 #include "db/wide/wide_column_serialization.h"
 
@@ -13,6 +14,7 @@ const Slice kDefaultWideColumnName;
 const WideColumns kNoWideColumns;
 
 Status PinnableWideColumns::CreateIndexForWideColumns() {
+  DBUG_TRACE;
   columns_.clear();
 
   Slice value_copy = value_;

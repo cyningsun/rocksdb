@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "file/sst_file_manager_impl.h"
 
 #include <cinttypes>
@@ -46,6 +47,7 @@ SstFileManagerImpl::~SstFileManagerImpl() {
 }
 
 void SstFileManagerImpl::Close() {
+  DBUG_TRACE;
   {
     MutexLock l(&mu_);
     if (closing_) {
@@ -60,6 +62,7 @@ void SstFileManagerImpl::Close() {
 }
 
 Status SstFileManagerImpl::OnAddFile(const std::string& file_path) {
+  DBUG_TRACE;
   uint64_t file_size;
   Status s = fs_->GetFileSize(file_path, IOOptions(), &file_size, nullptr);
   if (s.ok()) {
@@ -73,6 +76,7 @@ Status SstFileManagerImpl::OnAddFile(const std::string& file_path) {
 
 Status SstFileManagerImpl::OnAddFile(const std::string& file_path,
                                      uint64_t file_size) {
+  DBUG_TRACE;
   MutexLock l(&mu_);
   OnAddFileImpl(file_path, file_size);
   TEST_SYNC_POINT_CALLBACK("SstFileManagerImpl::OnAddFile",
@@ -81,6 +85,7 @@ Status SstFileManagerImpl::OnAddFile(const std::string& file_path,
 }
 
 Status SstFileManagerImpl::OnDeleteFile(const std::string& file_path) {
+  DBUG_TRACE;
   {
     MutexLock l(&mu_);
     OnDeleteFileImpl(file_path);
@@ -91,6 +96,7 @@ Status SstFileManagerImpl::OnDeleteFile(const std::string& file_path) {
 }
 
 void SstFileManagerImpl::OnCompactionCompletion(Compaction* c) {
+  DBUG_TRACE;
   MutexLock l(&mu_);
   uint64_t size_added_by_compaction = 0;
   for (size_t i = 0; i < c->num_input_levels(); i++) {
@@ -105,6 +111,7 @@ void SstFileManagerImpl::OnCompactionCompletion(Compaction* c) {
 Status SstFileManagerImpl::OnMoveFile(const std::string& old_path,
                                       const std::string& new_path,
                                       uint64_t* file_size) {
+  DBUG_TRACE;
   {
     MutexLock l(&mu_);
     if (file_size != nullptr) {
@@ -118,17 +125,20 @@ Status SstFileManagerImpl::OnMoveFile(const std::string& old_path,
 }
 
 void SstFileManagerImpl::SetMaxAllowedSpaceUsage(uint64_t max_allowed_space) {
+  DBUG_TRACE;
   MutexLock l(&mu_);
   max_allowed_space_ = max_allowed_space;
 }
 
 void SstFileManagerImpl::SetCompactionBufferSize(
     uint64_t compaction_buffer_size) {
+  DBUG_TRACE;
   MutexLock l(&mu_);
   compaction_buffer_size_ = compaction_buffer_size;
 }
 
 bool SstFileManagerImpl::IsMaxAllowedSpaceReached() {
+  DBUG_TRACE;
   MutexLock l(&mu_);
   if (max_allowed_space_ <= 0) {
     return false;
@@ -137,6 +147,7 @@ bool SstFileManagerImpl::IsMaxAllowedSpaceReached() {
 }
 
 bool SstFileManagerImpl::IsMaxAllowedSpaceReachedIncludingCompactions() {
+  DBUG_TRACE;
   MutexLock l(&mu_);
   if (max_allowed_space_ <= 0) {
     return false;
@@ -148,6 +159,7 @@ bool SstFileManagerImpl::IsMaxAllowedSpaceReachedIncludingCompactions() {
 bool SstFileManagerImpl::EnoughRoomForCompaction(
     ColumnFamilyData* cfd, const std::vector<CompactionInputFiles>& inputs,
     const Status& bg_error) {
+  DBUG_TRACE;
   MutexLock l(&mu_);
   uint64_t size_added_by_compaction = 0;
   // First check if we even have the space to do the compaction
@@ -205,43 +217,52 @@ bool SstFileManagerImpl::EnoughRoomForCompaction(
 }
 
 uint64_t SstFileManagerImpl::GetCompactionsReservedSize() {
+  DBUG_TRACE;
   MutexLock l(&mu_);
   return cur_compactions_reserved_size_;
 }
 
 uint64_t SstFileManagerImpl::GetTotalSize() {
+  DBUG_TRACE;
   MutexLock l(&mu_);
   return total_files_size_;
 }
 
 std::unordered_map<std::string, uint64_t>
 SstFileManagerImpl::GetTrackedFiles() {
+  DBUG_TRACE;
   MutexLock l(&mu_);
   return tracked_files_;
 }
 
 int64_t SstFileManagerImpl::GetDeleteRateBytesPerSecond() {
+  DBUG_TRACE;
   return delete_scheduler_.GetRateBytesPerSecond();
 }
 
 void SstFileManagerImpl::SetDeleteRateBytesPerSecond(int64_t delete_rate) {
+  DBUG_TRACE;
   return delete_scheduler_.SetRateBytesPerSecond(delete_rate);
 }
 
 double SstFileManagerImpl::GetMaxTrashDBRatio() {
+  DBUG_TRACE;
   return delete_scheduler_.GetMaxTrashDBRatio();
 }
 
 void SstFileManagerImpl::SetMaxTrashDBRatio(double r) {
+  DBUG_TRACE;
   return delete_scheduler_.SetMaxTrashDBRatio(r);
 }
 
 uint64_t SstFileManagerImpl::GetTotalTrashSize() {
+  DBUG_TRACE;
   return delete_scheduler_.GetTotalTrashSize();
 }
 
 void SstFileManagerImpl::ReserveDiskBuffer(uint64_t size,
                                            const std::string& path) {
+  DBUG_TRACE;
   MutexLock l(&mu_);
 
   reserved_disk_buffer_ += size;
@@ -251,6 +272,7 @@ void SstFileManagerImpl::ReserveDiskBuffer(uint64_t size,
 }
 
 void SstFileManagerImpl::ClearError() {
+  DBUG_TRACE;
   while (true) {
     MutexLock l(&mu_);
 
@@ -351,6 +373,7 @@ void SstFileManagerImpl::ClearError() {
 
 void SstFileManagerImpl::StartErrorRecovery(ErrorHandler* handler,
                                             Status bg_error) {
+  DBUG_TRACE;
   MutexLock l(&mu_);
   if (bg_error.severity() == Status::Severity::kSoftError) {
     if (bg_err_.ok()) {
@@ -394,6 +417,7 @@ void SstFileManagerImpl::StartErrorRecovery(ErrorHandler* handler,
 }
 
 bool SstFileManagerImpl::CancelErrorRecovery(ErrorHandler* handler) {
+  DBUG_TRACE;
   MutexLock l(&mu_);
 
   if (cur_instance_ == handler) {
@@ -416,6 +440,7 @@ bool SstFileManagerImpl::CancelErrorRecovery(ErrorHandler* handler) {
 Status SstFileManagerImpl::ScheduleFileDeletion(const std::string& file_path,
                                                 const std::string& path_to_sync,
                                                 const bool force_bg) {
+  DBUG_TRACE;
   TEST_SYNC_POINT_CALLBACK("SstFileManagerImpl::ScheduleFileDeletion",
                            const_cast<std::string*>(&file_path));
   return delete_scheduler_.DeleteFile(file_path, path_to_sync, force_bg);
@@ -424,6 +449,7 @@ Status SstFileManagerImpl::ScheduleFileDeletion(const std::string& file_path,
 Status SstFileManagerImpl::ScheduleUnaccountedFileDeletion(
     const std::string& file_path, const std::string& dir_to_sync,
     const bool force_bg, std::optional<int32_t> bucket) {
+  DBUG_TRACE;
   TEST_SYNC_POINT_CALLBACK(
       "SstFileManagerImpl::ScheduleUnaccountedFileDeletion",
       const_cast<std::string*>(&file_path));
@@ -432,19 +458,23 @@ Status SstFileManagerImpl::ScheduleUnaccountedFileDeletion(
 }
 
 void SstFileManagerImpl::WaitForEmptyTrash() {
+  DBUG_TRACE;
   delete_scheduler_.WaitForEmptyTrash();
 }
 
 std::optional<int32_t> SstFileManagerImpl::NewTrashBucket() {
+  DBUG_TRACE;
   return delete_scheduler_.NewTrashBucket();
 }
 
 void SstFileManagerImpl::WaitForEmptyTrashBucket(int32_t bucket) {
+  DBUG_TRACE;
   delete_scheduler_.WaitForEmptyTrashBucket(bucket);
 }
 
 void SstFileManagerImpl::OnAddFileImpl(const std::string& file_path,
                                        uint64_t file_size) {
+  DBUG_TRACE;
   auto tracked_file = tracked_files_.find(file_path);
   if (tracked_file != tracked_files_.end()) {
     // File was added before, we will just update the size
@@ -458,6 +488,7 @@ void SstFileManagerImpl::OnAddFileImpl(const std::string& file_path,
 }
 
 void SstFileManagerImpl::OnDeleteFileImpl(const std::string& file_path) {
+  DBUG_TRACE;
   auto tracked_file = tracked_files_.find(file_path);
   if (tracked_file == tracked_files_.end()) {
     // File is not tracked
@@ -474,6 +505,7 @@ SstFileManager* NewSstFileManager(Env* env, std::shared_ptr<Logger> info_log,
                                   bool delete_existing_trash, Status* status,
                                   double max_trash_db_ratio,
                                   uint64_t bytes_max_delete_chunk) {
+  DBUG_TRACE;
   const auto& fs = env->GetFileSystem();
   return NewSstFileManager(env, fs, info_log, trash_dir, rate_bytes_per_sec,
                            delete_existing_trash, status, max_trash_db_ratio,
@@ -487,6 +519,7 @@ SstFileManager* NewSstFileManager(Env* env, std::shared_ptr<FileSystem> fs,
                                   bool delete_existing_trash, Status* status,
                                   double max_trash_db_ratio,
                                   uint64_t bytes_max_delete_chunk) {
+  DBUG_TRACE;
   const auto& clock = env->GetSystemClock();
   SstFileManagerImpl* res =
       new SstFileManagerImpl(clock, fs, info_log, rate_bytes_per_sec,

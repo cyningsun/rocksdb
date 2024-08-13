@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "db/external_sst_file_ingestion_job.h"
 
 #include <algorithm>
@@ -31,6 +32,7 @@ Status ExternalSstFileIngestionJob::Prepare(
     const std::vector<std::string>& files_checksum_func_names,
     const Temperature& file_temperature, uint64_t next_file_number,
     SuperVersion* sv) {
+  DBUG_TRACE;
   Status status;
 
   // Read the information of files we are ingesting
@@ -342,6 +344,7 @@ Status ExternalSstFileIngestionJob::Prepare(
 
 Status ExternalSstFileIngestionJob::NeedsFlush(bool* flush_needed,
                                                SuperVersion* super_version) {
+  DBUG_TRACE;
   size_t n = files_to_ingest_.size();
   autovector<UserKeyRange> ranges;
   ranges.reserve(n);
@@ -369,6 +372,7 @@ Status ExternalSstFileIngestionJob::NeedsFlush(bool* flush_needed,
 // REQUIRES: we have become the only writer by entering both write_thread_ and
 // nonmem_write_thread_
 Status ExternalSstFileIngestionJob::Run() {
+  DBUG_TRACE;
   Status status;
   SuperVersion* super_version = cfd_->GetSuperVersion();
 #ifndef NDEBUG
@@ -488,6 +492,7 @@ Status ExternalSstFileIngestionJob::Run() {
 }
 
 void ExternalSstFileIngestionJob::CreateEquivalentFileIngestingCompactions() {
+  DBUG_TRACE;
   // A map from output level to input of compactions equivalent to this
   // ingestion job.
   // TODO: simplify below logic to creating compaction per ingested file
@@ -541,12 +546,14 @@ void ExternalSstFileIngestionJob::CreateEquivalentFileIngestingCompactions() {
 }
 
 void ExternalSstFileIngestionJob::RegisterRange() {
+  DBUG_TRACE;
   for (const auto& c : file_ingesting_compactions_) {
     cfd_->compaction_picker()->RegisterCompaction(c);
   }
 }
 
 void ExternalSstFileIngestionJob::UnregisterRange() {
+  DBUG_TRACE;
   for (const auto& c : file_ingesting_compactions_) {
     cfd_->compaction_picker()->UnregisterCompaction(c);
     delete c;
@@ -560,6 +567,7 @@ void ExternalSstFileIngestionJob::UnregisterRange() {
 }
 
 void ExternalSstFileIngestionJob::UpdateStats() {
+  DBUG_TRACE;
   // Update internal stats for new ingested files
   uint64_t total_keys = 0;
   uint64_t total_l0_files = 0;
@@ -620,6 +628,7 @@ void ExternalSstFileIngestionJob::UpdateStats() {
 }
 
 void ExternalSstFileIngestionJob::Cleanup(const Status& status) {
+  DBUG_TRACE;
   IOOptions io_opts;
   if (!status.ok()) {
     // We failed to add the files to the database
@@ -643,6 +652,7 @@ void ExternalSstFileIngestionJob::Cleanup(const Status& status) {
 }
 
 void ExternalSstFileIngestionJob::DeleteInternalFiles() {
+  DBUG_TRACE;
   IOOptions io_opts;
   for (IngestedFileInfo& f : files_to_ingest_) {
     if (f.internal_file_path.empty()) {
@@ -662,6 +672,7 @@ Status ExternalSstFileIngestionJob::ResetTableReader(
     bool user_defined_timestamps_persisted, SuperVersion* sv,
     IngestedFileInfo* file_to_ingest,
     std::unique_ptr<TableReader>* table_reader) {
+  DBUG_TRACE;
   std::unique_ptr<FSRandomAccessFile> sst_file;
   FileOptions fo{env_options_};
   fo.temperature = file_to_ingest->file_temperature;
@@ -700,6 +711,7 @@ Status ExternalSstFileIngestionJob::SanityCheckTableProperties(
     const std::string& external_file, uint64_t new_file_number,
     SuperVersion* sv, IngestedFileInfo* file_to_ingest,
     std::unique_ptr<TableReader>* table_reader) {
+  DBUG_TRACE;
   // Get the external file properties
   auto props = table_reader->get()->GetTableProperties();
   assert(props.get());
@@ -802,6 +814,7 @@ Status ExternalSstFileIngestionJob::SanityCheckTableProperties(
 Status ExternalSstFileIngestionJob::GetIngestedFileInfo(
     const std::string& external_file, uint64_t new_file_number,
     IngestedFileInfo* file_to_ingest, SuperVersion* sv) {
+  DBUG_TRACE;
   file_to_ingest->external_file_path = external_file;
 
   // Get external file size
@@ -1001,6 +1014,7 @@ Status ExternalSstFileIngestionJob::AssignLevelAndSeqnoForIngestedFile(
     SuperVersion* sv, bool force_global_seqno, CompactionStyle compaction_style,
     SequenceNumber last_seqno, IngestedFileInfo* file_to_ingest,
     SequenceNumber* assigned_seqno) {
+  DBUG_TRACE;
   Status status;
   *assigned_seqno = 0;
   auto ucmp = cfd_->user_comparator();
@@ -1104,6 +1118,7 @@ Status ExternalSstFileIngestionJob::AssignLevelAndSeqnoForIngestedFile(
 
 Status ExternalSstFileIngestionJob::CheckLevelForIngestedBehindFile(
     IngestedFileInfo* file_to_ingest) {
+  DBUG_TRACE;
   auto* vstorage = cfd_->current()->storage_info();
   // First, check if new files fit in the last level
   int last_lvl = cfd_->NumberLevels() - 1;
@@ -1131,6 +1146,7 @@ Status ExternalSstFileIngestionJob::CheckLevelForIngestedBehindFile(
 
 Status ExternalSstFileIngestionJob::AssignGlobalSeqnoForIngestedFile(
     IngestedFileInfo* file_to_ingest, SequenceNumber seqno) {
+  DBUG_TRACE;
   if (file_to_ingest->original_seqno == seqno) {
     // This file already have the correct global seqno
     return Status::OK();
@@ -1185,6 +1201,7 @@ Status ExternalSstFileIngestionJob::AssignGlobalSeqnoForIngestedFile(
 
 IOStatus ExternalSstFileIngestionJob::GenerateChecksumForIngestedFile(
     IngestedFileInfo* file_to_ingest) {
+  DBUG_TRACE;
   if (db_options_.file_checksum_gen_factory == nullptr ||
       need_generate_file_checksum_ == false ||
       ingestion_options_.write_global_seqno == false) {
@@ -1216,6 +1233,7 @@ IOStatus ExternalSstFileIngestionJob::GenerateChecksumForIngestedFile(
 
 bool ExternalSstFileIngestionJob::IngestedFileFitInLevel(
     const IngestedFileInfo* file_to_ingest, int level) {
+  DBUG_TRACE;
   if (level == 0) {
     // Files can always fit in L0
     return true;

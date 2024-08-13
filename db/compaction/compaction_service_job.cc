@@ -8,6 +8,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "db/compaction/compaction_job.h"
 #include "db/compaction/compaction_state.h"
 #include "logging/logging.h"
@@ -22,6 +23,7 @@ class SubcompactionState;
 CompactionServiceJobStatus
 CompactionJob::ProcessKeyValueCompactionWithCompactionService(
     SubcompactionState* sub_compact) {
+  DBUG_TRACE;
   assert(sub_compact);
   assert(sub_compact->compaction);
   assert(db_options_.compaction_service);
@@ -211,10 +213,12 @@ CompactionJob::ProcessKeyValueCompactionWithCompactionService(
 
 std::string CompactionServiceCompactionJob::GetTableFileName(
     uint64_t file_number) {
+  DBUG_TRACE;
   return MakeTableFileName(output_path_, file_number);
 }
 
 void CompactionServiceCompactionJob::RecordCompactionIOStats() {
+  DBUG_TRACE;
   compaction_result_->bytes_read += IOSTATS(bytes_read);
   compaction_result_->bytes_written += IOSTATS(bytes_written);
   CompactionJob::RecordCompactionIOStats();
@@ -350,6 +354,7 @@ Status CompactionServiceCompactionJob::Run() {
 }
 
 void CompactionServiceCompactionJob::CleanupCompaction() {
+  DBUG_TRACE;
   CompactionJob::CleanupCompaction();
 }
 
@@ -650,6 +655,7 @@ struct StatusSerializationAdapter {
   }
 
   Status GetStatus() const {
+    DBUG_TRACE;
     return Status{static_cast<Status::Code>(code),
                   static_cast<Status::SubCode>(subcode),
                   static_cast<Status::Severity>(severity), message};
@@ -749,6 +755,7 @@ static std::unordered_map<std::string, OptionTypeInfo> cs_result_type_info = {
 
 Status CompactionServiceInput::Read(const std::string& data_str,
                                     CompactionServiceInput* obj) {
+  DBUG_TRACE;
   if (data_str.size() <= sizeof(BinaryFormatVersion)) {
     return Status::InvalidArgument("Invalid CompactionServiceInput string");
   }
@@ -768,6 +775,7 @@ Status CompactionServiceInput::Read(const std::string& data_str,
 }
 
 Status CompactionServiceInput::Write(std::string* output) {
+  DBUG_TRACE;
   char buf[sizeof(BinaryFormatVersion)];
   EncodeFixed32(buf, kOptionsString);
   output->append(buf, sizeof(BinaryFormatVersion));
@@ -778,6 +786,7 @@ Status CompactionServiceInput::Write(std::string* output) {
 
 Status CompactionServiceResult::Read(const std::string& data_str,
                                      CompactionServiceResult* obj) {
+  DBUG_TRACE;
   if (data_str.size() <= sizeof(BinaryFormatVersion)) {
     return Status::InvalidArgument("Invalid CompactionServiceResult string");
   }
@@ -797,6 +806,7 @@ Status CompactionServiceResult::Read(const std::string& data_str,
 }
 
 Status CompactionServiceResult::Write(std::string* output) {
+  DBUG_TRACE;
   char buf[sizeof(BinaryFormatVersion)];
   EncodeFixed32(buf, kOptionsString);
   output->append(buf, sizeof(BinaryFormatVersion));
@@ -807,12 +817,14 @@ Status CompactionServiceResult::Write(std::string* output) {
 
 #ifndef NDEBUG
 bool CompactionServiceResult::TEST_Equals(CompactionServiceResult* other) {
+  DBUG_TRACE;
   std::string mismatch;
   return TEST_Equals(other, &mismatch);
 }
 
 bool CompactionServiceResult::TEST_Equals(CompactionServiceResult* other,
                                           std::string* mismatch) {
+  DBUG_TRACE;
   ConfigOptions cf;
   cf.invoke_prepare_options = false;
   return OptionTypeInfo::TypesAreEqual(cf, cs_result_type_info, this, other,
@@ -820,12 +832,14 @@ bool CompactionServiceResult::TEST_Equals(CompactionServiceResult* other,
 }
 
 bool CompactionServiceInput::TEST_Equals(CompactionServiceInput* other) {
+  DBUG_TRACE;
   std::string mismatch;
   return TEST_Equals(other, &mismatch);
 }
 
 bool CompactionServiceInput::TEST_Equals(CompactionServiceInput* other,
                                          std::string* mismatch) {
+  DBUG_TRACE;
   ConfigOptions cf;
   cf.invoke_prepare_options = false;
   return OptionTypeInfo::TypesAreEqual(cf, cs_input_type_info, this, other,

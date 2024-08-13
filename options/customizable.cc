@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/customizable.h"
 
 #include <sstream>
@@ -17,6 +18,7 @@
 namespace ROCKSDB_NAMESPACE {
 
 std::string Customizable::GetOptionName(const std::string& long_name) const {
+  DBUG_TRACE;
   const std::string& name = Name();
   size_t name_len = name.size();
   if (long_name.size() > name_len + 1 &&
@@ -29,6 +31,7 @@ std::string Customizable::GetOptionName(const std::string& long_name) const {
 }
 
 std::string Customizable::GenerateIndividualId() const {
+  DBUG_TRACE;
   std::ostringstream ostr;
   ostr << Name() << "@" << static_cast<const void*>(this) << "#"
        << port::GetProcessID();
@@ -38,6 +41,7 @@ std::string Customizable::GenerateIndividualId() const {
 Status Customizable::GetOption(const ConfigOptions& config_options,
                                const std::string& opt_name,
                                std::string* value) const {
+  DBUG_TRACE;
   if (opt_name == OptionTypeInfo::kIdPropName()) {
     *value = GetId();
     return Status::OK();
@@ -48,6 +52,7 @@ Status Customizable::GetOption(const ConfigOptions& config_options,
 
 std::string Customizable::SerializeOptions(const ConfigOptions& config_options,
                                            const std::string& prefix) const {
+  DBUG_TRACE;
   std::string result;
   std::string parent;
   std::string id = GetId();
@@ -71,6 +76,7 @@ std::string Customizable::SerializeOptions(const ConfigOptions& config_options,
 bool Customizable::AreEquivalent(const ConfigOptions& config_options,
                                  const Configurable* other,
                                  std::string* mismatch) const {
+  DBUG_TRACE;
   if (config_options.sanity_level > ConfigOptions::kSanityLevelNone &&
       this != other) {
     const Customizable* custom = static_cast<const Customizable*>(other);
@@ -93,6 +99,7 @@ Status Customizable::GetOptionsMap(
     const ConfigOptions& config_options, const Customizable* customizable,
     const std::string& value, std::string* id,
     std::unordered_map<std::string, std::string>* props) {
+  DBUG_TRACE;
   Status status;
   if (value.empty() || value == kNullptrString) {
     *id = "";
@@ -122,6 +129,7 @@ Status Customizable::GetOptionsMap(
 Status Customizable::ConfigureNewObject(
     const ConfigOptions& config_options, Customizable* object,
     const std::unordered_map<std::string, std::string>& opt_map) {
+  DBUG_TRACE;
   Status status;
   if (object != nullptr) {
     status = object->ConfigureFromMap(config_options, opt_map);

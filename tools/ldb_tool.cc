@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 //
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/ldb_tool.h"
 
 #include "rocksdb/utilities/ldb_cmd.h"
@@ -14,6 +15,7 @@ LDBOptions::LDBOptions() = default;
 
 void LDBCommandRunner::PrintHelp(const LDBOptions& ldb_options,
                                  const char* /*exec_name*/, bool to_stderr) {
+  DBUG_TRACE;
   std::string ret;
 
   ret.append(ldb_options.print_help_header);
@@ -143,6 +145,7 @@ int LDBCommandRunner::RunCommand(
     int argc, char const* const* argv, Options options,
     const LDBOptions& ldb_options,
     const std::vector<ColumnFamilyDescriptor>* column_families) {
+  DBUG_TRACE;
   if (argc <= 2) {
     if (argc <= 1) {
       PrintHelp(ldb_options, argv[0], /*to_stderr*/ true);
@@ -185,6 +188,7 @@ int LDBCommandRunner::RunCommand(
 void LDBTool::Run(int argc, char** argv, Options options,
                   const LDBOptions& ldb_options,
                   const std::vector<ColumnFamilyDescriptor>* column_families) {
+  DBUG_TRACE;
   int error_code = LDBCommandRunner::RunCommand(argc, argv, options,
                                                 ldb_options, column_families);
   exit(error_code);

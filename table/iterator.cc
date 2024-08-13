@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/iterator.h"
 
 #include "memory/arena.h"
@@ -16,6 +17,7 @@
 namespace ROCKSDB_NAMESPACE {
 
 Status Iterator::GetProperty(std::string prop_name, std::string* prop) {
+  DBUG_TRACE;
   if (prop == nullptr) {
     return Status::InvalidArgument("prop is nullptr");
   }
@@ -34,22 +36,24 @@ namespace {
 class EmptyIterator : public Iterator {
  public:
   explicit EmptyIterator(const Status& s) : status_(s) {}
-  bool Valid() const override { return false; }
-  void Seek(const Slice& /*target*/) override {}
-  void SeekForPrev(const Slice& /*target*/) override {}
-  void SeekToFirst() override {}
-  void SeekToLast() override {}
-  void Next() override { assert(false); }
-  void Prev() override { assert(false); }
+  bool Valid() const override { DBUG_TRACE; return false; }
+  void Seek(const Slice& /*target*/) override {DBUG_TRACE;}
+  void SeekForPrev(const Slice& /*target*/) override {DBUG_TRACE;}
+  void SeekToFirst() override {DBUG_TRACE;}
+  void SeekToLast() override {DBUG_TRACE;}
+  void Next() override { DBUG_TRACE; assert(false); }
+  void Prev() override { DBUG_TRACE; assert(false); }
   Slice key() const override {
+    DBUG_TRACE;
     assert(false);
     return Slice();
   }
   Slice value() const override {
+    DBUG_TRACE;
     assert(false);
     return Slice();
   }
-  Status status() const override { return status_; }
+  Status status() const override { DBUG_TRACE; return status_; }
 
  private:
   Status status_;
@@ -59,31 +63,34 @@ template <class TValue = Slice>
 class EmptyInternalIterator : public InternalIteratorBase<TValue> {
  public:
   explicit EmptyInternalIterator(const Status& s) : status_(s) {}
-  bool Valid() const override { return false; }
-  void Seek(const Slice& /*target*/) override {}
-  void SeekForPrev(const Slice& /*target*/) override {}
-  void SeekToFirst() override {}
-  void SeekToLast() override {}
-  void Next() override { assert(false); }
-  void Prev() override { assert(false); }
+  bool Valid() const override { DBUG_TRACE; return false; }
+  void Seek(const Slice& /*target*/) override {DBUG_TRACE;}
+  void SeekForPrev(const Slice& /*target*/) override {DBUG_TRACE;}
+  void SeekToFirst() override {DBUG_TRACE;}
+  void SeekToLast() override {DBUG_TRACE;}
+  void Next() override { DBUG_TRACE; assert(false); }
+  void Prev() override { DBUG_TRACE; assert(false); }
   Slice key() const override {
+    DBUG_TRACE;
     assert(false);
     return Slice();
   }
   TValue value() const override {
+    DBUG_TRACE;
     assert(false);
     return TValue();
   }
-  Status status() const override { return status_; }
+  Status status() const override { DBUG_TRACE; return status_; }
 
  private:
   Status status_;
 };
 }  // namespace
 
-Iterator* NewEmptyIterator() { return new EmptyIterator(Status::OK()); }
+Iterator* NewEmptyIterator() { DBUG_TRACE; return new EmptyIterator(Status::OK()); }
 
 Iterator* NewErrorIterator(const Status& status) {
+  DBUG_TRACE;
   return new EmptyIterator(status);
 }
 

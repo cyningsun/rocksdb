@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "db/coalescing_iterator.h"
 
 #include "db/wide/wide_columns_helper.h"
@@ -11,6 +12,7 @@ namespace ROCKSDB_NAMESPACE {
 
 void CoalescingIterator::Coalesce(
     const autovector<MultiCfIteratorInfo>& items) {
+  DBUG_TRACE;
   assert(wide_columns_.empty());
   MinHeap heap;
   for (const auto& item : items) {

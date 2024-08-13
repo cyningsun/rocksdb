@@ -4,6 +4,7 @@
 //  (found in the LICENSE.Apache file in the root directory).
 
 
+#include "rocksdb/util/dbug.h"
 #include "utilities/transactions/write_prepared_txn.h"
 
 #include <cinttypes>
@@ -35,6 +36,7 @@ WritePreparedTxn::WritePreparedTxn(WritePreparedTxnDB* txn_db,
 }
 
 void WritePreparedTxn::Initialize(const TransactionOptions& txn_options) {
+  DBUG_TRACE;
   PessimisticTransaction::Initialize(txn_options);
   prepare_batch_cnt_ = 0;
 }
@@ -44,6 +46,7 @@ void WritePreparedTxn::MultiGet(const ReadOptions& _read_options,
                                 const size_t num_keys, const Slice* keys,
                                 PinnableSlice* values, Status* statuses,
                                 const bool sorted_input) {
+  DBUG_TRACE;
   if (_read_options.io_activity != Env::IOActivity::kUnknown &&
       _read_options.io_activity != Env::IOActivity::kMultiGet) {
     Status s = Status::InvalidArgument(
@@ -82,6 +85,7 @@ void WritePreparedTxn::MultiGet(const ReadOptions& _read_options,
 Status WritePreparedTxn::Get(const ReadOptions& _read_options,
                              ColumnFamilyHandle* column_family,
                              const Slice& key, PinnableSlice* pinnable_val) {
+  DBUG_TRACE;
   if (_read_options.io_activity != Env::IOActivity::kUnknown &&
       _read_options.io_activity != Env::IOActivity::kGet) {
     return Status::InvalidArgument(
@@ -100,6 +104,7 @@ Status WritePreparedTxn::GetImpl(const ReadOptions& options,
                                  ColumnFamilyHandle* column_family,
                                  const Slice& key,
                                  PinnableSlice* pinnable_val) {
+  DBUG_TRACE;
   SequenceNumber min_uncommitted, snap_seq;
   const SnapshotBackup backed_by_snapshot =
       wpt_db_->AssignMinMaxSeqs(options.snapshot, &min_uncommitted, &snap_seq);
@@ -123,11 +128,13 @@ Status WritePreparedTxn::GetImpl(const ReadOptions& options,
 }
 
 Iterator* WritePreparedTxn::GetIterator(const ReadOptions& options) {
+  DBUG_TRACE;
   return GetIterator(options, wpt_db_->DefaultColumnFamily());
 }
 
 Iterator* WritePreparedTxn::GetIterator(const ReadOptions& options,
                                         ColumnFamilyHandle* column_family) {
+  DBUG_TRACE;
   // Make sure to get iterator from WritePrepareTxnDB, not the root db.
   Iterator* db_iter = wpt_db_->NewIterator(options, column_family);
   assert(db_iter);
@@ -136,6 +143,7 @@ Iterator* WritePreparedTxn::GetIterator(const ReadOptions& options,
 }
 
 Status WritePreparedTxn::PrepareInternal() {
+  DBUG_TRACE;
   WriteOptions write_options = write_options_;
   write_options.disableWAL = false;
   const bool WRITE_AFTER_COMMIT = true;
@@ -165,6 +173,7 @@ Status WritePreparedTxn::PrepareInternal() {
 }
 
 Status WritePreparedTxn::CommitWithoutPrepareInternal() {
+  DBUG_TRACE;
   // For each duplicate key we account for a new sub-batch
   const size_t batch_cnt = GetWriteBatch()->SubBatchCnt();
   return CommitBatchInternal(GetWriteBatch()->GetWriteBatch(), batch_cnt);
@@ -172,10 +181,12 @@ Status WritePreparedTxn::CommitWithoutPrepareInternal() {
 
 Status WritePreparedTxn::CommitBatchInternal(WriteBatch* batch,
                                              size_t batch_cnt) {
+  DBUG_TRACE;
   return wpt_db_->WriteInternal(write_options_, batch, batch_cnt, this);
 }
 
 Status WritePreparedTxn::CommitInternal() {
+  DBUG_TRACE;
   ROCKS_LOG_DETAILS(db_impl_->immutable_db_options().info_log,
                     "CommitInternal prepare_seq: %" PRIu64, GetID());
   // We take the commit-time batch and append the Commit marker.
@@ -295,6 +306,7 @@ Status WritePreparedTxn::CommitInternal() {
 }
 
 Status WritePreparedTxn::RollbackInternal() {
+  DBUG_TRACE;
   ROCKS_LOG_WARN(db_impl_->immutable_db_options().info_log,
                  "RollbackInternal prepare_seq: %" PRIu64, GetId());
 
@@ -341,6 +353,7 @@ Status WritePreparedTxn::RollbackInternal() {
           roptions_(_roptions) {}
 
     Status Rollback(uint32_t cf, const Slice& key) {
+      DBUG_TRACE;
       Status s;
       CFKeys& cf_keys = keys_[cf];
       if (cf_keys.size() == 0) {  // just inserted
@@ -382,36 +395,42 @@ Status WritePreparedTxn::RollbackInternal() {
     }
 
     Status PutCF(uint32_t cf, const Slice& key, const Slice& /*val*/) override {
+      DBUG_TRACE;
       return Rollback(cf, key);
     }
 
     Status DeleteCF(uint32_t cf, const Slice& key) override {
+      DBUG_TRACE;
       return Rollback(cf, key);
     }
 
     Status SingleDeleteCF(uint32_t cf, const Slice& key) override {
+      DBUG_TRACE;
       return Rollback(cf, key);
     }
 
     Status MergeCF(uint32_t cf, const Slice& key,
                    const Slice& /*val*/) override {
+      DBUG_TRACE;
       if (rollback_merge_operands_) {
         return Rollback(cf, key);
-      } else {
+      } else {DBUG_TRACE;
         return Status::OK();
       }
     }
 
-    Status MarkNoop(bool) override { return Status::OK(); }
-    Status MarkBeginPrepare(bool) override { return Status::OK(); }
-    Status MarkEndPrepare(const Slice&) override { return Status::OK(); }
-    Status MarkCommit(const Slice&) override { return Status::OK(); }
+    Status MarkNoop(bool) override { DBUG_TRACE; return Status::OK(); }
+    Status MarkBeginPrepare(bool) override { DBUG_TRACE; return Status::OK(); }
+    Status MarkEndPrepare(const Slice&) override { DBUG_TRACE; return Status::OK(); }
+    Status MarkCommit(const Slice&) override { DBUG_TRACE; return Status::OK(); }
     Status MarkRollback(const Slice&) override {
+      DBUG_TRACE;
       return Status::InvalidArgument();
     }
 
    protected:
     Handler::OptionState WriteAfterCommit() const override {
+      DBUG_TRACE;
       return Handler::OptionState::kDisabled;
     }
   } rollback_handler(db_impl_, wpt_db_, read_at_seq, &rollback_batch,
@@ -503,6 +522,7 @@ Status WritePreparedTxn::RollbackInternal() {
 Status WritePreparedTxn::ValidateSnapshot(ColumnFamilyHandle* column_family,
                                           const Slice& key,
                                           SequenceNumber* tracked_at_seq) {
+  DBUG_TRACE;
   assert(snapshot_);
 
   SequenceNumber min_uncommitted =
@@ -534,12 +554,14 @@ Status WritePreparedTxn::ValidateSnapshot(ColumnFamilyHandle* column_family,
 }
 
 void WritePreparedTxn::SetSnapshot() {
+  DBUG_TRACE;
   const bool kForWWConflictCheck = true;
   SnapshotImpl* snapshot = wpt_db_->GetSnapshotInternal(kForWWConflictCheck);
   SetSnapshotInternal(snapshot);
 }
 
 Status WritePreparedTxn::RebuildFromWriteBatch(WriteBatch* src_batch) {
+  DBUG_TRACE;
   auto ret = PessimisticTransaction::RebuildFromWriteBatch(src_batch);
   prepare_batch_cnt_ = GetWriteBatch()->SubBatchCnt();
   return ret;

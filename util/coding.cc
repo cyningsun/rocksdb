@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "util/coding.h"
 
 #include <algorithm>
@@ -22,6 +23,7 @@ namespace ROCKSDB_NAMESPACE {
 #pragma warning(disable : 4244)
 #endif
 char* EncodeVarint32(char* dst, uint32_t v) {
+  DBUG_TRACE;
   // Operate on characters as unsigneds
   unsigned char* ptr = reinterpret_cast<unsigned char*>(dst);
   static const int B = 128;
@@ -54,6 +56,7 @@ char* EncodeVarint32(char* dst, uint32_t v) {
 
 const char* GetVarint32PtrFallback(const char* p, const char* limit,
                                    uint32_t* value) {
+  DBUG_TRACE;
   uint32_t result = 0;
   for (uint32_t shift = 0; shift <= 28 && p < limit; shift += 7) {
     uint32_t byte = *(reinterpret_cast<const unsigned char*>(p));
@@ -71,6 +74,7 @@ const char* GetVarint32PtrFallback(const char* p, const char* limit,
 }
 
 const char* GetVarint64Ptr(const char* p, const char* limit, uint64_t* value) {
+  DBUG_TRACE;
   uint64_t result = 0;
   for (uint32_t shift = 0; shift <= 63 && p < limit; shift += 7) {
     uint64_t byte = *(reinterpret_cast<const unsigned char*>(p));

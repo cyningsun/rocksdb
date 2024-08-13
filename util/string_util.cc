@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 //
+#include "rocksdb/util/dbug.h"
 #include "util/string_util.h"
 
 #include <algorithm>
@@ -39,6 +40,7 @@ namespace ROCKSDB_NAMESPACE {
 const std::string kNullptrString = "nullptr";
 
 std::vector<std::string> StringSplit(const std::string& arg, char delim) {
+  DBUG_TRACE;
   std::vector<std::string> splits;
   std::stringstream ss(arg);
   std::string item;
@@ -55,6 +57,7 @@ std::vector<std::string> StringSplit(const std::string& arg, char delim) {
 // for micros > 1 hour, print Z:Y:X H:M:S".
 int AppendHumanMicros(uint64_t micros, char* output, int len,
                       bool fixed_format) {
+  DBUG_TRACE;
   if (micros < 10000 && !fixed_format) {
     return snprintf(output, len, "%" PRIu64 " us", micros);
   } else if (micros < 10000000 && !fixed_format) {
@@ -79,6 +82,7 @@ int AppendHumanMicros(uint64_t micros, char* output, int len,
 // etc.
 // append file size summary to output and return the len
 int AppendHumanBytes(uint64_t bytes, char* output, int len) {
+  DBUG_TRACE;
   const uint64_t ull10 = 10;
   if (bytes >= ull10 << 40) {
     return snprintf(output, len, "%" PRIu64 "TB", bytes >> 40);
@@ -94,12 +98,14 @@ int AppendHumanBytes(uint64_t bytes, char* output, int len) {
 }
 
 void AppendNumberTo(std::string* str, uint64_t num) {
+  DBUG_TRACE;
   char buf[30];
   snprintf(buf, sizeof(buf), "%" PRIu64, num);
   str->append(buf);
 }
 
 void AppendEscapedStringTo(std::string* str, const Slice& value) {
+  DBUG_TRACE;
   for (size_t i = 0; i < value.size(); i++) {
     char c = value[i];
     if (c >= ' ' && c <= '~') {
@@ -114,6 +120,7 @@ void AppendEscapedStringTo(std::string* str, const Slice& value) {
 }
 
 std::string NumberToHumanString(int64_t num) {
+  DBUG_TRACE;
   char buf[21];
   int64_t absnum;
 
@@ -138,6 +145,7 @@ std::string NumberToHumanString(int64_t num) {
 }
 
 std::string BytesToHumanString(uint64_t bytes) {
+  DBUG_TRACE;
   const char* size_name[] = {"KB", "MB", "GB", "TB"};
   double final_size = static_cast<double>(bytes);
   size_t size_idx;
@@ -157,6 +165,7 @@ std::string BytesToHumanString(uint64_t bytes) {
 }
 
 std::string TimeToHumanString(int unixtime) {
+  DBUG_TRACE;
   char time_buffer[80];
   time_t rawtime = unixtime;
   struct tm tInfo;
@@ -167,6 +176,7 @@ std::string TimeToHumanString(int unixtime) {
 }
 
 std::string EscapeString(const Slice& value) {
+  DBUG_TRACE;
   std::string r;
   AppendEscapedStringTo(&r, value);
   return r;
@@ -197,6 +207,7 @@ bool ConsumeDecimalNumber(Slice* in, uint64_t* val) {
 }
 
 bool isSpecialChar(const char c) {
+  DBUG_TRACE;
   if (c == '\\' || c == '#' || c == ':' || c == '\r' || c == '\n') {
     return true;
   }
@@ -208,6 +219,7 @@ using CharMap = std::pair<char, char>;
 }
 
 char UnescapeChar(const char c) {
+  DBUG_TRACE;
   static const CharMap convert_map[] = {{'r', '\r'}, {'n', '\n'}};
 
   auto iter = std::find_if(std::begin(convert_map), std::end(convert_map),
@@ -220,6 +232,7 @@ char UnescapeChar(const char c) {
 }
 
 char EscapeChar(const char c) {
+  DBUG_TRACE;
   static const CharMap convert_map[] = {{'\n', 'n'}, {'\r', 'r'}};
 
   auto iter = std::find_if(std::begin(convert_map), std::end(convert_map),
@@ -232,6 +245,7 @@ char EscapeChar(const char c) {
 }
 
 std::string EscapeOptionString(const std::string& raw_string) {
+  DBUG_TRACE;
   std::string output;
   for (auto c : raw_string) {
     if (isSpecialChar(c)) {
@@ -246,6 +260,7 @@ std::string EscapeOptionString(const std::string& raw_string) {
 }
 
 std::string UnescapeOptionString(const std::string& escaped_string) {
+  DBUG_TRACE;
   bool escaped = false;
   std::string output;
 
@@ -265,6 +280,7 @@ std::string UnescapeOptionString(const std::string& escaped_string) {
 }
 
 std::string trim(const std::string& str) {
+  DBUG_TRACE;
   if (str.empty()) {
     return std::string();
   }
@@ -283,6 +299,7 @@ std::string trim(const std::string& str) {
 }
 
 bool EndsWith(const std::string& string, const std::string& pattern) {
+  DBUG_TRACE;
   size_t plen = pattern.size();
   size_t slen = string.size();
   if (plen <= slen) {
@@ -293,11 +310,13 @@ bool EndsWith(const std::string& string, const std::string& pattern) {
 }
 
 bool StartsWith(const std::string& string, const std::string& pattern) {
+  DBUG_TRACE;
   return string.compare(0, pattern.size(), pattern) == 0;
 }
 
 
 bool ParseBoolean(const std::string& type, const std::string& value) {
+  DBUG_TRACE;
   if (value == "true" || value == "1") {
     return true;
   } else if (value == "false" || value == "0") {
@@ -307,6 +326,7 @@ bool ParseBoolean(const std::string& type, const std::string& value) {
 }
 
 uint8_t ParseUint8(const std::string& value) {
+  DBUG_TRACE;
   uint64_t num = ParseUint64(value);
   if ((num >> 8LL) == 0) {
     return static_cast<uint8_t>(num);
@@ -316,6 +336,7 @@ uint8_t ParseUint8(const std::string& value) {
 }
 
 uint32_t ParseUint32(const std::string& value) {
+  DBUG_TRACE;
   uint64_t num = ParseUint64(value);
   if ((num >> 32LL) == 0) {
     return static_cast<uint32_t>(num);
@@ -325,6 +346,7 @@ uint32_t ParseUint32(const std::string& value) {
 }
 
 int32_t ParseInt32(const std::string& value) {
+  DBUG_TRACE;
   int64_t num = ParseInt64(value);
   if (num <= std::numeric_limits<int32_t>::max() &&
       num >= std::numeric_limits<int32_t>::min()) {
@@ -336,6 +358,7 @@ int32_t ParseInt32(const std::string& value) {
 
 
 uint64_t ParseUint64(const std::string& value) {
+  DBUG_TRACE;
   size_t endchar;
 #ifndef CYGWIN
   uint64_t num = std::stoull(value.c_str(), &endchar);
@@ -362,6 +385,7 @@ uint64_t ParseUint64(const std::string& value) {
 }
 
 int64_t ParseInt64(const std::string& value) {
+  DBUG_TRACE;
   size_t endchar;
 #ifndef CYGWIN
   int64_t num = std::stoll(value.c_str(), &endchar);
@@ -388,6 +412,7 @@ int64_t ParseInt64(const std::string& value) {
 }
 
 int ParseInt(const std::string& value) {
+  DBUG_TRACE;
   size_t endchar;
 #ifndef CYGWIN
   int num = std::stoi(value.c_str(), &endchar);
@@ -412,6 +437,7 @@ int ParseInt(const std::string& value) {
 }
 
 double ParseDouble(const std::string& value) {
+DBUG_TRACE;
 #ifndef CYGWIN
   return std::stod(value);
 #else
@@ -420,10 +446,12 @@ double ParseDouble(const std::string& value) {
 }
 
 size_t ParseSizeT(const std::string& value) {
+  DBUG_TRACE;
   return static_cast<size_t>(ParseUint64(value));
 }
 
 std::vector<int> ParseVectorInt(const std::string& value) {
+  DBUG_TRACE;
   std::vector<int> result;
   size_t start = 0;
   while (start < value.size()) {
@@ -440,6 +468,7 @@ std::vector<int> ParseVectorInt(const std::string& value) {
 }
 
 bool SerializeIntVector(const std::vector<int>& vec, std::string* value) {
+  DBUG_TRACE;
   *value = "";
   for (size_t i = 0; i < vec.size(); ++i) {
     if (i > 0) {
@@ -451,6 +480,7 @@ bool SerializeIntVector(const std::vector<int>& vec, std::string* value) {
 }
 
 int ParseTimeStringToSeconds(const std::string& value) {
+  DBUG_TRACE;
   int hours, minutes;
   char colon;
 
@@ -469,6 +499,7 @@ int ParseTimeStringToSeconds(const std::string& value) {
 
 bool TryParseTimeRangeString(const std::string& value, int& start_time,
                              int& end_time) {
+  DBUG_TRACE;
   if (value.empty()) {
     start_time = 0;
     end_time = 0;
@@ -506,6 +537,7 @@ bool TryParseTimeRangeString(const std::string& value, int& start_time,
 ROCKSDB_MAYBE_UNUSED
 static std::string invoke_strerror_r(int (*strerror_r)(int, char*, size_t),
                                      int err, char* buf, size_t buflen) {
+  DBUG_TRACE;
   // Using XSI-compatible strerror_r
   int r = strerror_r(err, buf, buflen);
 
@@ -520,12 +552,14 @@ static std::string invoke_strerror_r(int (*strerror_r)(int, char*, size_t),
 ROCKSDB_MAYBE_UNUSED
 static std::string invoke_strerror_r(char* (*strerror_r)(int, char*, size_t),
                                      int err, char* buf, size_t buflen) {
+  DBUG_TRACE;
   // Using GNU strerror_r
   return strerror_r(err, buf, buflen);
 }
 #endif  // !(defined(_WIN32) && (defined(__MINGW32__) || defined(_MSC_VER)))
 
 std::string errnoStr(int err) {
+  DBUG_TRACE;
   char buf[1024];
   buf[0] = '\0';
 

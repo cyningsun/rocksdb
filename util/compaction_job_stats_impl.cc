@@ -3,12 +3,14 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/compaction_job_stats.h"
 
 namespace ROCKSDB_NAMESPACE {
 
 
 void CompactionJobStats::Reset() {
+  DBUG_TRACE;
   elapsed_micros = 0;
   cpu_micros = 0;
 
@@ -53,6 +55,7 @@ void CompactionJobStats::Reset() {
 }
 
 void CompactionJobStats::Add(const CompactionJobStats& stats) {
+  DBUG_TRACE;
   elapsed_micros += stats.elapsed_micros;
   cpu_micros += stats.cpu_micros;
 

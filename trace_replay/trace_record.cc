@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/trace_record.h"
 
 #include <utility>
@@ -19,10 +20,11 @@ namespace ROCKSDB_NAMESPACE {
 // TraceRecord
 TraceRecord::TraceRecord(uint64_t timestamp) : timestamp_(timestamp) {}
 
-uint64_t TraceRecord::GetTimestamp() const { return timestamp_; }
+uint64_t TraceRecord::GetTimestamp() const { DBUG_TRACE; return timestamp_; }
 
 TraceRecord::Handler* TraceRecord::NewExecutionHandler(
     DB* db, const std::vector<ColumnFamilyHandle*>& handles) {
+  DBUG_TRACE;
   return new TraceExecutionHandler(db, handles);
 }
 
@@ -43,10 +45,11 @@ WriteQueryTraceRecord::WriteQueryTraceRecord(const std::string& write_batch_rep,
 
 WriteQueryTraceRecord::~WriteQueryTraceRecord() { rep_.clear(); }
 
-Slice WriteQueryTraceRecord::GetWriteBatchRep() const { return Slice(rep_); }
+Slice WriteQueryTraceRecord::GetWriteBatchRep() const { DBUG_TRACE; return Slice(rep_); }
 
 Status WriteQueryTraceRecord::Accept(
     Handler* handler, std::unique_ptr<TraceRecordResult>* result) {
+  DBUG_TRACE;
   assert(handler != nullptr);
   return handler->Handle(*this, result);
 }
@@ -68,12 +71,13 @@ GetQueryTraceRecord::GetQueryTraceRecord(uint32_t column_family_id,
 
 GetQueryTraceRecord::~GetQueryTraceRecord() { key_.clear(); }
 
-uint32_t GetQueryTraceRecord::GetColumnFamilyID() const { return cf_id_; }
+uint32_t GetQueryTraceRecord::GetColumnFamilyID() const { DBUG_TRACE; return cf_id_; }
 
-Slice GetQueryTraceRecord::GetKey() const { return Slice(key_); }
+Slice GetQueryTraceRecord::GetKey() const { DBUG_TRACE; return Slice(key_); }
 
 Status GetQueryTraceRecord::Accept(Handler* handler,
                                    std::unique_ptr<TraceRecordResult>* result) {
+  DBUG_TRACE;
   assert(handler != nullptr);
   return handler->Handle(*this, result);
 }
@@ -99,9 +103,9 @@ IteratorQueryTraceRecord::IteratorQueryTraceRecord(
 
 IteratorQueryTraceRecord::~IteratorQueryTraceRecord() = default;
 
-Slice IteratorQueryTraceRecord::GetLowerBound() const { return Slice(lower_); }
+Slice IteratorQueryTraceRecord::GetLowerBound() const { DBUG_TRACE; return Slice(lower_); }
 
-Slice IteratorQueryTraceRecord::GetUpperBound() const { return Slice(upper_); }
+Slice IteratorQueryTraceRecord::GetUpperBound() const { DBUG_TRACE; return Slice(upper_); }
 
 // IteratorSeekQueryTraceRecord
 IteratorSeekQueryTraceRecord::IteratorSeekQueryTraceRecord(
@@ -144,22 +148,26 @@ IteratorSeekQueryTraceRecord::IteratorSeekQueryTraceRecord(
 IteratorSeekQueryTraceRecord::~IteratorSeekQueryTraceRecord() { key_.clear(); }
 
 TraceType IteratorSeekQueryTraceRecord::GetTraceType() const {
+  DBUG_TRACE;
   return static_cast<TraceType>(type_);
 }
 
 IteratorSeekQueryTraceRecord::SeekType
 IteratorSeekQueryTraceRecord::GetSeekType() const {
+  DBUG_TRACE;
   return type_;
 }
 
 uint32_t IteratorSeekQueryTraceRecord::GetColumnFamilyID() const {
+  DBUG_TRACE;
   return cf_id_;
 }
 
-Slice IteratorSeekQueryTraceRecord::GetKey() const { return Slice(key_); }
+Slice IteratorSeekQueryTraceRecord::GetKey() const { DBUG_TRACE; return Slice(key_); }
 
 Status IteratorSeekQueryTraceRecord::Accept(
     Handler* handler, std::unique_ptr<TraceRecordResult>* result) {
+  DBUG_TRACE;
   assert(handler != nullptr);
   return handler->Handle(*this, result);
 }
@@ -190,15 +198,18 @@ MultiGetQueryTraceRecord::~MultiGetQueryTraceRecord() {
 }
 
 std::vector<uint32_t> MultiGetQueryTraceRecord::GetColumnFamilyIDs() const {
+  DBUG_TRACE;
   return cf_ids_;
 }
 
 std::vector<Slice> MultiGetQueryTraceRecord::GetKeys() const {
+  DBUG_TRACE;
   return std::vector<Slice>(keys_.begin(), keys_.end());
 }
 
 Status MultiGetQueryTraceRecord::Accept(
     Handler* handler, std::unique_ptr<TraceRecordResult>* result) {
+  DBUG_TRACE;
   assert(handler != nullptr);
   return handler->Handle(*this, result);
 }

@@ -4,12 +4,14 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "util/write_batch_util.h"
 
 namespace ROCKSDB_NAMESPACE {
 
 Status CollectColumnFamilyIdsFromWriteBatch(
     const WriteBatch& batch, std::vector<uint32_t>* column_family_ids) {
+  DBUG_TRACE;
   assert(column_family_ids != nullptr);
   column_family_ids->clear();
   ColumnFamilyCollector handler;

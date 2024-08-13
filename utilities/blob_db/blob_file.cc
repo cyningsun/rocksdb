@@ -3,6 +3,7 @@
 //  This source code is licensed under both the GPLv2 (found in the
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
+#include "rocksdb/util/dbug.h"
 #include "utilities/blob_db/blob_file.h"
 
 #include <algorithm>
@@ -50,13 +51,15 @@ BlobFile::~BlobFile() {
   }
 }
 
-uint32_t BlobFile::GetColumnFamilyId() const { return column_family_id_; }
+uint32_t BlobFile::GetColumnFamilyId() const { DBUG_TRACE; return column_family_id_; }
 
 std::string BlobFile::PathName() const {
+  DBUG_TRACE;
   return BlobFileName(path_to_dir_, file_number_);
 }
 
 std::string BlobFile::DumpState() const {
+  DBUG_TRACE;
   char str[1000];
   snprintf(
       str, sizeof(str),
@@ -70,6 +73,7 @@ std::string BlobFile::DumpState() const {
 }
 
 void BlobFile::MarkObsolete(SequenceNumber sequence) {
+  DBUG_TRACE;
   assert(Immutable());
   obsolete_sequence_ = sequence;
   obsolete_.store(true);
@@ -77,6 +81,7 @@ void BlobFile::MarkObsolete(SequenceNumber sequence) {
 
 Status BlobFile::WriteFooterAndCloseLocked(const WriteOptions& write_options,
                                            SequenceNumber sequence) {
+  DBUG_TRACE;
   BlobLogFooter footer;
   footer.blob_count = blob_count_;
   if (HasTTL()) {
@@ -98,6 +103,7 @@ Status BlobFile::WriteFooterAndCloseLocked(const WriteOptions& write_options,
 }
 
 Status BlobFile::ReadFooter(BlobLogFooter* bf) {
+  DBUG_TRACE;
   if (file_size_ < (BlobLogHeader::kSize + BlobLogFooter::kSize)) {
     return Status::IOError("File does not have footer", PathName());
   }
@@ -132,6 +138,7 @@ Status BlobFile::ReadFooter(BlobLogFooter* bf) {
 }
 
 Status BlobFile::SetFromFooterLocked(const BlobLogFooter& footer) {
+  DBUG_TRACE;
   blob_count_ = footer.blob_count;
   expiration_range_ = footer.expiration_range;
   closed_ = true;
@@ -139,6 +146,7 @@ Status BlobFile::SetFromFooterLocked(const BlobLogFooter& footer) {
 }
 
 Status BlobFile::Fsync(const WriteOptions& write_options) {
+  DBUG_TRACE;
   Status s;
   if (log_writer_.get()) {
     s = log_writer_->Sync(write_options);
@@ -147,6 +155,7 @@ Status BlobFile::Fsync(const WriteOptions& write_options) {
 }
 
 void BlobFile::CloseRandomAccessLocked() {
+  DBUG_TRACE;
   ra_file_reader_.reset();
   last_access_ = -1;
 }
@@ -154,6 +163,7 @@ void BlobFile::CloseRandomAccessLocked() {
 Status BlobFile::GetReader(Env* env, const FileOptions& file_options,
                            std::shared_ptr<RandomAccessFileReader>* reader,
                            bool* fresh_open) {
+  DBUG_TRACE;
   assert(reader != nullptr);
   assert(fresh_open != nullptr);
   *fresh_open = false;
@@ -199,6 +209,7 @@ Status BlobFile::GetReader(Env* env, const FileOptions& file_options,
 
 Status BlobFile::ReadMetadata(const std::shared_ptr<FileSystem>& fs,
                               const FileOptions& file_options) {
+  DBUG_TRACE;
   assert(Immutable());
   // Get file size.
   uint64_t file_size = 0;

@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/db.h"
 #include "rocksdb/snapshot.h"
 
@@ -20,6 +21,6 @@ ManagedSnapshot::~ManagedSnapshot() {
   }
 }
 
-const Snapshot* ManagedSnapshot::snapshot() { return snapshot_; }
+const Snapshot* ManagedSnapshot::snapshot() { DBUG_TRACE; return snapshot_; }
 
 }  // namespace ROCKSDB_NAMESPACE

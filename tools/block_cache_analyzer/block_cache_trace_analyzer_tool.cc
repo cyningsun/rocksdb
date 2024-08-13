@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 //
+#include "rocksdb/util/dbug.h"
 #ifndef GFLAGS
 #include <cstdio>
 int main() {
@@ -12,6 +13,7 @@ int main() {
 #else  // GFLAGS
 #include "tools/block_cache_analyzer/block_cache_trace_analyzer.h"
 int main(int argc, char** argv) {
+  DBUG_TRACE;
   return ROCKSDB_NAMESPACE::block_cache_trace_analyzer_tool(argc, argv);
 }
 #endif  // GFLAGS

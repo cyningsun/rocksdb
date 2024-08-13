@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "file/sequence_file_reader.h"
 
 #include <algorithm>
@@ -27,6 +28,7 @@ IOStatus SequentialFileReader::Create(
     const std::shared_ptr<FileSystem>& fs, const std::string& fname,
     const FileOptions& file_opts, std::unique_ptr<SequentialFileReader>* reader,
     IODebugContext* dbg, RateLimiter* rate_limiter) {
+  DBUG_TRACE;
   std::unique_ptr<FSSequentialFile> file;
   IOStatus io_s = fs->NewSequentialFile(fname, file_opts, &file, dbg);
   if (io_s.ok()) {
@@ -38,6 +40,7 @@ IOStatus SequentialFileReader::Create(
 
 IOStatus SequentialFileReader::Read(size_t n, Slice* result, char* scratch,
                                     Env::IOPriority rate_limiter_priority) {
+  DBUG_TRACE;
   IOStatus io_s;
   IOOptions io_opts;
   io_opts.rate_limiter_priority = rate_limiter_priority;
@@ -142,6 +145,7 @@ IOStatus SequentialFileReader::Read(size_t n, Slice* result, char* scratch,
 }
 
 IOStatus SequentialFileReader::Skip(uint64_t n) {
+  DBUG_TRACE;
   if (use_direct_io()) {
     offset_ += static_cast<size_t>(n);
     return IOStatus::OK();
@@ -174,6 +178,7 @@ class ReadaheadSequentialFile : public FSSequentialFile {
 
   IOStatus Read(size_t n, const IOOptions& opts, Slice* result, char* scratch,
                 IODebugContext* dbg) override {
+    DBUG_TRACE;
     std::unique_lock<std::mutex> lk(lock_);
 
     size_t cached_len = 0;
@@ -212,6 +217,7 @@ class ReadaheadSequentialFile : public FSSequentialFile {
   }
 
   IOStatus Skip(uint64_t n) override {
+    DBUG_TRACE;
     std::unique_lock<std::mutex> lk(lock_);
     IOStatus s = IOStatus::OK();
     // First check if we need to skip already cached data
@@ -241,16 +247,18 @@ class ReadaheadSequentialFile : public FSSequentialFile {
   IOStatus PositionedRead(uint64_t offset, size_t n, const IOOptions& opts,
                           Slice* result, char* scratch,
                           IODebugContext* dbg) override {
+    DBUG_TRACE;
     return file_->PositionedRead(offset, n, opts, result, scratch, dbg);
   }
 
   IOStatus InvalidateCache(size_t offset, size_t length) override {
+    DBUG_TRACE;
     std::unique_lock<std::mutex> lk(lock_);
     buffer_.Clear();
     return file_->InvalidateCache(offset, length);
   }
 
-  bool use_direct_io() const override { return file_->use_direct_io(); }
+  bool use_direct_io() const override { DBUG_TRACE; return file_->use_direct_io(); }
 
  private:
   // Tries to read from buffer_ n bytes. If anything was read from the cache, it
@@ -258,6 +266,7 @@ class ReadaheadSequentialFile : public FSSequentialFile {
   // of bytes to scratch and returns true.
   // If nothing was read sets cached_len to 0 and returns false.
   bool TryReadFromCache(size_t n, size_t* cached_len, char* scratch) {
+    DBUG_TRACE;
     if (read_offset_ < buffer_offset_ ||
         read_offset_ >= buffer_offset_ + buffer_.CurrentSize()) {
       *cached_len = 0;
@@ -276,6 +285,7 @@ class ReadaheadSequentialFile : public FSSequentialFile {
   // Returns the status of the read operastion on the file.
   IOStatus ReadIntoBuffer(size_t n, const IOOptions& opts,
                           IODebugContext* dbg) {
+    DBUG_TRACE;
     if (n > buffer_.Capacity()) {
       n = buffer_.Capacity();
     }
@@ -312,6 +322,7 @@ class ReadaheadSequentialFile : public FSSequentialFile {
 std::unique_ptr<FSSequentialFile>
 SequentialFileReader::NewReadaheadSequentialFile(
     std::unique_ptr<FSSequentialFile>&& file, size_t readahead_size) {
+  DBUG_TRACE;
   if (file->GetRequiredBufferAlignment() >= readahead_size) {
     // Short-circuit and return the original file if readahead_size is
     // too small and hence doesn't make sense to be used for prefetching.

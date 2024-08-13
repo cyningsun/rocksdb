@@ -6,6 +6,7 @@
 // Copyright (c) 2011 The LevelDB Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
+#include "rocksdb/util/dbug.h"
 #include "db/dbformat.h"
 
 #include <cinttypes>
@@ -30,6 +31,7 @@ const ValueType kValueTypeForSeekForPrev = kTypeDeletion;
 const std::string kDisableUserTimestamp;
 
 EntryType GetEntryType(ValueType value_type) {
+  DBUG_TRACE;
   switch (value_type) {
     case kTypeValue:
       return kEntryPut;
@@ -55,6 +57,7 @@ EntryType GetEntryType(ValueType value_type) {
 }
 
 void AppendInternalKey(std::string* result, const ParsedInternalKey& key) {
+  DBUG_TRACE;
   result->append(key.user_key.data(), key.user_key.size());
   PutFixed64(result, PackSequenceAndType(key.sequence, key.type));
 }
@@ -62,6 +65,7 @@ void AppendInternalKey(std::string* result, const ParsedInternalKey& key) {
 void AppendInternalKeyWithDifferentTimestamp(std::string* result,
                                              const ParsedInternalKey& key,
                                              const Slice& ts) {
+  DBUG_TRACE;
   assert(key.user_key.size() >= ts.size());
   result->append(key.user_key.data(), key.user_key.size() - ts.size());
   result->append(ts.data(), ts.size());
@@ -70,6 +74,7 @@ void AppendInternalKeyWithDifferentTimestamp(std::string* result,
 
 void AppendUserKeyWithDifferentTimestamp(std::string* result, const Slice& key,
                                          const Slice& ts) {
+  DBUG_TRACE;
   assert(key.size() >= ts.size());
   result->append(key.data(), key.size() - ts.size());
   result->append(ts.data(), ts.size());
@@ -77,11 +82,13 @@ void AppendUserKeyWithDifferentTimestamp(std::string* result, const Slice& key,
 
 void AppendInternalKeyFooter(std::string* result, SequenceNumber s,
                              ValueType t) {
+  DBUG_TRACE;
   PutFixed64(result, PackSequenceAndType(s, t));
 }
 
 void AppendKeyWithMinTimestamp(std::string* result, const Slice& key,
                                size_t ts_sz) {
+  DBUG_TRACE;
   assert(ts_sz > 0);
   const std::string kTsMin(ts_sz, static_cast<unsigned char>(0));
   result->append(key.data(), key.size());
@@ -90,6 +97,7 @@ void AppendKeyWithMinTimestamp(std::string* result, const Slice& key,
 
 void AppendKeyWithMaxTimestamp(std::string* result, const Slice& key,
                                size_t ts_sz) {
+  DBUG_TRACE;
   assert(ts_sz > 0);
   const std::string kTsMax(ts_sz, static_cast<unsigned char>(0xff));
   result->append(key.data(), key.size());
@@ -98,6 +106,7 @@ void AppendKeyWithMaxTimestamp(std::string* result, const Slice& key,
 
 void AppendUserKeyWithMinTimestamp(std::string* result, const Slice& key,
                                    size_t ts_sz) {
+  DBUG_TRACE;
   assert(ts_sz > 0);
   result->append(key.data(), key.size() - ts_sz);
   result->append(ts_sz, static_cast<unsigned char>(0));
@@ -118,6 +127,7 @@ void AppendUserKeyWithMaxTimestamp(std::string* result, const Slice& key,
 
 void PadInternalKeyWithMinTimestamp(std::string* result, const Slice& key,
                                     size_t ts_sz) {
+  DBUG_TRACE;
   assert(ts_sz > 0);
   assert(key.size() >= kNumInternalBytes);
   size_t user_key_size = key.size() - kNumInternalBytes;
@@ -129,6 +139,7 @@ void PadInternalKeyWithMinTimestamp(std::string* result, const Slice& key,
 
 void PadInternalKeyWithMaxTimestamp(std::string* result, const Slice& key,
                                     size_t ts_sz) {
+  DBUG_TRACE;
   assert(ts_sz > 0);
   assert(key.size() >= kNumInternalBytes);
   size_t user_key_size = key.size() - kNumInternalBytes;
@@ -140,6 +151,7 @@ void PadInternalKeyWithMaxTimestamp(std::string* result, const Slice& key,
 
 void StripTimestampFromInternalKey(std::string* result, const Slice& key,
                                    size_t ts_sz) {
+  DBUG_TRACE;
   assert(key.size() >= ts_sz + kNumInternalBytes);
   result->reserve(key.size() - ts_sz);
   result->append(key.data(), key.size() - kNumInternalBytes - ts_sz);
@@ -149,6 +161,7 @@ void StripTimestampFromInternalKey(std::string* result, const Slice& key,
 
 void ReplaceInternalKeyWithMinTimestamp(std::string* result, const Slice& key,
                                         size_t ts_sz) {
+  DBUG_TRACE;
   const size_t key_sz = key.size();
   assert(key_sz >= ts_sz + kNumInternalBytes);
   result->reserve(key_sz);
@@ -159,6 +172,7 @@ void ReplaceInternalKeyWithMinTimestamp(std::string* result, const Slice& key,
 
 std::string ParsedInternalKey::DebugString(bool log_err_key, bool hex,
                                            const Comparator* ucmp) const {
+  DBUG_TRACE;
   std::string result = "'";
   size_t ts_sz_for_debug = ucmp == nullptr ? 0 : ucmp->timestamp_size();
   if (log_err_key) {
@@ -187,6 +201,7 @@ std::string ParsedInternalKey::DebugString(bool log_err_key, bool hex,
 }
 
 std::string InternalKey::DebugString(bool hex, const Comparator* ucmp) const {
+  DBUG_TRACE;
   std::string result;
   ParsedInternalKey parsed;
   if (ParseInternalKey(rep_, &parsed, false /* log_err_key */).ok()) {
@@ -200,6 +215,7 @@ std::string InternalKey::DebugString(bool hex, const Comparator* ucmp) const {
 
 int InternalKeyComparator::Compare(const ParsedInternalKey& a,
                                    const ParsedInternalKey& b) const {
+  DBUG_TRACE;
   // Order by:
   //    increasing user key (according to user-supplied comparator)
   //    decreasing sequence number
@@ -221,6 +237,7 @@ int InternalKeyComparator::Compare(const ParsedInternalKey& a,
 
 int InternalKeyComparator::Compare(const Slice& a,
                                    const ParsedInternalKey& b) const {
+  DBUG_TRACE;
   // Order by:
   //    increasing user key (according to user-supplied comparator)
   //    decreasing sequence number
@@ -241,6 +258,7 @@ int InternalKeyComparator::Compare(const Slice& a,
 
 int InternalKeyComparator::Compare(const ParsedInternalKey& a,
                                    const Slice& b) const {
+  DBUG_TRACE;
   return -Compare(b, a);
 }
 
@@ -271,6 +289,7 @@ LookupKey::LookupKey(const Slice& _user_key, SequenceNumber s,
 }
 
 void IterKey::EnlargeBuffer(size_t key_size) {
+  DBUG_TRACE;
   // If size is smaller than buffer size, continue using current buffer,
   // or the static allocated one, as default
   assert(key_size > buf_size_);

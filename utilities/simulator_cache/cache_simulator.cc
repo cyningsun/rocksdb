@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "utilities/simulator_cache/cache_simulator.h"
 
 #include <algorithm>
@@ -20,6 +21,7 @@ GhostCache::GhostCache(std::shared_ptr<Cache> sim_cache)
     : sim_cache_(sim_cache) {}
 
 bool GhostCache::Admit(const Slice& lookup_key) {
+  DBUG_TRACE;
   auto handle = sim_cache_->Lookup(lookup_key);
   if (handle != nullptr) {
     sim_cache_->Release(handle);
@@ -37,6 +39,7 @@ CacheSimulator::CacheSimulator(std::unique_ptr<GhostCache>&& ghost_cache,
     : ghost_cache_(std::move(ghost_cache)), sim_cache_(sim_cache) {}
 
 void CacheSimulator::Access(const BlockCacheTraceRecord& access) {
+  DBUG_TRACE;
   bool admit = true;
   const bool is_user_access =
       BlockCacheTraceHelper::IsUserAccess(access.caller);
@@ -62,6 +65,7 @@ void CacheSimulator::Access(const BlockCacheTraceRecord& access) {
 
 void MissRatioStats::UpdateMetrics(uint64_t timestamp_in_ms,
                                    bool is_user_access, bool is_cache_miss) {
+  DBUG_TRACE;
   uint64_t timestamp_in_seconds = timestamp_in_ms / kMicrosInSecond;
   num_accesses_timeline_[timestamp_in_seconds] += 1;
   num_accesses_ += 1;
@@ -83,6 +87,7 @@ void MissRatioStats::UpdateMetrics(uint64_t timestamp_in_ms,
 
 Cache::Priority PrioritizedCacheSimulator::ComputeBlockPriority(
     const BlockCacheTraceRecord& access) const {
+  DBUG_TRACE;
   if (access.block_type == TraceType::kBlockTraceFilterBlock ||
       access.block_type == TraceType::kBlockTraceIndexBlock ||
       access.block_type == TraceType::kBlockTraceUncompressionDictBlock) {
@@ -95,6 +100,7 @@ void PrioritizedCacheSimulator::AccessKVPair(
     const Slice& key, uint64_t value_size, Cache::Priority priority,
     const BlockCacheTraceRecord& access, bool no_insert, bool is_user_access,
     bool* is_cache_miss, bool* admitted, bool update_metrics) {
+  DBUG_TRACE;
   assert(is_cache_miss);
   assert(admitted);
   *is_cache_miss = true;
@@ -120,6 +126,7 @@ void PrioritizedCacheSimulator::AccessKVPair(
 }
 
 void PrioritizedCacheSimulator::Access(const BlockCacheTraceRecord& access) {
+  DBUG_TRACE;
   bool is_cache_miss = true;
   bool admitted = true;
   AccessKVPair(access.block_key, access.block_size,
@@ -129,6 +136,7 @@ void PrioritizedCacheSimulator::Access(const BlockCacheTraceRecord& access) {
 }
 
 void HybridRowBlockCacheSimulator::Access(const BlockCacheTraceRecord& access) {
+  DBUG_TRACE;
   // TODO (haoyu): We only support Get for now. We need to extend the tracing
   // for MultiGet, i.e., non-data block accesses must log all keys in a
   // MultiGet.
@@ -210,6 +218,7 @@ BlockCacheTraceSimulator::BlockCacheTraceSimulator(
       cache_configurations_(cache_configurations) {}
 
 Status BlockCacheTraceSimulator::InitializeCaches() {
+  DBUG_TRACE;
   for (auto const& config : cache_configurations_) {
     for (auto cache_capacity : config.cache_capacities) {
       // Scale down the cache capacity since the trace contains accesses on
@@ -263,6 +272,7 @@ Status BlockCacheTraceSimulator::InitializeCaches() {
 }
 
 void BlockCacheTraceSimulator::Access(const BlockCacheTraceRecord& access) {
+  DBUG_TRACE;
   if (trace_start_time_ == 0) {
     trace_start_time_ = access.access_timestamp;
   }

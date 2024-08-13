@@ -1,5 +1,6 @@
 /* -*- mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 // vim: ft=cpp:expandtab:ts=8:sw=4:softtabstop=4:
+#include "rocksdb/util/dbug.h"
 #ifndef OS_WIN
 #ident "$Id$"
 /*======
@@ -64,10 +65,11 @@ Copyright (c) 2006, 2015, Percona and/or its affiliates. All rights reserved.
 namespace toku {
 
 // Create a lock request graph
-void wfg::create(void) { m_nodes.create(); }
+void wfg::create(void) { DBUG_TRACE; m_nodes.create(); }
 
 // Destroy the internals of the lock request graph
 void wfg::destroy(void) {
+  DBUG_TRACE;
   uint32_t n_nodes = m_nodes.size();
   for (uint32_t i = 0; i < n_nodes; i++) {
     node *n;
@@ -82,6 +84,7 @@ void wfg::destroy(void) {
 
 // Add an edge (a_id, b_id) to the graph
 void wfg::add_edge(TXNID a_txnid, TXNID b_txnid) {
+  DBUG_TRACE;
   node *a_node = find_create_node(a_txnid);
   node *b_node = find_create_node(b_txnid);
   a_node->edges.add(b_node->txnid);
@@ -90,12 +93,14 @@ void wfg::add_edge(TXNID a_txnid, TXNID b_txnid) {
 // Return true if a node with the given transaction id exists in the graph.
 // Return false otherwise.
 bool wfg::node_exists(TXNID txnid) {
+  DBUG_TRACE;
   node *n = find_node(txnid);
   return n != nullptr;
 }
 
 bool wfg::cycle_exists_from_node(node *target, node *head,
                                  std::function<void(TXNID)> reporter) {
+  DBUG_TRACE;
   bool cycle_found = false;
   head->visited = true;
   uint32_t n_edges = head->edges.size();
@@ -120,6 +125,7 @@ bool wfg::cycle_exists_from_node(node *target, node *head,
 // Return false otherwise.
 bool wfg::cycle_exists_from_txnid(TXNID txnid,
                                   std::function<void(TXNID)> reporter) {
+  DBUG_TRACE;
   node *a_node = find_node(txnid);
   bool cycles_found = false;
   if (a_node) {
@@ -132,6 +138,7 @@ bool wfg::cycle_exists_from_txnid(TXNID txnid,
 // function returns when the function f is called for all of the nodes in the
 // graph, or the function f returns non-zero.
 void wfg::apply_nodes(int (*fn)(TXNID id, void *extra), void *extra) {
+  DBUG_TRACE;
   int r = 0;
   uint32_t n_nodes = m_nodes.size();
   for (uint32_t i = 0; i < n_nodes && r == 0; i++) {
@@ -149,6 +156,7 @@ void wfg::apply_nodes(int (*fn)(TXNID id, void *extra), void *extra) {
 void wfg::apply_edges(TXNID txnid,
                       int (*fn)(TXNID txnid, TXNID edge_txnid, void *extra),
                       void *extra) {
+  DBUG_TRACE;
   node *n = find_node(txnid);
   if (n) {
     int r = 0;
@@ -161,6 +169,7 @@ void wfg::apply_edges(TXNID txnid,
 
 // find node by id
 wfg::node *wfg::find_node(TXNID txnid) {
+  DBUG_TRACE;
   node *n = nullptr;
   int r = m_nodes.find_zero<TXNID, find_by_txnid>(txnid, &n, nullptr);
   invariant(r == 0 || r == DB_NOTFOUND);
@@ -170,6 +179,7 @@ wfg::node *wfg::find_node(TXNID txnid) {
 // this is the omt comparison function
 // nodes are compared by their txnid.
 int wfg::find_by_txnid(node *const &node_a, const TXNID &txnid_b) {
+  DBUG_TRACE;
   TXNID txnid_a = node_a->txnid;
   if (txnid_a < txnid_b) {
     return -1;
@@ -182,6 +192,7 @@ int wfg::find_by_txnid(node *const &node_a, const TXNID &txnid_b) {
 
 // insert a new node
 wfg::node *wfg::find_create_node(TXNID txnid) {
+  DBUG_TRACE;
   node *n;
   uint32_t idx;
   int r = m_nodes.find_zero<TXNID, find_by_txnid>(txnid, &n, &idx);
@@ -195,6 +206,7 @@ wfg::node *wfg::find_create_node(TXNID txnid) {
 }
 
 wfg::node *wfg::node::alloc(TXNID txnid) {
+  DBUG_TRACE;
   node *XCALLOC(n);
   n->txnid = txnid;
   n->visited = false;
@@ -203,6 +215,7 @@ wfg::node *wfg::node::alloc(TXNID txnid) {
 }
 
 void wfg::node::free(wfg::node *n) {
+  DBUG_TRACE;
   n->edges.destroy();
   toku_free(n);
 }

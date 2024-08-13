@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include <memory>
 
 #include "rocksdb/merge_operator.h"
@@ -24,6 +25,7 @@ bool PutOperator::FullMerge(const Slice& /*key*/,
                             const Slice* /*existing_value*/,
                             const std::deque<std::string>& operand_sequence,
                             std::string* new_value, Logger* /*logger*/) const {
+  DBUG_TRACE;
   // Put basically only looks at the current/latest value
   assert(!operand_sequence.empty());
   assert(new_value != nullptr);
@@ -36,6 +38,7 @@ bool PutOperator::PartialMerge(const Slice& /*key*/,
                                const Slice& right_operand,
                                std::string* new_value,
                                Logger* /*logger*/) const {
+  DBUG_TRACE;
   new_value->assign(right_operand.data(), right_operand.size());
   return true;
 }
@@ -44,6 +47,7 @@ bool PutOperator::PartialMergeMulti(const Slice& /*key*/,
                                     const std::deque<Slice>& operand_list,
                                     std::string* new_value,
                                     Logger* /*logger*/) const {
+  DBUG_TRACE;
   new_value->assign(operand_list.back().data(), operand_list.back().size());
   return true;
 }
@@ -52,12 +56,14 @@ bool PutOperatorV2::FullMerge(
     const Slice& /*key*/, const Slice* /*existing_value*/,
     const std::deque<std::string>& /*operand_sequence*/,
     std::string* /*new_value*/, Logger* /*logger*/) const {
+  DBUG_TRACE;
   assert(false);
   return false;
 }
 
 bool PutOperatorV2::FullMergeV2(const MergeOperationInput& merge_in,
                                 MergeOperationOutput* merge_out) const {
+  DBUG_TRACE;
   // Put basically only looks at the current/latest value
   assert(!merge_in.operand_list.empty());
   merge_out->existing_operand = merge_in.operand_list.back();
@@ -65,10 +71,12 @@ bool PutOperatorV2::FullMergeV2(const MergeOperationInput& merge_in,
 }
 
 std::shared_ptr<MergeOperator> MergeOperators::CreateDeprecatedPutOperator() {
+  DBUG_TRACE;
   return std::make_shared<PutOperator>();
 }
 
 std::shared_ptr<MergeOperator> MergeOperators::CreatePutOperator() {
+  DBUG_TRACE;
   return std::make_shared<PutOperatorV2>();
 }
 }  // namespace ROCKSDB_NAMESPACE

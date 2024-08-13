@@ -4,6 +4,7 @@
 //  (found in the LICENSE.Apache file in the root directory).
 //
 
+#include "rocksdb/util/dbug.h"
 #include "db/blob/blob_log_format.h"
 
 #include "util/coding.h"
@@ -12,6 +13,7 @@
 namespace ROCKSDB_NAMESPACE {
 
 void BlobLogHeader::EncodeTo(std::string* dst) {
+  DBUG_TRACE;
   assert(dst != nullptr);
   dst->clear();
   dst->reserve(BlobLogHeader::kSize);
@@ -26,6 +28,7 @@ void BlobLogHeader::EncodeTo(std::string* dst) {
 }
 
 Status BlobLogHeader::DecodeFrom(Slice src) {
+  DBUG_TRACE;
   const char* kErrorMessage = "Error while decoding blob log header";
   if (src.size() != BlobLogHeader::kSize) {
     return Status::Corruption(kErrorMessage,
@@ -57,6 +60,7 @@ Status BlobLogHeader::DecodeFrom(Slice src) {
 }
 
 void BlobLogFooter::EncodeTo(std::string* dst) {
+  DBUG_TRACE;
   assert(dst != nullptr);
   dst->clear();
   dst->reserve(BlobLogFooter::kSize);
@@ -70,6 +74,7 @@ void BlobLogFooter::EncodeTo(std::string* dst) {
 }
 
 Status BlobLogFooter::DecodeFrom(Slice src) {
+  DBUG_TRACE;
   const char* kErrorMessage = "Error while decoding blob log footer";
   if (src.size() != BlobLogFooter::kSize) {
     return Status::Corruption(kErrorMessage,
@@ -94,6 +99,7 @@ Status BlobLogFooter::DecodeFrom(Slice src) {
 }
 
 void BlobLogRecord::EncodeHeaderTo(std::string* dst) {
+  DBUG_TRACE;
   assert(dst != nullptr);
   dst->clear();
   dst->reserve(BlobLogRecord::kHeaderSize + key.size() + value.size());
@@ -110,6 +116,7 @@ void BlobLogRecord::EncodeHeaderTo(std::string* dst) {
 }
 
 Status BlobLogRecord::DecodeHeaderFrom(Slice src) {
+  DBUG_TRACE;
   const char* kErrorMessage = "Error while decoding blob record";
   if (src.size() != BlobLogRecord::kHeaderSize) {
     return Status::Corruption(kErrorMessage,
@@ -130,6 +137,7 @@ Status BlobLogRecord::DecodeHeaderFrom(Slice src) {
 }
 
 Status BlobLogRecord::CheckBlobCRC() const {
+  DBUG_TRACE;
   uint32_t expected_crc = 0;
   expected_crc = crc32c::Value(key.data(), key.size());
   expected_crc = crc32c::Extend(expected_crc, value.data(), value.size());

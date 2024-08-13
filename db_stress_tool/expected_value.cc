@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #ifdef GFLAGS
 
 #include "db_stress_tool/expected_value.h"
@@ -11,6 +12,7 @@
 
 namespace ROCKSDB_NAMESPACE {
 bool ExpectedValue::Put(bool pending) {
+  DBUG_TRACE;
   if (pending && (PendingWrite() || PendingDelete())) {
     return false;
   }
@@ -26,6 +28,7 @@ bool ExpectedValue::Put(bool pending) {
 }
 
 bool ExpectedValue::Delete(bool pending) {
+  DBUG_TRACE;
   if (pending && (PendingWrite() || PendingDelete())) {
     return false;
   }
@@ -44,6 +47,7 @@ bool ExpectedValue::Delete(bool pending) {
 }
 
 void ExpectedValue::SyncPut(uint32_t value_base) {
+  DBUG_TRACE;
   assert(ExpectedValue::IsValueBaseValid(value_base));
 
   SetValueBase(value_base);
@@ -55,9 +59,10 @@ void ExpectedValue::SyncPut(uint32_t value_base) {
   ClearPendingDel();
 }
 
-void ExpectedValue::SyncPendingPut() { Put(true /* pending */); }
+void ExpectedValue::SyncPendingPut() { DBUG_TRACE; Put(true /* pending */); }
 
 void ExpectedValue::SyncDelete() {
+  DBUG_TRACE;
   Delete(false /* pending */);
   // This is needed in case crash happens during a pending write of the key
   // assocated with this expected value
@@ -65,16 +70,19 @@ void ExpectedValue::SyncDelete() {
 }
 
 uint32_t ExpectedValue::GetFinalValueBase() const {
+  DBUG_TRACE;
   return PendingWrite() ? NextValueBase() : GetValueBase();
 }
 
 uint32_t ExpectedValue::GetFinalDelCounter() const {
+  DBUG_TRACE;
   return PendingDelete() ? NextDelCounter() : GetDelCounter();
 }
 
 bool ExpectedValueHelper::MustHaveNotExisted(
     ExpectedValue pre_read_expected_value,
     ExpectedValue post_read_expected_value) {
+  DBUG_TRACE;
   const bool pre_read_expected_deleted = pre_read_expected_value.IsDeleted();
 
   const uint32_t pre_read_expected_value_base =
@@ -91,6 +99,7 @@ bool ExpectedValueHelper::MustHaveNotExisted(
 bool ExpectedValueHelper::MustHaveExisted(
     ExpectedValue pre_read_expected_value,
     ExpectedValue post_read_expected_value) {
+  DBUG_TRACE;
   const bool pre_read_expected_not_deleted =
       !pre_read_expected_value.IsDeleted();
 
@@ -108,6 +117,7 @@ bool ExpectedValueHelper::MustHaveExisted(
 bool ExpectedValueHelper::InExpectedValueBaseRange(
     uint32_t value_base, ExpectedValue pre_read_expected_value,
     ExpectedValue post_read_expected_value) {
+  DBUG_TRACE;
   assert(ExpectedValue::IsValueBaseValid(value_base));
 
   const uint32_t pre_read_expected_value_base =

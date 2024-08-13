@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "monitoring/thread_status_util.h"
 
 #include "monitoring/thread_status_updater.h"
@@ -18,6 +19,7 @@ thread_local bool ThreadStatusUtil::thread_updater_initialized_ = false;
 
 void ThreadStatusUtil::RegisterThread(const Env* env,
                                       ThreadStatus::ThreadType thread_type) {
+  DBUG_TRACE;
   if (!MaybeInitThreadLocalUpdater(env)) {
     return;
   }
@@ -26,6 +28,7 @@ void ThreadStatusUtil::RegisterThread(const Env* env,
 }
 
 void ThreadStatusUtil::UnregisterThread() {
+  DBUG_TRACE;
   thread_updater_initialized_ = false;
   if (thread_updater_local_cache_ != nullptr) {
     thread_updater_local_cache_->UnregisterThread();
@@ -34,6 +37,7 @@ void ThreadStatusUtil::UnregisterThread() {
 }
 
 void ThreadStatusUtil::SetEnableTracking(bool enable_tracking) {
+  DBUG_TRACE;
   if (thread_updater_local_cache_ == nullptr) {
     return;
   }
@@ -41,6 +45,7 @@ void ThreadStatusUtil::SetEnableTracking(bool enable_tracking) {
 }
 
 void ThreadStatusUtil::SetColumnFamily(const ColumnFamilyData* cfd) {
+  DBUG_TRACE;
   if (thread_updater_local_cache_ == nullptr) {
     return;
   }
@@ -49,6 +54,7 @@ void ThreadStatusUtil::SetColumnFamily(const ColumnFamilyData* cfd) {
 }
 
 void ThreadStatusUtil::SetThreadOperation(ThreadStatus::OperationType op) {
+  DBUG_TRACE;
   if (thread_updater_local_cache_ == nullptr) {
     return;
   }
@@ -65,6 +71,7 @@ void ThreadStatusUtil::SetThreadOperation(ThreadStatus::OperationType op) {
 }
 
 ThreadStatus::OperationType ThreadStatusUtil::GetThreadOperation() {
+  DBUG_TRACE;
   if (thread_updater_local_cache_ == nullptr) {
     return ThreadStatus::OperationType::OP_UNKNOWN;
   }
@@ -73,6 +80,7 @@ ThreadStatus::OperationType ThreadStatusUtil::GetThreadOperation() {
 
 ThreadStatus::OperationStage ThreadStatusUtil::SetThreadOperationStage(
     ThreadStatus::OperationStage stage) {
+  DBUG_TRACE;
   if (thread_updater_local_cache_ == nullptr) {
     // thread_updater_local_cache_ must be set in SetColumnFamily
     // or other ThreadStatusUtil functions.
@@ -83,6 +91,7 @@ ThreadStatus::OperationStage ThreadStatusUtil::SetThreadOperationStage(
 }
 
 void ThreadStatusUtil::SetThreadOperationProperty(int code, uint64_t value) {
+  DBUG_TRACE;
   if (thread_updater_local_cache_ == nullptr) {
     // thread_updater_local_cache_ must be set in SetColumnFamily
     // or other ThreadStatusUtil functions.
@@ -94,6 +103,7 @@ void ThreadStatusUtil::SetThreadOperationProperty(int code, uint64_t value) {
 
 void ThreadStatusUtil::IncreaseThreadOperationProperty(int code,
                                                        uint64_t delta) {
+  DBUG_TRACE;
   if (thread_updater_local_cache_ == nullptr) {
     // thread_updater_local_cache_ must be set in SetColumnFamily
     // or other ThreadStatusUtil functions.
@@ -104,6 +114,7 @@ void ThreadStatusUtil::IncreaseThreadOperationProperty(int code,
 }
 
 void ThreadStatusUtil::SetThreadState(ThreadStatus::StateType state) {
+  DBUG_TRACE;
   if (thread_updater_local_cache_ == nullptr) {
     // thread_updater_local_cache_ must be set in SetColumnFamily
     // or other ThreadStatusUtil functions.
@@ -114,6 +125,7 @@ void ThreadStatusUtil::SetThreadState(ThreadStatus::StateType state) {
 }
 
 void ThreadStatusUtil::ResetThreadStatus() {
+  DBUG_TRACE;
   if (thread_updater_local_cache_ == nullptr) {
     return;
   }
@@ -124,6 +136,7 @@ void ThreadStatusUtil::NewColumnFamilyInfo(const DB* db,
                                            const ColumnFamilyData* cfd,
                                            const std::string& cf_name,
                                            const Env* env) {
+  DBUG_TRACE;
   if (!MaybeInitThreadLocalUpdater(env)) {
     return;
   }
@@ -135,6 +148,7 @@ void ThreadStatusUtil::NewColumnFamilyInfo(const DB* db,
 }
 
 void ThreadStatusUtil::EraseColumnFamilyInfo(const ColumnFamilyData* cfd) {
+  DBUG_TRACE;
   if (thread_updater_local_cache_ == nullptr) {
     return;
   }
@@ -142,6 +156,7 @@ void ThreadStatusUtil::EraseColumnFamilyInfo(const ColumnFamilyData* cfd) {
 }
 
 void ThreadStatusUtil::EraseDatabaseInfo(const DB* db) {
+  DBUG_TRACE;
   ThreadStatusUpdater* thread_updater = db->GetEnv()->GetThreadStatusUpdater();
   if (thread_updater == nullptr) {
     return;
@@ -150,6 +165,7 @@ void ThreadStatusUtil::EraseDatabaseInfo(const DB* db) {
 }
 
 bool ThreadStatusUtil::MaybeInitThreadLocalUpdater(const Env* env) {
+  DBUG_TRACE;
   if (!thread_updater_initialized_ && env != nullptr) {
     thread_updater_initialized_ = true;
     thread_updater_local_cache_ = env->GetThreadStatusUpdater();

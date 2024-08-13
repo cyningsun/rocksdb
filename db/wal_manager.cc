@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "db/wal_manager.h"
 
 #include <algorithm>
@@ -36,6 +37,7 @@ namespace ROCKSDB_NAMESPACE {
 
 
 Status WalManager::DeleteFile(const std::string& fname, uint64_t number) {
+  DBUG_TRACE;
   auto s = env_->DeleteFile(wal_dir_ + "/" + fname);
   if (s.ok()) {
     MutexLock l(&read_first_record_cache_mutex_);
@@ -45,6 +47,7 @@ Status WalManager::DeleteFile(const std::string& fname, uint64_t number) {
 }
 Status WalManager::GetSortedWalFiles(VectorWalPtr& files, bool need_seqnos,
                                      bool include_archived) {
+  DBUG_TRACE;
   // First get sorted files in db dir, then get sorted files from archived
   // dir, to avoid a race condition where a log file is moved to archived
   // dir in between.
@@ -105,6 +108,7 @@ Status WalManager::GetUpdatesSince(
     SequenceNumber seq, std::unique_ptr<TransactionLogIterator>* iter,
     const TransactionLogIterator::ReadOptions& read_options,
     VersionSet* version_set) {
+  DBUG_TRACE;
   if (seq_per_batch_) {
     return Status::NotSupported();
   }

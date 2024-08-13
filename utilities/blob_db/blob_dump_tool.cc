@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "utilities/blob_db/blob_dump_tool.h"
 
 #include <cinttypes>
@@ -91,6 +92,7 @@ Status BlobDumpTool::Run(const std::string& filename, DisplayType show_key,
 }
 
 Status BlobDumpTool::Read(uint64_t offset, size_t size, Slice* result) {
+  DBUG_TRACE;
   if (buffer_size_ < size) {
     if (buffer_size_ == 0) {
       buffer_size_ = 4096;
@@ -113,6 +115,7 @@ Status BlobDumpTool::Read(uint64_t offset, size_t size, Slice* result) {
 
 Status BlobDumpTool::DumpBlobLogHeader(uint64_t* offset,
                                        CompressionType* compression) {
+  DBUG_TRACE;
   Slice slice;
   Status s = Read(0, BlobLogHeader::kSize, &slice);
   if (!s.ok()) {
@@ -143,6 +146,7 @@ Status BlobDumpTool::DumpBlobLogHeader(uint64_t* offset,
 
 Status BlobDumpTool::DumpBlobLogFooter(uint64_t file_size,
                                        uint64_t* footer_offset) {
+  DBUG_TRACE;
   auto no_footer = [&]() {
     *footer_offset = file_size;
     fprintf(stdout, "No blob log footer.\n");
@@ -176,6 +180,7 @@ Status BlobDumpTool::DumpRecord(DisplayType show_key, DisplayType show_blob,
                                 uint64_t* total_key_size,
                                 uint64_t* total_blob_size,
                                 uint64_t* total_uncompressed_blob_size) {
+  DBUG_TRACE;
   if (show_key != DisplayType::kNone) {
     fprintf(stdout, "Read record with offset 0x%" PRIx64 " (%" PRIu64 "):\n",
             *offset, *offset);
@@ -241,6 +246,7 @@ Status BlobDumpTool::DumpRecord(DisplayType show_key, DisplayType show_blob,
 }
 
 void BlobDumpTool::DumpSlice(const Slice s, DisplayType type) {
+  DBUG_TRACE;
   if (type == DisplayType::kRaw) {
     fprintf(stdout, "%s\n", s.ToString().c_str());
   } else if (type == DisplayType::kHex) {

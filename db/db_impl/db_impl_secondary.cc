@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "db/db_impl/db_impl_secondary.h"
 
 #include <cinttypes>
@@ -35,6 +36,7 @@ Status DBImplSecondary::Recover(
     bool /*readonly*/, bool /*error_if_wal_file_exists*/,
     bool /*error_if_data_exists_in_wals*/, bool /*is_retry*/, uint64_t*,
     RecoveryContext* /*recovery_ctx*/, bool* /*can_retry*/) {
+  DBUG_TRACE;
   mutex_.AssertHeld();
 
   JobContext job_context(0);
@@ -83,6 +85,7 @@ Status DBImplSecondary::Recover(
 Status DBImplSecondary::FindAndRecoverLogFiles(
     std::unordered_set<ColumnFamilyData*>* cfds_changed,
     JobContext* job_context) {
+  DBUG_TRACE;
   assert(nullptr != cfds_changed);
   assert(nullptr != job_context);
   Status s;
@@ -97,6 +100,7 @@ Status DBImplSecondary::FindAndRecoverLogFiles(
 
 // List wal_dir and find all new WALs, return these log numbers
 Status DBImplSecondary::FindNewLogNumbers(std::vector<uint64_t>* logs) {
+  DBUG_TRACE;
   assert(logs != nullptr);
   std::vector<std::string> filenames;
   Status s;
@@ -136,6 +140,7 @@ Status DBImplSecondary::FindNewLogNumbers(std::vector<uint64_t>* logs) {
 
 Status DBImplSecondary::MaybeInitLogReader(
     uint64_t log_number, log::FragmentBufferedReader** log_reader) {
+  DBUG_TRACE;
   auto iter = log_readers_.find(log_number);
   // make sure the log file is still present
   if (iter == log_readers_.end() ||
@@ -186,6 +191,7 @@ Status DBImplSecondary::RecoverLogFiles(
     const std::vector<uint64_t>& log_numbers, SequenceNumber* next_sequence,
     std::unordered_set<ColumnFamilyData*>* cfds_changed,
     JobContext* job_context) {
+  DBUG_TRACE;
   assert(nullptr != cfds_changed);
   assert(nullptr != job_context);
   mutex_.AssertHeld();
@@ -343,6 +349,7 @@ Status DBImplSecondary::RecoverLogFiles(
 Status DBImplSecondary::GetImpl(const ReadOptions& read_options,
                                 const Slice& key,
                                 GetImplOptions& get_impl_options) {
+  DBUG_TRACE;
   assert(get_impl_options.value != nullptr ||
          get_impl_options.columns != nullptr);
   assert(get_impl_options.column_family);
@@ -463,6 +470,7 @@ Status DBImplSecondary::GetImpl(const ReadOptions& read_options,
 
 Iterator* DBImplSecondary::NewIterator(const ReadOptions& _read_options,
                                        ColumnFamilyHandle* column_family) {
+  DBUG_TRACE;
   if (_read_options.io_activity != Env::IOActivity::kUnknown &&
       _read_options.io_activity != Env::IOActivity::kDBIterator) {
     return NewErrorIterator(Status::InvalidArgument(
@@ -528,6 +536,7 @@ ArenaWrappedDBIter* DBImplSecondary::NewIteratorImpl(
     const ReadOptions& read_options, ColumnFamilyHandleImpl* cfh,
     SuperVersion* super_version, SequenceNumber snapshot,
     ReadCallback* read_callback, bool expose_blob_index, bool allow_refresh) {
+  DBUG_TRACE;
   assert(nullptr != cfh);
   assert(snapshot == kMaxSequenceNumber);
   snapshot = versions_->LastSequence();
@@ -549,6 +558,7 @@ Status DBImplSecondary::NewIterators(
     const ReadOptions& _read_options,
     const std::vector<ColumnFamilyHandle*>& column_families,
     std::vector<Iterator*>* iterators) {
+  DBUG_TRACE;
   if (_read_options.io_activity != Env::IOActivity::kUnknown &&
       _read_options.io_activity != Env::IOActivity::kDBIterator) {
     return Status::InvalidArgument(
@@ -627,6 +637,7 @@ Status DBImplSecondary::NewIterators(
 }
 
 Status DBImplSecondary::CheckConsistency() {
+  DBUG_TRACE;
   mutex_.AssertHeld();
   Status s = DBImpl::CheckConsistency();
   // If DBImpl::CheckConsistency() which is stricter returns success, then we
@@ -670,6 +681,7 @@ Status DBImplSecondary::CheckConsistency() {
 }
 
 Status DBImplSecondary::TryCatchUpWithPrimary() {
+  DBUG_TRACE;
   assert(versions_.get() != nullptr);
   assert(manifest_reader_.get() != nullptr);
   Status s;
@@ -738,6 +750,7 @@ Status DBImplSecondary::TryCatchUpWithPrimary() {
 
 Status DB::OpenAsSecondary(const Options& options, const std::string& dbname,
                            const std::string& secondary_path, DB** dbptr) {
+  DBUG_TRACE;
   *dbptr = nullptr;
 
   DBOptions db_options(options);
@@ -760,6 +773,7 @@ Status DB::OpenAsSecondary(
     const std::string& secondary_path,
     const std::vector<ColumnFamilyDescriptor>& column_families,
     std::vector<ColumnFamilyHandle*>* handles, DB** dbptr) {
+  DBUG_TRACE;
   *dbptr = nullptr;
 
   DBOptions tmp_opts(db_options);
@@ -844,6 +858,7 @@ Status DB::OpenAsSecondary(
 Status DBImplSecondary::CompactWithoutInstallation(
     const OpenAndCompactOptions& options, ColumnFamilyHandle* cfh,
     const CompactionServiceInput& input, CompactionServiceResult* result) {
+  DBUG_TRACE;
   if (options.canceled && options.canceled->load(std::memory_order_acquire)) {
     return Status::Incomplete(Status::SubCode::kManualCompactionPaused);
   }
@@ -938,6 +953,7 @@ Status DB::OpenAndCompact(
     const std::string& output_directory, const std::string& input,
     std::string* output,
     const CompactionServiceOptionsOverride& override_options) {
+  DBUG_TRACE;
   if (options.canceled && options.canceled->load(std::memory_order_acquire)) {
     return Status::Incomplete(Status::SubCode::kManualCompactionPaused);
   }
@@ -1017,6 +1033,7 @@ Status DB::OpenAndCompact(
     const std::string& name, const std::string& output_directory,
     const std::string& input, std::string* output,
     const CompactionServiceOptionsOverride& override_options) {
+  DBUG_TRACE;
   return OpenAndCompact(OpenAndCompactOptions(), name, output_directory, input,
                         output, override_options);
 }

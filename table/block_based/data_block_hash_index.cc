@@ -2,6 +2,7 @@
 //  This source code is licensed under both the GPLv2 (found in the
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
+#include "rocksdb/util/dbug.h"
 #include "table/block_based/data_block_hash_index.h"
 
 #include <string>
@@ -15,6 +16,7 @@ namespace ROCKSDB_NAMESPACE {
 
 void DataBlockHashIndexBuilder::Add(const Slice& key,
                                     const size_t restart_index) {
+  DBUG_TRACE;
   assert(Valid());
   if (restart_index > kMaxRestartSupportedByHashIndex) {
     valid_ = false;
@@ -28,6 +30,7 @@ void DataBlockHashIndexBuilder::Add(const Slice& key,
 }
 
 void DataBlockHashIndexBuilder::Finish(std::string& buffer) {
+  DBUG_TRACE;
   assert(Valid());
   uint16_t num_buckets = static_cast<uint16_t>(estimated_num_buckets_);
 
@@ -68,6 +71,7 @@ void DataBlockHashIndexBuilder::Finish(std::string& buffer) {
 }
 
 void DataBlockHashIndexBuilder::Reset() {
+  DBUG_TRACE;
   estimated_num_buckets_ = 0;
   valid_ = true;
   hash_and_restart_pairs_.clear();
@@ -75,6 +79,7 @@ void DataBlockHashIndexBuilder::Reset() {
 
 void DataBlockHashIndex::Initialize(const char* data, uint16_t size,
                                     uint16_t* map_offset) {
+  DBUG_TRACE;
   assert(size >= sizeof(uint16_t));  // NUM_BUCKETS
   num_buckets_ = DecodeFixed16(data + size - sizeof(uint16_t));
   assert(num_buckets_ > 0);
@@ -85,6 +90,7 @@ void DataBlockHashIndex::Initialize(const char* data, uint16_t size,
 
 uint8_t DataBlockHashIndex::Lookup(const char* data, uint32_t map_offset,
                                    const Slice& key) const {
+  DBUG_TRACE;
   uint32_t hash_value = GetSliceHash(key);
   uint16_t idx = static_cast<uint16_t>(hash_value % num_buckets_);
   const char* bucket_table = data + map_offset;

@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "cache/tiered_secondary_cache.h"
 
 #include "monitoring/statistics_impl.h"
@@ -23,6 +24,7 @@ Status TieredSecondaryCache::MaybeInsertAndCreate(
     const Slice& data, CompressionType type, CacheTier source,
     Cache::CreateContext* ctx, MemoryAllocator* allocator,
     Cache::ObjectPtr* out_obj, size_t* out_charge) {
+  DBUG_TRACE;
   TieredSecondaryCache::CreateContext* context =
       static_cast<TieredSecondaryCache::CreateContext*>(ctx);
   assert(source == CacheTier::kVolatileTier);
@@ -49,6 +51,7 @@ std::unique_ptr<SecondaryCacheResultHandle> TieredSecondaryCache::Lookup(
     const Slice& key, const Cache::CacheItemHelper* helper,
     Cache::CreateContext* create_context, bool wait, bool advise_erase,
     Statistics* stats, bool& kept_in_sec_cache) {
+  DBUG_TRACE;
   bool dummy = false;
   std::unique_ptr<SecondaryCacheResultHandle> result =
       target()->Lookup(key, helper, create_context, wait, advise_erase, stats,
@@ -102,6 +105,7 @@ std::unique_ptr<SecondaryCacheResultHandle> TieredSecondaryCache::Lookup(
 // Call the nvm cache WaitAll to complete the lookups
 void TieredSecondaryCache::WaitAll(
     std::vector<SecondaryCacheResultHandle*> handles) {
+  DBUG_TRACE;
   std::vector<SecondaryCacheResultHandle*> nvm_handles;
   std::vector<ResultHandle*> my_handles;
   nvm_handles.reserve(handles.size());

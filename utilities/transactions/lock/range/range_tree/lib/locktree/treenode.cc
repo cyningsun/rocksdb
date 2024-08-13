@@ -1,5 +1,6 @@
 /* -*- mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 // vim: ft=cpp:expandtab:ts=8:sw=4:softtabstop=4:
+#include "rocksdb/util/dbug.h"
 #ifndef OS_WIN
 #ident "$Id$"
 /*======
@@ -60,11 +61,12 @@ namespace toku {
 
 // TODO: source location info might have to be pulled up one caller
 // to be useful
-void treenode::mutex_lock(void) { toku_mutex_lock(&m_mutex); }
+void treenode::mutex_lock(void) { DBUG_TRACE; toku_mutex_lock(&m_mutex); }
 
-void treenode::mutex_unlock(void) { toku_mutex_unlock(&m_mutex); }
+void treenode::mutex_unlock(void) { DBUG_TRACE; toku_mutex_unlock(&m_mutex); }
 
 void treenode::init(const comparator *cmp) {
+  DBUG_TRACE;
   m_txnid = TXNID_NONE;
   m_is_root = false;
   m_is_empty = true;
@@ -87,11 +89,13 @@ void treenode::init(const comparator *cmp) {
 }
 
 void treenode::create_root(const comparator *cmp) {
+  DBUG_TRACE;
   init(cmp);
   m_is_root = true;
 }
 
 void treenode::destroy_root(void) {
+  DBUG_TRACE;
   invariant(is_root());
   invariant(is_empty());
   toku_mutex_destroy(&m_mutex);
@@ -100,6 +104,7 @@ void treenode::destroy_root(void) {
 
 void treenode::set_range_and_txnid(const keyrange &range, TXNID txnid,
                                    bool is_shared) {
+  DBUG_TRACE;
   // allocates a new copy of the range for this node
   m_range.create_copy(range);
   m_txnid = txnid;
@@ -107,16 +112,18 @@ void treenode::set_range_and_txnid(const keyrange &range, TXNID txnid,
   m_is_empty = false;
 }
 
-bool treenode::is_root(void) { return m_is_root; }
+bool treenode::is_root(void) { DBUG_TRACE; return m_is_root; }
 
-bool treenode::is_empty(void) { return m_is_empty; }
+bool treenode::is_empty(void) { DBUG_TRACE; return m_is_empty; }
 
 bool treenode::range_overlaps(const keyrange &range) {
+  DBUG_TRACE;
   return m_range.overlaps(*m_cmp, range);
 }
 
 treenode *treenode::alloc(const comparator *cmp, const keyrange &range,
                           TXNID txnid, bool is_shared) {
+  DBUG_TRACE;
   treenode *XCALLOC(node);
   node->init(cmp);
   node->set_range_and_txnid(range, txnid, is_shared);
@@ -124,6 +131,7 @@ treenode *treenode::alloc(const comparator *cmp, const keyrange &range,
 }
 
 void treenode::swap_in_place(treenode *node1, treenode *node2) {
+  DBUG_TRACE;
   keyrange tmp_range = node1->m_range;
   TXNID tmp_txnid = node1->m_txnid;
   node1->m_range = node2->m_range;
@@ -141,6 +149,7 @@ void treenode::swap_in_place(treenode *node1, treenode *node2) {
 }
 
 bool treenode::add_shared_owner(TXNID txnid) {
+  DBUG_TRACE;
   assert(m_is_shared);
   if (txnid == m_txnid)
     return false;  // acquiring a lock on the same range by the same trx
@@ -155,6 +164,7 @@ bool treenode::add_shared_owner(TXNID txnid) {
 }
 
 void treenode::free(treenode *node) {
+  DBUG_TRACE;
   // destroy the range, freeing any copied keys
   node->m_range.destroy();
 
@@ -175,6 +185,7 @@ void treenode::free(treenode *node) {
 }
 
 uint32_t treenode::get_depth_estimate(void) const {
+  DBUG_TRACE;
   const uint32_t left_est = m_left_child.depth_est;
   const uint32_t right_est = m_right_child.depth_est;
   return (left_est > right_est ? left_est : right_est) + 1;
@@ -182,6 +193,7 @@ uint32_t treenode::get_depth_estimate(void) const {
 
 treenode *treenode::find_node_with_overlapping_child(
     const keyrange &range, const keyrange::comparison *cmp_hint) {
+  DBUG_TRACE;
   // determine which child to look at based on a comparison. if we were
   // given a comparison hint, use that. otherwise, compare them now.
   keyrange::comparison c =
@@ -220,6 +232,7 @@ treenode *treenode::find_node_with_overlapping_child(
 }
 
 bool treenode::insert(const keyrange &range, TXNID txnid, bool is_shared) {
+  DBUG_TRACE;
   int rc = true;
   // choose a child to check. if that child is null, then insert the new node
   // there. otherwise recur down that child's subtree
@@ -254,6 +267,7 @@ bool treenode::insert(const keyrange &range, TXNID txnid, bool is_shared) {
 }
 
 treenode *treenode::find_child_at_extreme(int direction, treenode **parent) {
+  DBUG_TRACE;
   treenode *child =
       direction > 0 ? m_right_child.get_locked() : m_left_child.get_locked();
 
@@ -268,14 +282,17 @@ treenode *treenode::find_child_at_extreme(int direction, treenode **parent) {
 }
 
 treenode *treenode::find_leftmost_child(treenode **parent) {
+  DBUG_TRACE;
   return find_child_at_extreme(-1, parent);
 }
 
 treenode *treenode::find_rightmost_child(treenode **parent) {
+  DBUG_TRACE;
   return find_child_at_extreme(1, parent);
 }
 
 treenode *treenode::remove_root_of_subtree() {
+  DBUG_TRACE;
   // if this node has no children, just free it and return null
   if (m_left_child.ptr == nullptr && m_right_child.ptr == nullptr) {
     // treenode::free requires that non-root nodes are unlocked
@@ -325,6 +342,7 @@ treenode *treenode::remove_root_of_subtree() {
 }
 
 void treenode::recursive_remove(void) {
+  DBUG_TRACE;
   treenode *left = m_left_child.ptr;
   if (left) {
     left->recursive_remove();
@@ -344,6 +362,7 @@ void treenode::recursive_remove(void) {
 }
 
 void treenode::remove_shared_owner(TXNID txnid) {
+  DBUG_TRACE;
   assert(m_owners->size() > 1);
   m_owners->erase(txnid);
   assert(m_owners->size() > 0);
@@ -356,6 +375,7 @@ void treenode::remove_shared_owner(TXNID txnid) {
 }
 
 treenode *treenode::remove(const keyrange &range, TXNID txnid) {
+  DBUG_TRACE;
   treenode *child;
   // if the range is equal to this node's range, then just remove
   // the root of this subtree. otherwise search down the tree
@@ -406,12 +426,14 @@ treenode *treenode::remove(const keyrange &range, TXNID txnid) {
 }
 
 bool treenode::left_imbalanced(int threshold) const {
+  DBUG_TRACE;
   uint32_t left_depth = m_left_child.depth_est;
   uint32_t right_depth = m_right_child.depth_est;
   return m_left_child.ptr != nullptr && left_depth > threshold + right_depth;
 }
 
 bool treenode::right_imbalanced(int threshold) const {
+  DBUG_TRACE;
   uint32_t left_depth = m_left_child.depth_est;
   uint32_t right_depth = m_right_child.depth_est;
   return m_right_child.ptr != nullptr && right_depth > threshold + left_depth;
@@ -423,6 +445,7 @@ bool treenode::right_imbalanced(int threshold) const {
 // requires: node is locked by this thread, children are not
 // returns: locked root node of the rebalanced tree
 treenode *treenode::maybe_rebalance(void) {
+  DBUG_TRACE;
   // if we end up not rotating at all, the new root is this
   treenode *new_root = this;
   treenode *child = nullptr;
@@ -482,6 +505,7 @@ treenode *treenode::maybe_rebalance(void) {
 }
 
 treenode *treenode::lock_and_rebalance_left(void) {
+  DBUG_TRACE;
   treenode *child = m_left_child.get_locked();
   if (child) {
     treenode *new_root = child->maybe_rebalance();
@@ -492,6 +516,7 @@ treenode *treenode::lock_and_rebalance_left(void) {
 }
 
 treenode *treenode::lock_and_rebalance_right(void) {
+  DBUG_TRACE;
   treenode *child = m_right_child.get_locked();
   if (child) {
     treenode *new_root = child->maybe_rebalance();
@@ -502,11 +527,13 @@ treenode *treenode::lock_and_rebalance_right(void) {
 }
 
 void treenode::child_ptr::set(treenode *node) {
+  DBUG_TRACE;
   ptr = node;
   depth_est = ptr ? ptr->get_depth_estimate() : 0;
 }
 
 treenode *treenode::child_ptr::get_locked(void) {
+  DBUG_TRACE;
   if (ptr) {
     ptr->mutex_lock();
     depth_est = ptr->get_depth_estimate();

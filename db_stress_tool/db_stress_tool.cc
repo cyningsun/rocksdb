@@ -20,6 +20,7 @@
 // NOTE that if FLAGS_test_batches_snapshots is set, the test will have
 // different behavior. See comment of the flag for details.
 
+#include "rocksdb/util/dbug.h"
 #ifdef GFLAGS
 #include "db_stress_tool/db_stress_common.h"
 #include "db_stress_tool/db_stress_driver.h"
@@ -40,6 +41,7 @@ static std::shared_ptr<CompositeEnvWrapper> fault_env_guard;
 KeyGenContext key_gen_ctx;
 
 int db_stress_tool(int argc, char** argv) {
+  DBUG_TRACE;
   SetUsageMessage(std::string("\nUSAGE:\n") + std::string(argv[0]) +
                   " [OPTIONS]...");
   ParseCommandLineFlags(&argc, &argv, true);

@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "test_util/sync_point.h"
 
 #include <fcntl.h>
@@ -24,31 +25,35 @@ SyncPoint::SyncPoint() : impl_(new Data) {}
 SyncPoint::~SyncPoint() { delete impl_; }
 
 void SyncPoint::LoadDependency(const std::vector<SyncPointPair>& dependencies) {
+  DBUG_TRACE;
   impl_->LoadDependency(dependencies);
 }
 
 void SyncPoint::LoadDependencyAndMarkers(
     const std::vector<SyncPointPair>& dependencies,
     const std::vector<SyncPointPair>& markers) {
+  DBUG_TRACE;
   impl_->LoadDependencyAndMarkers(dependencies, markers);
 }
 
 void SyncPoint::SetCallBack(const std::string& point,
                             const std::function<void(void*)>& callback) {
+  DBUG_TRACE;
   impl_->SetCallBack(point, callback);
 }
 
 void SyncPoint::ClearCallBack(const std::string& point) {
+  DBUG_TRACE;
   impl_->ClearCallBack(point);
 }
 
-void SyncPoint::ClearAllCallBacks() { impl_->ClearAllCallBacks(); }
+void SyncPoint::ClearAllCallBacks() { DBUG_TRACE; impl_->ClearAllCallBacks(); }
 
-void SyncPoint::EnableProcessing() { impl_->EnableProcessing(); }
+void SyncPoint::EnableProcessing() { DBUG_TRACE; impl_->EnableProcessing(); }
 
-void SyncPoint::DisableProcessing() { impl_->DisableProcessing(); }
+void SyncPoint::DisableProcessing() { DBUG_TRACE; impl_->DisableProcessing(); }
 
-void SyncPoint::ClearTrace() { impl_->ClearTrace(); }
+void SyncPoint::ClearTrace() { DBUG_TRACE; impl_->ClearTrace(); }
 
 void SyncPoint::Process(const Slice& point, void* cb_arg) {
   impl_->Process(point, cb_arg);
@@ -59,6 +64,7 @@ void SyncPoint::Process(const Slice& point, void* cb_arg) {
 
 namespace ROCKSDB_NAMESPACE {
 void SetupSyncPointsToMockDirectIO() {
+DBUG_TRACE;
 #if !defined(NDEBUG) && !defined(OS_MACOSX) && !defined(OS_WIN) && \
     !defined(OS_SOLARIS) && !defined(OS_AIX) && !defined(OS_OPENBSD)
   ROCKSDB_NAMESPACE::SyncPoint::GetInstance()->SetCallBack(

@@ -4,6 +4,7 @@
 //  (found in the LICENSE.Apache file in the root directory).
 
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/db_dump_tool.h"
 
 #include <cinttypes>
@@ -17,6 +18,7 @@ namespace ROCKSDB_NAMESPACE {
 
 bool DbDumpTool::Run(const DumpOptions& dump_options,
                      ROCKSDB_NAMESPACE::Options options) {
+  DBUG_TRACE;
   ROCKSDB_NAMESPACE::DB* dbptr;
   ROCKSDB_NAMESPACE::Status status;
   std::unique_ptr<ROCKSDB_NAMESPACE::WritableFile> dumpfile;
@@ -132,6 +134,7 @@ bool DbDumpTool::Run(const DumpOptions& dump_options,
 
 bool DbUndumpTool::Run(const UndumpOptions& undump_options,
                        ROCKSDB_NAMESPACE::Options options) {
+  DBUG_TRACE;
   ROCKSDB_NAMESPACE::DB* dbptr;
   ROCKSDB_NAMESPACE::Status status;
   ROCKSDB_NAMESPACE::Env* env;

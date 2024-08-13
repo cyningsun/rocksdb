@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "db/dbformat.h"
 #include "db_stress_tool/db_stress_listener.h"
 #include "db_stress_tool/db_stress_shared_state.h"
@@ -333,6 +334,7 @@ class NonBatchedOpsStressTest : public StressTest {
   }
 
   void ContinuouslyVerifyDb(ThreadState* thread) const override {
+    DBUG_TRACE;
     if (!cmp_db_) {
       return;
     }
@@ -427,6 +429,7 @@ class NonBatchedOpsStressTest : public StressTest {
   }
 
   void MaybeClearOneColumnFamily(ThreadState* thread) override {
+    DBUG_TRACE;
     if (FLAGS_column_families > 1) {
       if (thread->rand.OneInOpt(FLAGS_clear_column_family_one_in)) {
         // drop column family and then create it again (can't drop default)
@@ -462,13 +465,14 @@ class NonBatchedOpsStressTest : public StressTest {
     }
   }
 
-  bool ShouldAcquireMutexOnKey() const override { return true; }
+  bool ShouldAcquireMutexOnKey() const override { DBUG_TRACE; return true; }
 
-  bool IsStateTracked() const override { return true; }
+  bool IsStateTracked() const override { DBUG_TRACE; return true; }
 
   void TestKeyMayExist(ThreadState* thread, const ReadOptions& read_opts,
                        const std::vector<int>& rand_column_families,
                        const std::vector<int64_t>& rand_keys) override {
+    DBUG_TRACE;
     auto cfh = column_families_[rand_column_families[0]];
     std::string key_str = Key(rand_keys[0]);
     Slice key = key_str;
@@ -507,6 +511,7 @@ class NonBatchedOpsStressTest : public StressTest {
   Status TestGet(ThreadState* thread, const ReadOptions& read_opts,
                  const std::vector<int>& rand_column_families,
                  const std::vector<int64_t>& rand_keys) override {
+    DBUG_TRACE;
     auto cfh = column_families_[rand_column_families[0]];
     std::string key_str = Key(rand_keys[0]);
     Slice key = key_str;
@@ -611,6 +616,7 @@ class NonBatchedOpsStressTest : public StressTest {
       ThreadState* thread, const ReadOptions& read_opts,
       const std::vector<int>& rand_column_families,
       const std::vector<int64_t>& rand_keys) override {
+    DBUG_TRACE;
     size_t num_keys = rand_keys.size();
     std::vector<std::string> key_str;
     std::vector<Slice> keys;
@@ -935,6 +941,7 @@ class NonBatchedOpsStressTest : public StressTest {
   void TestGetEntity(ThreadState* thread, const ReadOptions& read_opts,
                      const std::vector<int>& rand_column_families,
                      const std::vector<int64_t>& rand_keys) override {
+    DBUG_TRACE;
     assert(thread);
 
     SharedState* const shared = thread->shared;
@@ -1082,6 +1089,7 @@ class NonBatchedOpsStressTest : public StressTest {
   void TestMultiGetEntity(ThreadState* thread, const ReadOptions& read_opts,
                           const std::vector<int>& rand_column_families,
                           const std::vector<int64_t>& rand_keys) override {
+    DBUG_TRACE;
     assert(thread);
 
     ManagedSnapshot snapshot_guard(db_);
@@ -1437,6 +1445,7 @@ class NonBatchedOpsStressTest : public StressTest {
   Status TestPrefixScan(ThreadState* thread, const ReadOptions& read_opts,
                         const std::vector<int>& rand_column_families,
                         const std::vector<int64_t>& rand_keys) override {
+    DBUG_TRACE;
     assert(!rand_column_families.empty());
     assert(!rand_keys.empty());
 
@@ -1547,6 +1556,7 @@ class NonBatchedOpsStressTest : public StressTest {
                  const std::vector<int>& rand_column_families,
                  const std::vector<int64_t>& rand_keys,
                  char (&value)[100]) override {
+    DBUG_TRACE;
     assert(!rand_column_families.empty());
     assert(!rand_keys.empty());
 
@@ -1730,6 +1740,7 @@ class NonBatchedOpsStressTest : public StressTest {
   Status TestDelete(ThreadState* thread, WriteOptions& write_opts,
                     const std::vector<int>& rand_column_families,
                     const std::vector<int64_t>& rand_keys) override {
+    DBUG_TRACE;
     int64_t rand_key = rand_keys[0];
     int rand_column_family = rand_column_families[0];
     auto shared = thread->shared;
@@ -1890,6 +1901,7 @@ class NonBatchedOpsStressTest : public StressTest {
   Status TestDeleteRange(ThreadState* thread, WriteOptions& write_opts,
                          const std::vector<int>& rand_column_families,
                          const std::vector<int64_t>& rand_keys) override {
+    DBUG_TRACE;
     // OPERATION delete range
     std::vector<std::unique_ptr<MutexLock>> range_locks;
     // delete range does not respect disallowed overwrites. the keys for
@@ -1998,6 +2010,7 @@ class NonBatchedOpsStressTest : public StressTest {
   void TestIngestExternalFile(ThreadState* thread,
                               const std::vector<int>& rand_column_families,
                               const std::vector<int64_t>& rand_keys) override {
+    DBUG_TRACE;
     const std::string sst_filename =
         FLAGS_db + "/." + std::to_string(thread->tid) + ".sst";
     Status s;
@@ -2137,6 +2150,7 @@ class NonBatchedOpsStressTest : public StressTest {
       ThreadState* thread, const ReadOptions& read_opts,
       const std::vector<int>& rand_column_families,
       const std::vector<int64_t>& rand_keys) override {
+    DBUG_TRACE;
     assert(thread);
     assert(!rand_column_families.empty());
     assert(!rand_keys.empty());
@@ -2614,6 +2628,7 @@ class NonBatchedOpsStressTest : public StressTest {
   bool VerifyOrSyncValue(int cf, int64_t key, const ReadOptions& opts,
                          SharedState* shared, const std::string& value_from_db,
                          std::string msg_prefix, const Status& s) const {
+    DBUG_TRACE;
     if (shared->HasVerificationFailedYet()) {
       return false;
     }
@@ -2708,6 +2723,7 @@ class NonBatchedOpsStressTest : public StressTest {
 
   void PrepareTxnDbOptions(SharedState* shared,
                            TransactionDBOptions& txn_db_opts) override {
+    DBUG_TRACE;
     txn_db_opts.rollback_deletion_type_callback =
         [shared](TransactionDB*, ColumnFamilyHandle*, const Slice& key) {
           assert(shared);
@@ -2722,6 +2738,7 @@ class NonBatchedOpsStressTest : public StressTest {
   void MaybeAddKeyToTxnForRYW(
       ThreadState* thread, int column_family, int64_t key, Transaction* txn,
       std::unordered_map<std::string, ExpectedValue>& ryw_expected_values) {
+    DBUG_TRACE;
     assert(thread);
     assert(txn);
 
@@ -2808,6 +2825,7 @@ class NonBatchedOpsStressTest : public StressTest {
 };
 
 StressTest* CreateNonBatchedOpsStressTest() {
+  DBUG_TRACE;
   return new NonBatchedOpsStressTest();
 }
 

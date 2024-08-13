@@ -8,11 +8,13 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "db/compaction/compaction_state.h"
 
 namespace ROCKSDB_NAMESPACE {
 
 Slice CompactionState::SmallestUserKey() {
+  DBUG_TRACE;
   for (const auto& sub_compact_state : sub_compact_states) {
     Slice smallest = sub_compact_state.SmallestUserKey();
     if (!smallest.empty()) {
@@ -24,6 +26,7 @@ Slice CompactionState::SmallestUserKey() {
 }
 
 Slice CompactionState::LargestUserKey() {
+  DBUG_TRACE;
   for (auto it = sub_compact_states.rbegin(); it < sub_compact_states.rend();
        ++it) {
     Slice largest = it->LargestUserKey();
@@ -38,6 +41,7 @@ Slice CompactionState::LargestUserKey() {
 void CompactionState::AggregateCompactionStats(
     InternalStats::CompactionStatsFull& compaction_stats,
     CompactionJobStats& compaction_job_stats) {
+  DBUG_TRACE;
   for (const auto& sc : sub_compact_states) {
     sc.AggregateCompactionStats(compaction_stats);
     compaction_job_stats.Add(sc.compaction_job_stats);

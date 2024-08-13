@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "cache/lru_cache.h"
 
 #include <cassert>
@@ -43,10 +44,12 @@ LRUHandleTable::~LRUHandleTable() {
 }
 
 LRUHandle* LRUHandleTable::Lookup(const Slice& key, uint32_t hash) {
+  DBUG_TRACE;
   return *FindPointer(key, hash);
 }
 
 LRUHandle* LRUHandleTable::Insert(LRUHandle* h) {
+  DBUG_TRACE;
   LRUHandle** ptr = FindPointer(h->key(), h->hash);
   LRUHandle* old = *ptr;
   h->next_hash = (old == nullptr ? nullptr : old->next_hash);
@@ -63,6 +66,7 @@ LRUHandle* LRUHandleTable::Insert(LRUHandle* h) {
 }
 
 LRUHandle* LRUHandleTable::Remove(const Slice& key, uint32_t hash) {
+  DBUG_TRACE;
   LRUHandle** ptr = FindPointer(key, hash);
   LRUHandle* result = *ptr;
   if (result != nullptr) {
@@ -73,6 +77,7 @@ LRUHandle* LRUHandleTable::Remove(const Slice& key, uint32_t hash) {
 }
 
 LRUHandle** LRUHandleTable::FindPointer(const Slice& key, uint32_t hash) {
+  DBUG_TRACE;
   LRUHandle** ptr = &list_[hash >> (32 - length_bits_)];
   while (*ptr != nullptr && ((*ptr)->hash != hash || key != (*ptr)->key())) {
     ptr = &(*ptr)->next_hash;
@@ -81,6 +86,7 @@ LRUHandle** LRUHandleTable::FindPointer(const Slice& key, uint32_t hash) {
 }
 
 void LRUHandleTable::Resize() {
+  DBUG_TRACE;
   if (length_bits_ >= max_length_bits_) {
     // Due to reaching limit of hash information, if we made the table bigger,
     // we would allocate more addresses but only the same number would be used.
@@ -144,6 +150,7 @@ LRUCacheShard::LRUCacheShard(size_t capacity, bool strict_capacity_limit,
 }
 
 void LRUCacheShard::EraseUnRefEntries() {
+  DBUG_TRACE;
   autovector<LRUHandle*> last_reference_list;
   {
     DMutexLock l(mutex_);
@@ -170,6 +177,7 @@ void LRUCacheShard::ApplyToSomeEntries(
                              size_t charge,
                              const Cache::CacheItemHelper* helper)>& callback,
     size_t average_entries_per_lock, size_t* state) {
+  DBUG_TRACE;
   // The state is essentially going to be the starting hash, which works
   // nicely even if we resize between calls because we use upper-most
   // hash bits for table indexes.
@@ -203,6 +211,7 @@ void LRUCacheShard::ApplyToSomeEntries(
 
 void LRUCacheShard::TEST_GetLRUList(LRUHandle** lru, LRUHandle** lru_low_pri,
                                     LRUHandle** lru_bottom_pri) {
+  DBUG_TRACE;
   DMutexLock l(mutex_);
   *lru = &lru_;
   *lru_low_pri = lru_low_pri_;
@@ -210,6 +219,7 @@ void LRUCacheShard::TEST_GetLRUList(LRUHandle** lru, LRUHandle** lru_low_pri,
 }
 
 size_t LRUCacheShard::TEST_GetLRUSize() {
+  DBUG_TRACE;
   DMutexLock l(mutex_);
   LRUHandle* lru_handle = lru_.next;
   size_t lru_size = 0;
@@ -221,16 +231,19 @@ size_t LRUCacheShard::TEST_GetLRUSize() {
 }
 
 double LRUCacheShard::GetHighPriPoolRatio() {
+  DBUG_TRACE;
   DMutexLock l(mutex_);
   return high_pri_pool_ratio_;
 }
 
 double LRUCacheShard::GetLowPriPoolRatio() {
+  DBUG_TRACE;
   DMutexLock l(mutex_);
   return low_pri_pool_ratio_;
 }
 
 void LRUCacheShard::LRU_Remove(LRUHandle* e) {
+  DBUG_TRACE;
   assert(e->next != nullptr);
   assert(e->prev != nullptr);
   if (lru_low_pri_ == e) {
@@ -255,6 +268,7 @@ void LRUCacheShard::LRU_Remove(LRUHandle* e) {
 }
 
 void LRUCacheShard::LRU_Insert(LRUHandle* e) {
+  DBUG_TRACE;
   assert(e->next == nullptr);
   assert(e->prev == nullptr);
   if (high_pri_pool_ratio_ > 0 && (e->IsHighPri() || e->HasHit())) {
@@ -297,6 +311,7 @@ void LRUCacheShard::LRU_Insert(LRUHandle* e) {
 }
 
 void LRUCacheShard::MaintainPoolSize() {
+  DBUG_TRACE;
   while (high_pri_pool_usage_ > high_pri_pool_capacity_) {
     // Overflow last entry in high-pri pool to low-pri pool.
     lru_low_pri_ = lru_low_pri_->next;
@@ -323,6 +338,7 @@ void LRUCacheShard::MaintainPoolSize() {
 
 void LRUCacheShard::EvictFromLRU(size_t charge,
                                  autovector<LRUHandle*>* deleted) {
+  DBUG_TRACE;
   while ((usage_ + charge) > capacity_ && lru_.next != &lru_) {
     LRUHandle* old = lru_.next;
     // LRU list contains only elements which can be evicted.
@@ -338,6 +354,7 @@ void LRUCacheShard::EvictFromLRU(size_t charge,
 
 void LRUCacheShard::NotifyEvicted(
     const autovector<LRUHandle*>& evicted_handles) {
+  DBUG_TRACE;
   MemoryAllocator* alloc = table_.GetAllocator();
   for (LRUHandle* entry : evicted_handles) {
     if (eviction_callback_ &&
@@ -353,6 +370,7 @@ void LRUCacheShard::NotifyEvicted(
 }
 
 void LRUCacheShard::SetCapacity(size_t capacity) {
+  DBUG_TRACE;
   autovector<LRUHandle*> last_reference_list;
   {
     DMutexLock l(mutex_);
@@ -366,11 +384,13 @@ void LRUCacheShard::SetCapacity(size_t capacity) {
 }
 
 void LRUCacheShard::SetStrictCapacityLimit(bool strict_capacity_limit) {
+  DBUG_TRACE;
   DMutexLock l(mutex_);
   strict_capacity_limit_ = strict_capacity_limit;
 }
 
 Status LRUCacheShard::InsertItem(LRUHandle* e, LRUHandle** handle) {
+  DBUG_TRACE;
   Status s = Status::OK();
   autovector<LRUHandle*> last_reference_list;
 
@@ -433,6 +453,7 @@ LRUHandle* LRUCacheShard::Lookup(const Slice& key, uint32_t hash,
                                  Cache::CreateContext* /*create_context*/,
                                  Cache::Priority /*priority*/,
                                  Statistics* /*stats*/) {
+  DBUG_TRACE;
   DMutexLock l(mutex_);
   LRUHandle* e = table_.Lookup(key, hash);
   if (e != nullptr) {
@@ -449,6 +470,7 @@ LRUHandle* LRUCacheShard::Lookup(const Slice& key, uint32_t hash,
 }
 
 bool LRUCacheShard::Ref(LRUHandle* e) {
+  DBUG_TRACE;
   DMutexLock l(mutex_);
   // To create another reference - entry must be already externally referenced.
   assert(e->HasRefs());
@@ -457,6 +479,7 @@ bool LRUCacheShard::Ref(LRUHandle* e) {
 }
 
 void LRUCacheShard::SetHighPriorityPoolRatio(double high_pri_pool_ratio) {
+  DBUG_TRACE;
   DMutexLock l(mutex_);
   high_pri_pool_ratio_ = high_pri_pool_ratio;
   high_pri_pool_capacity_ = capacity_ * high_pri_pool_ratio_;
@@ -464,6 +487,7 @@ void LRUCacheShard::SetHighPriorityPoolRatio(double high_pri_pool_ratio) {
 }
 
 void LRUCacheShard::SetLowPriorityPoolRatio(double low_pri_pool_ratio) {
+  DBUG_TRACE;
   DMutexLock l(mutex_);
   low_pri_pool_ratio_ = low_pri_pool_ratio;
   low_pri_pool_capacity_ = capacity_ * low_pri_pool_ratio_;
@@ -472,6 +496,7 @@ void LRUCacheShard::SetLowPriorityPoolRatio(double low_pri_pool_ratio) {
 
 bool LRUCacheShard::Release(LRUHandle* e, bool /*useful*/,
                             bool erase_if_last_ref) {
+  DBUG_TRACE;
   if (e == nullptr) {
     return false;
   }
@@ -522,6 +547,7 @@ LRUHandle* LRUCacheShard::CreateHandle(const Slice& key, uint32_t hash,
                                        Cache::ObjectPtr value,
                                        const Cache::CacheItemHelper* helper,
                                        size_t charge) {
+  DBUG_TRACE;
   assert(helper);
   // value == nullptr is reserved for indicating failure in SecondaryCache
   assert(!(helper->IsSecondaryCacheCompatible() && value == nullptr));
@@ -551,6 +577,7 @@ Status LRUCacheShard::Insert(const Slice& key, uint32_t hash,
                              const Cache::CacheItemHelper* helper,
                              size_t charge, LRUHandle** handle,
                              Cache::Priority priority) {
+  DBUG_TRACE;
   LRUHandle* e = CreateHandle(key, hash, value, helper, charge);
   e->SetPriority(priority);
   e->SetInCache(true);
@@ -562,6 +589,7 @@ LRUHandle* LRUCacheShard::CreateStandalone(const Slice& key, uint32_t hash,
                                            const Cache::CacheItemHelper* helper,
                                            size_t charge,
                                            bool allow_uncharged) {
+  DBUG_TRACE;
   LRUHandle* e = CreateHandle(key, hash, value, helper, charge);
   e->SetIsStandalone(true);
   e->Ref();
@@ -590,6 +618,7 @@ LRUHandle* LRUCacheShard::CreateStandalone(const Slice& key, uint32_t hash,
 }
 
 void LRUCacheShard::Erase(const Slice& key, uint32_t hash) {
+  DBUG_TRACE;
   LRUHandle* e;
   bool last_reference = false;
   {
@@ -616,27 +645,32 @@ void LRUCacheShard::Erase(const Slice& key, uint32_t hash) {
 }
 
 size_t LRUCacheShard::GetUsage() const {
+  DBUG_TRACE;
   DMutexLock l(mutex_);
   return usage_;
 }
 
 size_t LRUCacheShard::GetPinnedUsage() const {
+  DBUG_TRACE;
   DMutexLock l(mutex_);
   assert(usage_ >= lru_usage_);
   return usage_ - lru_usage_;
 }
 
 size_t LRUCacheShard::GetOccupancyCount() const {
+  DBUG_TRACE;
   DMutexLock l(mutex_);
   return table_.GetOccupancyCount();
 }
 
 size_t LRUCacheShard::GetTableAddressCount() const {
+  DBUG_TRACE;
   DMutexLock l(mutex_);
   return size_t{1} << table_.GetLengthBits();
 }
 
 void LRUCacheShard::AppendPrintableOptions(std::string& str) const {
+  DBUG_TRACE;
   const int kBufferSize = 200;
   char buffer[kBufferSize];
   {
@@ -662,32 +696,38 @@ LRUCache::LRUCache(const LRUCacheOptions& opts) : ShardedCache(opts) {
 }
 
 Cache::ObjectPtr LRUCache::Value(Handle* handle) {
+  DBUG_TRACE;
   auto h = static_cast<const LRUHandle*>(handle);
   return h->value;
 }
 
 size_t LRUCache::GetCharge(Handle* handle) const {
+  DBUG_TRACE;
   return static_cast<const LRUHandle*>(handle)->GetCharge(
       GetShard(0).metadata_charge_policy_);
 }
 
 const Cache::CacheItemHelper* LRUCache::GetCacheItemHelper(
     Handle* handle) const {
+  DBUG_TRACE;
   auto h = static_cast<const LRUHandle*>(handle);
   return h->helper;
 }
 
 size_t LRUCache::TEST_GetLRUSize() {
+  DBUG_TRACE;
   return SumOverShards([](LRUCacheShard& cs) { return cs.TEST_GetLRUSize(); });
 }
 
 double LRUCache::GetHighPriPoolRatio() {
+  DBUG_TRACE;
   return GetShard(0).GetHighPriPoolRatio();
 }
 
 }  // namespace lru_cache
 
 std::shared_ptr<Cache> LRUCacheOptions::MakeSharedCache() const {
+  DBUG_TRACE;
   if (num_shard_bits >= 20) {
     return nullptr;  // The cache cannot be sharded into too many fine pieces.
   }
@@ -716,6 +756,7 @@ std::shared_ptr<Cache> LRUCacheOptions::MakeSharedCache() const {
 }
 
 std::shared_ptr<RowCache> LRUCacheOptions::MakeSharedRowCache() const {
+  DBUG_TRACE;
   if (secondary_cache) {
     // Not allowed for a RowCache
     return nullptr;

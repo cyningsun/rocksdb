@@ -4,6 +4,7 @@
 //  (found in the LICENSE.Apache file in the root directory).
 
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/utilities/options_util.h"
 
 #include "file/filename.h"
@@ -17,6 +18,7 @@ Status LoadOptionsFromFile(const ConfigOptions& config_options,
                            const std::string& file_name, DBOptions* db_options,
                            std::vector<ColumnFamilyDescriptor>* cf_descs,
                            std::shared_ptr<Cache>* cache) {
+  DBUG_TRACE;
   RocksDBOptionsParser parser;
   const auto& fs = config_options.env->GetFileSystem();
   Status s = parser.Parse(config_options, file_name, fs.get());
@@ -44,6 +46,7 @@ Status LoadOptionsFromFile(const ConfigOptions& config_options,
 
 Status GetLatestOptionsFileName(const std::string& dbpath, Env* env,
                                 std::string* options_file_name) {
+  DBUG_TRACE;
   Status s;
   std::string latest_file_name;
   uint64_t latest_time_stamp = 0;
@@ -79,6 +82,7 @@ Status LoadLatestOptions(const ConfigOptions& config_options,
                          const std::string& dbpath, DBOptions* db_options,
                          std::vector<ColumnFamilyDescriptor>* cf_descs,
                          std::shared_ptr<Cache>* cache) {
+  DBUG_TRACE;
   std::string options_file_name;
   Status s =
       GetLatestOptionsFileName(dbpath, config_options.env, &options_file_name);
@@ -93,6 +97,7 @@ Status CheckOptionsCompatibility(
     const ConfigOptions& config_options, const std::string& dbpath,
     const DBOptions& db_options,
     const std::vector<ColumnFamilyDescriptor>& cf_descs) {
+  DBUG_TRACE;
   std::string options_file_name;
   Status s =
       GetLatestOptionsFileName(dbpath, config_options.env, &options_file_name);

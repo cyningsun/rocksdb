@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #if !(defined GFLAGS)
 
 #include <cstdio>
@@ -26,6 +27,7 @@ DEFINE_string(db_options, "",
               "Options string used to open the database that will be loaded");
 
 int main(int argc, char **argv) {
+  DBUG_TRACE;
   GFLAGS_NAMESPACE::ParseCommandLineFlags(&argc, &argv, true);
 
   if (FLAGS_db_path == "" || FLAGS_dump_location == "") {

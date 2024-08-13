@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "format.h"
 
 #include <algorithm>
@@ -20,19 +21,21 @@ const int64_t kDefaultMarkedForDeleteAt = std::numeric_limits<int64_t>::min();
 ColumnBase::ColumnBase(int8_t mask, int8_t index)
     : mask_(mask), index_(index) {}
 
-std::size_t ColumnBase::Size() const { return sizeof(mask_) + sizeof(index_); }
+std::size_t ColumnBase::Size() const { DBUG_TRACE; return sizeof(mask_) + sizeof(index_); }
 
-int8_t ColumnBase::Mask() const { return mask_; }
+int8_t ColumnBase::Mask() const { DBUG_TRACE; return mask_; }
 
-int8_t ColumnBase::Index() const { return index_; }
+int8_t ColumnBase::Index() const { DBUG_TRACE; return index_; }
 
 void ColumnBase::Serialize(std::string* dest) const {
+  DBUG_TRACE;
   ROCKSDB_NAMESPACE::cassandra::Serialize<int8_t>(mask_, dest);
   ROCKSDB_NAMESPACE::cassandra::Serialize<int8_t>(index_, dest);
 }
 
 std::shared_ptr<ColumnBase> ColumnBase::Deserialize(const char* src,
                                                     std::size_t offset) {
+  DBUG_TRACE;
   int8_t mask = ROCKSDB_NAMESPACE::cassandra::Deserialize<int8_t>(src, offset);
   if ((mask & ColumnTypeMask::DELETION_MASK) != 0) {
     return Tombstone::Deserialize(src, offset);
@@ -50,14 +53,16 @@ Column::Column(int8_t mask, int8_t index, int64_t timestamp, int32_t value_size,
       value_size_(value_size),
       value_(value) {}
 
-int64_t Column::Timestamp() const { return timestamp_; }
+int64_t Column::Timestamp() const { DBUG_TRACE; return timestamp_; }
 
 std::size_t Column::Size() const {
+  DBUG_TRACE;
   return ColumnBase::Size() + sizeof(timestamp_) + sizeof(value_size_) +
          value_size_;
 }
 
 void Column::Serialize(std::string* dest) const {
+  DBUG_TRACE;
   ColumnBase::Serialize(dest);
   ROCKSDB_NAMESPACE::cassandra::Serialize<int64_t>(timestamp_, dest);
   ROCKSDB_NAMESPACE::cassandra::Serialize<int32_t>(value_size_, dest);
@@ -66,6 +71,7 @@ void Column::Serialize(std::string* dest) const {
 
 std::shared_ptr<Column> Column::Deserialize(const char* src,
                                             std::size_t offset) {
+  DBUG_TRACE;
   int8_t mask = ROCKSDB_NAMESPACE::cassandra::Deserialize<int8_t>(src, offset);
   offset += sizeof(mask);
   int8_t index = ROCKSDB_NAMESPACE::cassandra::Deserialize<int8_t>(src, offset);
@@ -86,29 +92,35 @@ ExpiringColumn::ExpiringColumn(int8_t mask, int8_t index, int64_t timestamp,
     : Column(mask, index, timestamp, value_size, value), ttl_(ttl) {}
 
 std::size_t ExpiringColumn::Size() const {
+  DBUG_TRACE;
   return Column::Size() + sizeof(ttl_);
 }
 
 void ExpiringColumn::Serialize(std::string* dest) const {
+  DBUG_TRACE;
   Column::Serialize(dest);
   ROCKSDB_NAMESPACE::cassandra::Serialize<int32_t>(ttl_, dest);
 }
 
 std::chrono::time_point<std::chrono::system_clock> ExpiringColumn::TimePoint()
     const {
+  DBUG_TRACE;
   return std::chrono::time_point<std::chrono::system_clock>(
       std::chrono::microseconds(Timestamp()));
 }
 
 std::chrono::seconds ExpiringColumn::Ttl() const {
+  DBUG_TRACE;
   return std::chrono::seconds(ttl_);
 }
 
 bool ExpiringColumn::Expired() const {
+  DBUG_TRACE;
   return TimePoint() + Ttl() < std::chrono::system_clock::now();
 }
 
 std::shared_ptr<Tombstone> ExpiringColumn::ToTombstone() const {
+  DBUG_TRACE;
   auto expired_at = (TimePoint() + Ttl()).time_since_epoch();
   int32_t local_deletion_time = static_cast<int32_t>(
       std::chrono::duration_cast<std::chrono::seconds>(expired_at).count());
@@ -121,6 +133,7 @@ std::shared_ptr<Tombstone> ExpiringColumn::ToTombstone() const {
 
 std::shared_ptr<ExpiringColumn> ExpiringColumn::Deserialize(
     const char* src, std::size_t offset) {
+  DBUG_TRACE;
   int8_t mask = ROCKSDB_NAMESPACE::cassandra::Deserialize<int8_t>(src, offset);
   offset += sizeof(mask);
   int8_t index = ROCKSDB_NAMESPACE::cassandra::Deserialize<int8_t>(src, offset);
@@ -144,20 +157,23 @@ Tombstone::Tombstone(int8_t mask, int8_t index, int32_t local_deletion_time,
       local_deletion_time_(local_deletion_time),
       marked_for_delete_at_(marked_for_delete_at) {}
 
-int64_t Tombstone::Timestamp() const { return marked_for_delete_at_; }
+int64_t Tombstone::Timestamp() const { DBUG_TRACE; return marked_for_delete_at_; }
 
 std::size_t Tombstone::Size() const {
+  DBUG_TRACE;
   return ColumnBase::Size() + sizeof(local_deletion_time_) +
          sizeof(marked_for_delete_at_);
 }
 
 void Tombstone::Serialize(std::string* dest) const {
+  DBUG_TRACE;
   ColumnBase::Serialize(dest);
   ROCKSDB_NAMESPACE::cassandra::Serialize<int32_t>(local_deletion_time_, dest);
   ROCKSDB_NAMESPACE::cassandra::Serialize<int64_t>(marked_for_delete_at_, dest);
 }
 
 bool Tombstone::Collectable(int32_t gc_grace_period_in_seconds) const {
+  DBUG_TRACE;
   auto local_deleted_at = std::chrono::time_point<std::chrono::system_clock>(
       std::chrono::seconds(local_deletion_time_));
   auto gc_grace_period = std::chrono::seconds(gc_grace_period_in_seconds);
@@ -166,6 +182,7 @@ bool Tombstone::Collectable(int32_t gc_grace_period_in_seconds) const {
 
 std::shared_ptr<Tombstone> Tombstone::Deserialize(const char* src,
                                                   std::size_t offset) {
+  DBUG_TRACE;
   int8_t mask = ROCKSDB_NAMESPACE::cassandra::Deserialize<int8_t>(src, offset);
   offset += sizeof(mask);
   int8_t index = ROCKSDB_NAMESPACE::cassandra::Deserialize<int8_t>(src, offset);
@@ -192,6 +209,7 @@ RowValue::RowValue(Columns columns, int64_t last_modified_time)
       last_modified_time_(last_modified_time) {}
 
 std::size_t RowValue::Size() const {
+  DBUG_TRACE;
   std::size_t size =
       sizeof(local_deletion_time_) + sizeof(marked_for_delete_at_);
   for (const auto& column : columns_) {
@@ -201,6 +219,7 @@ std::size_t RowValue::Size() const {
 }
 
 int64_t RowValue::LastModifiedTime() const {
+  DBUG_TRACE;
   if (IsTombstone()) {
     return marked_for_delete_at_;
   } else {
@@ -209,10 +228,12 @@ int64_t RowValue::LastModifiedTime() const {
 }
 
 bool RowValue::IsTombstone() const {
+  DBUG_TRACE;
   return marked_for_delete_at_ > kDefaultMarkedForDeleteAt;
 }
 
 void RowValue::Serialize(std::string* dest) const {
+  DBUG_TRACE;
   ROCKSDB_NAMESPACE::cassandra::Serialize<int32_t>(local_deletion_time_, dest);
   ROCKSDB_NAMESPACE::cassandra::Serialize<int64_t>(marked_for_delete_at_, dest);
   for (const auto& column : columns_) {
@@ -221,6 +242,7 @@ void RowValue::Serialize(std::string* dest) const {
 }
 
 RowValue RowValue::RemoveExpiredColumns(bool* changed) const {
+  DBUG_TRACE;
   *changed = false;
   Columns new_columns;
   for (auto& column : columns_) {
@@ -240,6 +262,7 @@ RowValue RowValue::RemoveExpiredColumns(bool* changed) const {
 }
 
 RowValue RowValue::ConvertExpiredColumnsToTombstones(bool* changed) const {
+  DBUG_TRACE;
   *changed = false;
   Columns new_columns;
   for (auto& column : columns_) {
@@ -260,6 +283,7 @@ RowValue RowValue::ConvertExpiredColumnsToTombstones(bool* changed) const {
 }
 
 RowValue RowValue::RemoveTombstones(int32_t gc_grace_period) const {
+  DBUG_TRACE;
   Columns new_columns;
   for (auto& column : columns_) {
     if (column->Mask() == ColumnTypeMask::DELETION_MASK) {
@@ -276,9 +300,10 @@ RowValue RowValue::RemoveTombstones(int32_t gc_grace_period) const {
   return RowValue(std::move(new_columns), last_modified_time_);
 }
 
-bool RowValue::Empty() const { return columns_.empty(); }
+bool RowValue::Empty() const { DBUG_TRACE; return columns_.empty(); }
 
 RowValue RowValue::Deserialize(const char* src, std::size_t size) {
+  DBUG_TRACE;
   std::size_t offset = 0;
   assert(size >= sizeof(local_deletion_time_) + sizeof(marked_for_delete_at_));
   int32_t local_deletion_time =
@@ -312,6 +337,7 @@ RowValue RowValue::Deserialize(const char* src, std::size_t size) {
 // each row from reverse timestamp order, and stop once we hit the first
 // row tombstone.
 RowValue RowValue::Merge(std::vector<RowValue>&& values) {
+  DBUG_TRACE;
   assert(values.size() > 0);
   if (values.size() == 1) {
     return std::move(values[0]);

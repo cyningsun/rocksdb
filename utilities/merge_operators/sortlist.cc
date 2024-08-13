@@ -2,6 +2,7 @@
 //  This source code is licensed under both the GPLv2 (found in the
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
+#include "rocksdb/util/dbug.h"
 #include "utilities/merge_operators/sortlist.h"
 
 #include "rocksdb/merge_operator.h"
@@ -12,6 +13,7 @@ namespace ROCKSDB_NAMESPACE {
 
 bool SortList::FullMergeV2(const MergeOperationInput& merge_in,
                            MergeOperationOutput* merge_out) const {
+  DBUG_TRACE;
   std::vector<int> left;
   for (Slice slice : merge_in.operand_list) {
     std::vector<int> right;
@@ -28,6 +30,7 @@ bool SortList::FullMergeV2(const MergeOperationInput& merge_in,
 bool SortList::PartialMerge(const Slice& /*key*/, const Slice& left_operand,
                             const Slice& right_operand, std::string* new_value,
                             Logger* /*logger*/) const {
+  DBUG_TRACE;
   std::vector<int> left;
   std::vector<int> right;
   MakeVector(left, left_operand);
@@ -44,12 +47,14 @@ bool SortList::PartialMergeMulti(const Slice& /*key*/,
                                  const std::deque<Slice>& operand_list,
                                  std::string* new_value,
                                  Logger* /*logger*/) const {
+  DBUG_TRACE;
   (void)operand_list;
   (void)new_value;
   return true;
 }
 
 void SortList::MakeVector(std::vector<int>& operand, Slice slice) const {
+  DBUG_TRACE;
   do {
     const char* begin = slice.data_;
     while (*slice.data_ != ',' && *slice.data_) {
@@ -61,6 +66,7 @@ void SortList::MakeVector(std::vector<int>& operand, Slice slice) const {
 
 std::vector<int> SortList::Merge(std::vector<int>& left,
                                  std::vector<int>& right) const {
+  DBUG_TRACE;
   // Fill the resultant vector with sorted results from both vectors
   std::vector<int> result;
   unsigned left_it = 0, right_it = 0;
@@ -92,6 +98,7 @@ std::vector<int> SortList::Merge(std::vector<int>& left,
 }
 
 std::shared_ptr<MergeOperator> MergeOperators::CreateSortOperator() {
+  DBUG_TRACE;
   return std::make_shared<SortList>();
 }
 }  // namespace ROCKSDB_NAMESPACE

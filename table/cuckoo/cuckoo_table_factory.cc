@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "table/cuckoo/cuckoo_table_factory.h"
 
 #include "db/dbformat.h"
@@ -18,6 +19,7 @@ Status CuckooTableFactory::NewTableReader(
     std::unique_ptr<RandomAccessFileReader>&& file, uint64_t file_size,
     std::unique_ptr<TableReader>* table,
     bool /*prefetch_index_and_filter_in_cache*/) const {
+  DBUG_TRACE;
   std::unique_ptr<CuckooTableReader> new_reader(new CuckooTableReader(
       table_reader_options.ioptions, std::move(file), file_size,
       table_reader_options.internal_comparator.user_comparator(), nullptr));
@@ -31,6 +33,7 @@ Status CuckooTableFactory::NewTableReader(
 TableBuilder* CuckooTableFactory::NewTableBuilder(
     const TableBuilderOptions& table_builder_options,
     WritableFileWriter* file) const {
+  DBUG_TRACE;
   // TODO: change builder to take the option struct
   return new CuckooTableBuilder(
       file, table_options_.hash_table_ratio, 64,
@@ -44,6 +47,7 @@ TableBuilder* CuckooTableFactory::NewTableBuilder(
 }
 
 std::string CuckooTableFactory::GetPrintableOptions() const {
+  DBUG_TRACE;
   std::string ret;
   ret.reserve(2000);
   const int kBufferSize = 200;
@@ -94,6 +98,7 @@ CuckooTableFactory::CuckooTableFactory(const CuckooTableOptions& table_options)
 }
 
 TableFactory* NewCuckooTableFactory(const CuckooTableOptions& table_options) {
+  DBUG_TRACE;
   return new CuckooTableFactory(table_options);
 }
 

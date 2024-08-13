@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "table/cuckoo/cuckoo_table_builder.h"
 
 #include <algorithm>
@@ -88,6 +89,7 @@ CuckooTableBuilder::CuckooTableBuilder(
 }
 
 void CuckooTableBuilder::Add(const Slice& key, const Slice& value) {
+  DBUG_TRACE;
   if (num_entries_ >= kMaxVectorIdx - 1) {
     status_ = Status::NotSupported("Number of keys in a file must be < 2^32-1");
     return;
@@ -166,11 +168,13 @@ void CuckooTableBuilder::Add(const Slice& key, const Slice& value) {
 }
 
 bool CuckooTableBuilder::IsDeletedKey(uint64_t idx) const {
+  DBUG_TRACE;
   assert(closed_);
   return idx >= num_values_;
 }
 
 Slice CuckooTableBuilder::GetKey(uint64_t idx) const {
+  DBUG_TRACE;
   assert(closed_);
   if (IsDeletedKey(idx)) {
     return Slice(
@@ -182,11 +186,13 @@ Slice CuckooTableBuilder::GetKey(uint64_t idx) const {
 }
 
 Slice CuckooTableBuilder::GetUserKey(uint64_t idx) const {
+  DBUG_TRACE;
   assert(closed_);
   return is_last_level_file_ ? GetKey(idx) : ExtractUserKey(GetKey(idx));
 }
 
 Slice CuckooTableBuilder::GetValue(uint64_t idx) const {
+  DBUG_TRACE;
   assert(closed_);
   if (IsDeletedKey(idx)) {
     static std::string empty_value(static_cast<unsigned int>(value_size_), 'a');
@@ -198,6 +204,7 @@ Slice CuckooTableBuilder::GetValue(uint64_t idx) const {
 }
 
 Status CuckooTableBuilder::MakeHashTable(std::vector<CuckooBucket>* buckets) {
+  DBUG_TRACE;
   buckets->resize(
       static_cast<size_t>(hash_table_size_ + cuckoo_block_size_ - 1));
   uint32_t make_space_for_key_call_id = 0;
@@ -262,6 +269,7 @@ Status CuckooTableBuilder::MakeHashTable(std::vector<CuckooBucket>* buckets) {
 }
 
 Status CuckooTableBuilder::Finish() {
+  DBUG_TRACE;
   assert(!closed_);
   closed_ = true;
   std::vector<CuckooBucket> buckets;
@@ -415,13 +423,15 @@ Status CuckooTableBuilder::Finish() {
 }
 
 void CuckooTableBuilder::Abandon() {
+  DBUG_TRACE;
   assert(!closed_);
   closed_ = true;
 }
 
-uint64_t CuckooTableBuilder::NumEntries() const { return num_entries_; }
+uint64_t CuckooTableBuilder::NumEntries() const { DBUG_TRACE; return num_entries_; }
 
 uint64_t CuckooTableBuilder::FileSize() const {
+  DBUG_TRACE;
   if (closed_) {
     return file_->GetFileSize();
   } else if (num_entries_ == 0) {
@@ -459,6 +469,7 @@ bool CuckooTableBuilder::MakeSpaceForKey(
     const autovector<uint64_t>& hash_vals,
     const uint32_t make_space_for_key_call_id,
     std::vector<CuckooBucket>* buckets, uint64_t* bucket_id) {
+  DBUG_TRACE;
   struct CuckooNode {
     uint64_t bucket_id;
     uint32_t depth;
@@ -537,6 +548,7 @@ bool CuckooTableBuilder::MakeSpaceForKey(
 }
 
 std::string CuckooTableBuilder::GetFileChecksum() const {
+  DBUG_TRACE;
   if (file_ != nullptr) {
     return file_->GetFileChecksum();
   } else {
@@ -545,6 +557,7 @@ std::string CuckooTableBuilder::GetFileChecksum() const {
 }
 
 const char* CuckooTableBuilder::GetFileChecksumFuncName() const {
+  DBUG_TRACE;
   if (file_ != nullptr) {
     return file_->GetFileChecksumFuncName();
   } else {

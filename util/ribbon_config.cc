@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "util/ribbon_config.h"
 
 namespace ROCKSDB_NAMESPACE::ribbon::detail {
@@ -32,6 +33,7 @@ struct BandingConfigHelperData {
   // (Would be a constant if we had partial template specialization for
   // static const members.)
   static inline double GetFactorPerPow2() {
+    DBUG_TRACE;
     if (kCoeffBits == 128U) {
       return 0.0038;
     } else {
@@ -44,6 +46,7 @@ struct BandingConfigHelperData {
   // (Would be a constant if we had partial template specialization for
   // static const members.)
   static inline double GetFinalKnownFactor() {
+    DBUG_TRACE;
     return 1.0 * (uint32_t{1} << (kKnownSize - 1)) /
            kKnownToAddByPow2[kKnownSize - 1];
   }
@@ -52,12 +55,14 @@ struct BandingConfigHelperData {
   // (Would be a constant if we had partial template specialization for
   // static const members.)
   static inline double GetBaseFactor() {
+    DBUG_TRACE;
     return GetFinalKnownFactor() - (kKnownSize - 1) * GetFactorPerPow2();
   }
 
   // Get overhead factor (slots over number to add) for sufficiently large
   // number of slots (by log base 2)
   static inline double GetFactorForLarge(double log2_num_slots) {
+    DBUG_TRACE;
     return GetBaseFactor() + log2_num_slots * GetFactorPerPow2();
   }
 
@@ -65,6 +70,7 @@ struct BandingConfigHelperData {
   // log base 2), implements GetNumToAdd for such limited case, returning
   // double for better interpolation in GetNumToAdd and GetNumSlots.
   static inline double GetNumToAddForPow2(uint32_t log2_num_slots) {
+    DBUG_TRACE;
     assert(log2_num_slots <= 32);  // help clang-analyze
     if (log2_num_slots < kKnownSize) {
       return kKnownToAddByPow2[log2_num_slots];
@@ -361,6 +367,7 @@ template <ConstructionFailureChance kCfc, uint64_t kCoeffBits, bool kUseSmash,
 uint32_t BandingConfigHelper1MaybeSupported<
     kCfc, kCoeffBits, kUseSmash, kHomogeneous,
     true /* kIsSupported */>::GetNumToAdd(uint32_t num_slots) {
+  DBUG_TRACE;
   using Data = detail::BandingConfigHelperData<kCfc, kCoeffBits, kUseSmash>;
   if (num_slots == 0) {
     return 0;
@@ -401,6 +408,7 @@ template <ConstructionFailureChance kCfc, uint64_t kCoeffBits, bool kUseSmash,
 uint32_t BandingConfigHelper1MaybeSupported<
     kCfc, kCoeffBits, kUseSmash, kHomogeneous,
     true /* kIsSupported */>::GetNumSlots(uint32_t num_to_add) {
+  DBUG_TRACE;
   using Data = detail::BandingConfigHelperData<kCfc, kCoeffBits, kUseSmash>;
 
   if (num_to_add == 0) {

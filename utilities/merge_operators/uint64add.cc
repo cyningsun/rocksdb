@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "utilities/merge_operators/uint64add.h"
 
 #include <memory>
@@ -19,6 +20,7 @@ namespace ROCKSDB_NAMESPACE {  // anonymous namespace
 bool UInt64AddOperator::Merge(const Slice& /*key*/, const Slice* existing_value,
                               const Slice& value, std::string* new_value,
                               Logger* logger) const {
+  DBUG_TRACE;
   uint64_t orig_value = 0;
   if (existing_value) {
     orig_value = DecodeInteger(*existing_value, logger);
@@ -34,6 +36,7 @@ bool UInt64AddOperator::Merge(const Slice& /*key*/, const Slice* existing_value,
 
 uint64_t UInt64AddOperator::DecodeInteger(const Slice& value,
                                           Logger* logger) const {
+  DBUG_TRACE;
   uint64_t result = 0;
 
   if (value.size() == sizeof(uint64_t)) {
@@ -50,6 +53,7 @@ uint64_t UInt64AddOperator::DecodeInteger(const Slice& value,
 }
 
 std::shared_ptr<MergeOperator> MergeOperators::CreateUInt64AddOperator() {
+  DBUG_TRACE;
   return std::make_shared<UInt64AddOperator>();
 }
 

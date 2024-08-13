@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "test_util/testharness.h"
 
 #include <regex>
@@ -20,10 +21,11 @@ namespace ROCKSDB_NAMESPACE::test {
 
 std::string GetPidStr() { return std::to_string(GetCurrentProcessId()); }
 #else
-std::string GetPidStr() { return std::to_string(getpid()); }
+std::string GetPidStr() { DBUG_TRACE; return std::to_string(getpid()); }
 #endif
 
 ::testing::AssertionResult AssertStatus(const char* s_expr, const Status& s) {
+  DBUG_TRACE;
   if (s.ok()) {
     return ::testing::AssertionSuccess();
   } else {
@@ -32,6 +34,7 @@ std::string GetPidStr() { return std::to_string(getpid()); }
 }
 
 std::string TmpDir(Env* env) {
+  DBUG_TRACE;
   std::string dir;
   Status s = env->GetTestDirectory(&dir);
   EXPECT_OK(s);
@@ -39,19 +42,23 @@ std::string TmpDir(Env* env) {
 }
 
 std::string PerThreadDBPath(std::string dir, std::string name) {
+  DBUG_TRACE;
   size_t tid = std::hash<std::thread::id>()(std::this_thread::get_id());
   return dir + "/" + name + "_" + GetPidStr() + "_" + std::to_string(tid);
 }
 
 std::string PerThreadDBPath(std::string name) {
+  DBUG_TRACE;
   return PerThreadDBPath(test::TmpDir(), name);
 }
 
 std::string PerThreadDBPath(Env* env, std::string name) {
+  DBUG_TRACE;
   return PerThreadDBPath(test::TmpDir(env), name);
 }
 
 int RandomSeed() {
+  DBUG_TRACE;
   const char* env = getenv("TEST_RANDOM_SEED");
   int result = (env != nullptr ? atoi(env) : 301);
   if (result <= 0) {
@@ -65,7 +72,7 @@ TestRegex::TestRegex(const std::string& pattern)
 TestRegex::TestRegex(const char* pattern)
     : impl_(std::make_shared<Impl>(pattern)), pattern_(pattern) {}
 
-const std::string& TestRegex::GetPattern() const { return pattern_; }
+const std::string& TestRegex::GetPattern() const { DBUG_TRACE; return pattern_; }
 
 class TestRegex::Impl : public std::regex {
  public:
@@ -73,6 +80,7 @@ class TestRegex::Impl : public std::regex {
 };
 
 bool TestRegex::Matches(const std::string& str) const {
+  DBUG_TRACE;
   if (impl_) {
     return std::regex_match(str, *impl_);
   } else {
@@ -86,6 +94,7 @@ bool TestRegex::Matches(const std::string& str) const {
                                               const char* pattern_expr,
                                               const std::string& str,
                                               const TestRegex& pattern) {
+  DBUG_TRACE;
   if (pattern.Matches(str)) {
     return ::testing::AssertionSuccess();
   } else if (TestRegex("\".*\"").Matches(pattern_expr)) {

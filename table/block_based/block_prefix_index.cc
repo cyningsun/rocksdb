@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "table/block_based/block_prefix_index.h"
 
 #include <vector>
@@ -17,10 +18,12 @@
 namespace ROCKSDB_NAMESPACE {
 
 inline uint32_t Hash(const Slice& s) {
+  DBUG_TRACE;
   return ROCKSDB_NAMESPACE::Hash(s.data(), s.size(), 0);
 }
 
 inline uint32_t PrefixToBucket(const Slice& prefix, uint32_t num_buckets) {
+  DBUG_TRACE;
   return Hash(prefix) % num_buckets;
 }
 
@@ -41,19 +44,22 @@ inline uint32_t PrefixToBucket(const Slice& prefix, uint32_t num_buckets) {
 const uint32_t kNoneBlock = 0x7FFFFFFF;
 const uint32_t kBlockArrayMask = 0x80000000;
 
-inline bool IsNone(uint32_t block_id) { return block_id == kNoneBlock; }
+inline bool IsNone(uint32_t block_id) { DBUG_TRACE; return block_id == kNoneBlock; }
 
 inline bool IsBlockId(uint32_t block_id) {
+  DBUG_TRACE;
   return (block_id & kBlockArrayMask) == 0;
 }
 
 inline uint32_t DecodeIndex(uint32_t block_id) {
+  DBUG_TRACE;
   uint32_t index = block_id ^ kBlockArrayMask;
   assert(index < kBlockArrayMask);
   return index;
 }
 
 inline uint32_t EncodeIndex(uint32_t index) {
+  DBUG_TRACE;
   assert(index < kBlockArrayMask);
   return index | kBlockArrayMask;
 }
@@ -70,6 +76,7 @@ struct PrefixRecord {
 class BlockPrefixIndex::Builder {
  public:
   void Add(const Slice& key_prefix, uint32_t start_block, uint32_t num_blocks) {
+    DBUG_TRACE;
     PrefixRecord* record = reinterpret_cast<PrefixRecord*>(
         arena_.AllocateAligned(sizeof(PrefixRecord)));
     record->prefix = key_prefix;
@@ -80,6 +87,7 @@ class BlockPrefixIndex::Builder {
   }
 
   BlockPrefixIndex* Finish(const SliceTransform* prefix_extractor) {
+    DBUG_TRACE;
     // For now, use roughly 1:1 prefix to bucket ratio.
     uint32_t num_buckets = static_cast<uint32_t>(prefixes_.size()) + 1;
 
@@ -163,6 +171,7 @@ class BlockPrefixIndex::Builder {
 Status BlockPrefixIndex::Create(const SliceTransform* prefix_extractor,
                                 const Slice& prefixes, const Slice& prefix_meta,
                                 BlockPrefixIndex** prefix_index) {
+  DBUG_TRACE;
   uint64_t pos = 0;
   auto meta_pos = prefix_meta;
   Status s;
@@ -202,6 +211,7 @@ Status BlockPrefixIndex::Create(const SliceTransform* prefix_extractor,
 }
 
 uint32_t BlockPrefixIndex::GetBlocks(const Slice& key, uint32_t** blocks) {
+  DBUG_TRACE;
   Slice prefix = internal_prefix_extractor_.Transform(key);
 
   uint32_t bucket = PrefixToBucket(prefix, num_buckets_);

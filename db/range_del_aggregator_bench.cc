@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #ifndef GFLAGS
 #include <cstdio>
 int main() {
@@ -68,6 +69,7 @@ struct Stats {
 };
 
 std::ostream& operator<<(std::ostream& os, const Stats& s) {
+  DBUG_TRACE;
   std::ios fmt_holder(nullptr);
   fmt_holder.copyfmt(os);
 
@@ -120,6 +122,7 @@ struct PersistentRangeTombstone {
   PersistentRangeTombstone(const PersistentRangeTombstone& t) { *this = t; }
 
   PersistentRangeTombstone& operator=(const PersistentRangeTombstone& t) {
+    DBUG_TRACE;
     start_key = t.start_key;
     end_key = t.end_key;
     tombstone = RangeTombstone(start_key, end_key, t.tombstone.seq_);
@@ -130,6 +133,7 @@ struct PersistentRangeTombstone {
   PersistentRangeTombstone(PersistentRangeTombstone&& t) noexcept { *this = t; }
 
   PersistentRangeTombstone& operator=(PersistentRangeTombstone&& t) {
+    DBUG_TRACE;
     start_key = std::move(t.start_key);
     end_key = std::move(t.end_key);
     tombstone = RangeTombstone(start_key, end_key, t.tombstone.seq_);
@@ -142,6 +146,7 @@ struct TombstoneStartKeyComparator {
   explicit TombstoneStartKeyComparator(const Comparator* c) : cmp(c) {}
 
   bool operator()(const RangeTombstone& a, const RangeTombstone& b) const {
+    DBUG_TRACE;
     return cmp->Compare(a.start_key_, b.start_key_) < 0;
   }
 
@@ -150,6 +155,7 @@ struct TombstoneStartKeyComparator {
 
 std::unique_ptr<InternalIterator> MakeRangeDelIterator(
     const std::vector<PersistentRangeTombstone>& range_dels) {
+  DBUG_TRACE;
   std::vector<std::string> keys, values;
   for (const auto& range_del : range_dels) {
     auto key_and_value = range_del.tombstone.Serialize();
@@ -162,6 +168,7 @@ std::unique_ptr<InternalIterator> MakeRangeDelIterator(
 
 // convert long to a big-endian slice key
 static std::string Key(int64_t val) {
+  DBUG_TRACE;
   std::string little_endian_key;
   std::string big_endian_key;
   PutFixed64(&little_endian_key, val);
@@ -178,6 +185,7 @@ static std::string Key(int64_t val) {
 }  // namespace ROCKSDB_NAMESPACE
 
 int main(int argc, char** argv) {
+  DBUG_TRACE;
   ParseCommandLineFlags(&argc, &argv, true);
 
   Stats stats;

@@ -5,6 +5,7 @@
 //
 // A MergeOperator for rocksdb that implements string append.
 
+#include "rocksdb/util/dbug.h"
 #include "stringappend.h"
 
 #include <cassert>
@@ -40,6 +41,7 @@ bool StringAppendOperator::Merge(const Slice& /*key*/,
                                  const Slice* existing_value,
                                  const Slice& value, std::string* new_value,
                                  Logger* /*logger*/) const {
+  DBUG_TRACE;
   // Clear the *new_value for writing.
   assert(new_value);
   new_value->clear();
@@ -60,16 +62,19 @@ bool StringAppendOperator::Merge(const Slice& /*key*/,
 }
 
 std::shared_ptr<MergeOperator> MergeOperators::CreateStringAppendOperator() {
+  DBUG_TRACE;
   return std::make_shared<StringAppendOperator>(',');
 }
 
 std::shared_ptr<MergeOperator> MergeOperators::CreateStringAppendOperator(
     char delim_char) {
+  DBUG_TRACE;
   return std::make_shared<StringAppendOperator>(delim_char);
 }
 
 std::shared_ptr<MergeOperator> MergeOperators::CreateStringAppendOperator(
     const std::string& delim) {
+  DBUG_TRACE;
   return std::make_shared<StringAppendOperator>(delim);
 }
 

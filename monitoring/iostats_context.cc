@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include <sstream>
 
 #include "monitoring/iostats_context_imp.h"
@@ -18,9 +19,10 @@ static IOStatsContext iostats_context;
 thread_local IOStatsContext iostats_context;
 #endif
 
-IOStatsContext* get_iostats_context() { return &iostats_context; }
+IOStatsContext* get_iostats_context() { DBUG_TRACE; return &iostats_context; }
 
 void IOStatsContext::Reset() {
+DBUG_TRACE;
 #ifndef NIOSTATS_CONTEXT
   thread_pool_id = Env::Priority::TOTAL;
   bytes_read = 0;
@@ -45,6 +47,7 @@ void IOStatsContext::Reset() {
   }
 
 std::string IOStatsContext::ToString(bool exclude_zero_counters) const {
+DBUG_TRACE;
 #ifdef NIOSTATS_CONTEXT
   (void)exclude_zero_counters;
   return "";

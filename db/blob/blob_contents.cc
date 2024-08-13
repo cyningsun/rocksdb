@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "db/blob/blob_contents.h"
 
 #include <cassert>
@@ -14,6 +15,7 @@
 namespace ROCKSDB_NAMESPACE {
 
 size_t BlobContents::ApproximateMemoryUsage() const {
+  DBUG_TRACE;
   size_t usage = 0;
 
   if (allocation_) {

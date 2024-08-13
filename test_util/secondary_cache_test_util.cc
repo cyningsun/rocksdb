@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "test_util/secondary_cache_test_util.h"
 
 #include <array>
@@ -13,11 +14,13 @@ namespace {
 using TestItem = WithCacheType::TestItem;
 
 size_t SizeCallback(Cache::ObjectPtr obj) {
+  DBUG_TRACE;
   return static_cast<TestItem*>(obj)->Size();
 }
 
 Status SaveToCallback(Cache::ObjectPtr from_obj, size_t from_offset,
                       size_t length, char* out) {
+  DBUG_TRACE;
   auto item = static_cast<TestItem*>(from_obj);
   const char* buf = item->Buf();
   EXPECT_EQ(length, item->Size());
@@ -27,11 +30,13 @@ Status SaveToCallback(Cache::ObjectPtr from_obj, size_t from_offset,
 }
 
 void DeletionCallback(Cache::ObjectPtr obj, MemoryAllocator* /*alloc*/) {
+  DBUG_TRACE;
   delete static_cast<TestItem*>(obj);
 }
 
 Status SaveToCallbackFail(Cache::ObjectPtr /*obj*/, size_t /*offset*/,
                           size_t /*size*/, char* /*out*/) {
+  DBUG_TRACE;
   return Status::NotSupported();
 }
 
@@ -39,6 +44,7 @@ Status CreateCallback(const Slice& data, CompressionType /*type*/,
                       CacheTier /*source*/, Cache::CreateContext* context,
                       MemoryAllocator* /*allocator*/, Cache::ObjectPtr* out_obj,
                       size_t* out_charge) {
+  DBUG_TRACE;
   auto t = static_cast<TestCreateContext*>(context);
   if (t->fail_create_) {
     return Status::NotSupported();
@@ -54,6 +60,7 @@ auto GenerateHelpersByRole(
     const std::array<Cache::CacheItemHelper, kNumCacheEntryRoles>*
         without_secondary,
     bool fail) {
+  DBUG_TRACE;
   std::array<Cache::CacheItemHelper, kNumCacheEntryRoles> a;
   for (uint32_t i = 0; i < kNumCacheEntryRoles; ++i) {
     if (without_secondary) {
@@ -75,6 +82,7 @@ auto GenerateHelpersByRole(
 
 const Cache::CacheItemHelper* WithCacheType::GetHelper(
     CacheEntryRole r, bool secondary_compatible, bool fail) {
+  DBUG_TRACE;
   static const std::array<Cache::CacheItemHelper, kNumCacheEntryRoles>
       without_secondary = GenerateHelpersByRole(nullptr, false);
   static const std::array<Cache::CacheItemHelper, kNumCacheEntryRoles>
@@ -87,6 +95,7 @@ const Cache::CacheItemHelper* WithCacheType::GetHelper(
 }
 
 const Cache::CacheItemHelper* WithCacheType::GetHelperFail(CacheEntryRole r) {
+  DBUG_TRACE;
   return GetHelper(r, true, true);
 }
 

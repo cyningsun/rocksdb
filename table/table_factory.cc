@@ -3,6 +3,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include <mutex>
 
 #include "rocksdb/convenience.h"
@@ -16,6 +17,7 @@
 namespace ROCKSDB_NAMESPACE {
 
 static void RegisterTableFactories(const std::string& /*arg*/) {
+  DBUG_TRACE;
   static std::once_flag loaded;
   std::call_once(loaded, []() {
     auto library = ObjectLibrary::Default();
@@ -46,6 +48,7 @@ static void RegisterTableFactories(const std::string& /*arg*/) {
 Status TableFactory::CreateFromString(const ConfigOptions& config_options,
                                       const std::string& value,
                                       std::shared_ptr<TableFactory>* factory) {
+  DBUG_TRACE;
   RegisterTableFactories("");
   return LoadSharedObject<TableFactory>(config_options, value, factory);
 }

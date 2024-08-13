@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "table/plain/plain_table_key_coding.h"
 
 #include <algorithm>
@@ -33,6 +34,7 @@ const unsigned char kSizeInlineLimit = 0x3F;
 // Return 0 for error
 size_t EncodeSize(PlainTableEntryType type, uint32_t key_size,
                   char* out_buffer) {
+  DBUG_TRACE;
   out_buffer[0] = type << 6;
 
   if (key_size < static_cast<uint32_t>(kSizeInlineLimit)) {
@@ -52,6 +54,7 @@ inline Status PlainTableKeyDecoder::DecodeSize(uint32_t start_offset,
                                                PlainTableEntryType* entry_type,
                                                uint32_t* key_size,
                                                uint32_t* bytes_read) {
+  DBUG_TRACE;
   Slice next_byte_slice;
   bool success = file_reader_.Read(start_offset, 1, &next_byte_slice);
   if (!success) {
@@ -84,6 +87,7 @@ IOStatus PlainTableKeyEncoder::AppendKey(const Slice& key,
                                          WritableFileWriter* file,
                                          uint64_t* offset, char* meta_bytes_buf,
                                          size_t* meta_bytes_buf_size) {
+  DBUG_TRACE;
   ParsedInternalKey parsed_key;
   Status pik_status =
       ParseInternalKey(key, &parsed_key, false /* log_err_key */);  // TODO
@@ -174,6 +178,7 @@ IOStatus PlainTableKeyEncoder::AppendKey(const Slice& key,
 
 Slice PlainTableFileReader::GetFromBuffer(Buffer* buffer, uint32_t file_offset,
                                           uint32_t len) {
+  DBUG_TRACE;
   assert(file_offset + len <= file_info_->data_end_offset);
   return Slice(buffer->buf.get() + (file_offset - buffer->buf_start_offset),
                len);
@@ -181,6 +186,7 @@ Slice PlainTableFileReader::GetFromBuffer(Buffer* buffer, uint32_t file_offset,
 
 bool PlainTableFileReader::ReadNonMmap(uint32_t file_offset, uint32_t len,
                                        Slice* out) {
+  DBUG_TRACE;
   const uint32_t kPrefetchSize = 256u;
 
   // Try to read from buffers.
@@ -230,6 +236,7 @@ bool PlainTableFileReader::ReadNonMmap(uint32_t file_offset, uint32_t len,
 
 inline bool PlainTableFileReader::ReadVarint32(uint32_t offset, uint32_t* out,
                                                uint32_t* bytes_read) {
+  DBUG_TRACE;
   if (file_info_->is_mmap_mode) {
     const char* start = file_info_->file_data.data() + offset;
     const char* limit =
@@ -245,6 +252,7 @@ inline bool PlainTableFileReader::ReadVarint32(uint32_t offset, uint32_t* out,
 
 bool PlainTableFileReader::ReadVarint32NonMmap(uint32_t offset, uint32_t* out,
                                                uint32_t* bytes_read) {
+  DBUG_TRACE;
   const char* start;
   const char* limit;
   const uint32_t kMaxVarInt32Size = 6u;
@@ -266,6 +274,7 @@ bool PlainTableFileReader::ReadVarint32NonMmap(uint32_t offset, uint32_t* out,
 Status PlainTableKeyDecoder::ReadInternalKey(
     uint32_t file_offset, uint32_t user_key_size, ParsedInternalKey* parsed_key,
     uint32_t* bytes_read, bool* internal_key_valid, Slice* internal_key) {
+  DBUG_TRACE;
   Slice tmp_slice;
   bool success = file_reader_.Read(file_offset, user_key_size + 1, &tmp_slice);
   if (!success) {
@@ -301,6 +310,7 @@ Status PlainTableKeyDecoder::NextPlainEncodingKey(uint32_t start_offset,
                                                   Slice* internal_key,
                                                   uint32_t* bytes_read,
                                                   bool* /*seekable*/) {
+  DBUG_TRACE;
   uint32_t user_key_size = 0;
   Status s;
   if (fixed_user_key_len_ != kPlainTableVariableLength) {
@@ -348,6 +358,7 @@ Status PlainTableKeyDecoder::NextPlainEncodingKey(uint32_t start_offset,
 Status PlainTableKeyDecoder::NextPrefixEncodingKey(
     uint32_t start_offset, ParsedInternalKey* parsed_key, Slice* internal_key,
     uint32_t* bytes_read, bool* seekable) {
+  DBUG_TRACE;
   PlainTableEntryType entry_type;
 
   bool expect_suffix = false;
@@ -460,6 +471,7 @@ Status PlainTableKeyDecoder::NextKey(uint32_t start_offset,
                                      ParsedInternalKey* parsed_key,
                                      Slice* internal_key, Slice* value,
                                      uint32_t* bytes_read, bool* seekable) {
+  DBUG_TRACE;
   assert(value != nullptr);
   Status s = NextKeyNoValue(start_offset, parsed_key, internal_key, bytes_read,
                             seekable);
@@ -491,6 +503,7 @@ Status PlainTableKeyDecoder::NextKeyNoValue(uint32_t start_offset,
                                             Slice* internal_key,
                                             uint32_t* bytes_read,
                                             bool* seekable) {
+  DBUG_TRACE;
   *bytes_read = 0;
   if (seekable != nullptr) {
     *seekable = true;

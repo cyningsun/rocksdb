@@ -3,6 +3,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "table/adaptive/adaptive_table_factory.h"
 
 #include "port/port.h"
@@ -39,6 +40,7 @@ Status AdaptiveTableFactory::NewTableReader(
     std::unique_ptr<RandomAccessFileReader>&& file, uint64_t file_size,
     std::unique_ptr<TableReader>* table,
     bool prefetch_index_and_filter_in_cache) const {
+  DBUG_TRACE;
   Footer footer;
   IOOptions opts;
   auto s =
@@ -67,10 +69,12 @@ Status AdaptiveTableFactory::NewTableReader(
 TableBuilder* AdaptiveTableFactory::NewTableBuilder(
     const TableBuilderOptions& table_builder_options,
     WritableFileWriter* file) const {
+  DBUG_TRACE;
   return table_factory_to_write_->NewTableBuilder(table_builder_options, file);
 }
 
 std::string AdaptiveTableFactory::GetPrintableOptions() const {
+  DBUG_TRACE;
   std::string ret;
   ret.reserve(20000);
   const int kBufferSize = 200;
@@ -111,6 +115,7 @@ TableFactory* NewAdaptiveTableFactory(
     std::shared_ptr<TableFactory> block_based_table_factory,
     std::shared_ptr<TableFactory> plain_table_factory,
     std::shared_ptr<TableFactory> cuckoo_table_factory) {
+  DBUG_TRACE;
   return new AdaptiveTableFactory(table_factory_to_write,
                                   block_based_table_factory,
                                   plain_table_factory, cuckoo_table_factory);

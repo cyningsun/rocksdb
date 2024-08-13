@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/cleanable.h"
 
 #include <atomic>
@@ -25,6 +26,7 @@ Cleanable::~Cleanable() { DoCleanup(); }
 Cleanable::Cleanable(Cleanable&& other) noexcept { *this = std::move(other); }
 
 Cleanable& Cleanable::operator=(Cleanable&& other) noexcept {
+  DBUG_TRACE;
   assert(this != &other);  // https://stackoverflow.com/a/9322542/454544
   cleanup_ = other.cleanup_;
   other.cleanup_.function = nullptr;
@@ -49,6 +51,7 @@ Cleanable& Cleanable::operator=(Cleanable&& other) noexcept {
 // and have the entire list (minus the head that has to be inserted separately)
 // merged with the target linked list at once.
 void Cleanable::DelegateCleanupsTo(Cleanable* other) {
+  DBUG_TRACE;
   assert(other != nullptr);
   if (cleanup_.function == nullptr) {
     return;
@@ -66,6 +69,7 @@ void Cleanable::DelegateCleanupsTo(Cleanable* other) {
 }
 
 void Cleanable::RegisterCleanup(Cleanable::Cleanup* c) {
+  DBUG_TRACE;
   assert(c != nullptr);
   if (cleanup_.function == nullptr) {
     cleanup_.function = c->function;
@@ -79,6 +83,7 @@ void Cleanable::RegisterCleanup(Cleanable::Cleanup* c) {
 }
 
 void Cleanable::RegisterCleanup(CleanupFunction func, void* arg1, void* arg2) {
+  DBUG_TRACE;
   assert(func != nullptr);
   Cleanup* c;
   if (cleanup_.function == nullptr) {
@@ -95,19 +100,22 @@ void Cleanable::RegisterCleanup(CleanupFunction func, void* arg1, void* arg2) {
 
 struct SharedCleanablePtr::Impl : public Cleanable {
   std::atomic<unsigned> ref_count{1};  // Start with 1 ref
-  void Ref() { ref_count.fetch_add(1, std::memory_order_relaxed); }
+  void Ref() { DBUG_TRACE; ref_count.fetch_add(1, std::memory_order_relaxed); }
   void Unref() {
+    DBUG_TRACE;
     if (ref_count.fetch_sub(1, std::memory_order_relaxed) == 1) {
       // Last ref
       delete this;
     }
   }
   static void UnrefWrapper(void* arg1, void* /*arg2*/) {
+    DBUG_TRACE;
     static_cast<SharedCleanablePtr::Impl*>(arg1)->Unref();
   }
 };
 
 void SharedCleanablePtr::Reset() {
+  DBUG_TRACE;
   if (ptr_) {
     ptr_->Unref();
     ptr_ = nullptr;
@@ -115,6 +123,7 @@ void SharedCleanablePtr::Reset() {
 }
 
 void SharedCleanablePtr::Allocate() {
+  DBUG_TRACE;
   Reset();
   ptr_ = new Impl();
 }
@@ -129,6 +138,7 @@ SharedCleanablePtr::SharedCleanablePtr(SharedCleanablePtr&& from) noexcept {
 
 SharedCleanablePtr& SharedCleanablePtr::operator=(
     const SharedCleanablePtr& from) {
+  DBUG_TRACE;
   if (this != &from) {
     Reset();
     ptr_ = from.ptr_;
@@ -141,6 +151,7 @@ SharedCleanablePtr& SharedCleanablePtr::operator=(
 
 SharedCleanablePtr& SharedCleanablePtr::operator=(
     SharedCleanablePtr&& from) noexcept {
+  DBUG_TRACE;
   assert(this != &from);  // https://stackoverflow.com/a/9322542/454544
   Reset();
   ptr_ = from.ptr_;
@@ -151,18 +162,22 @@ SharedCleanablePtr& SharedCleanablePtr::operator=(
 SharedCleanablePtr::~SharedCleanablePtr() { Reset(); }
 
 Cleanable& SharedCleanablePtr::operator*() {
+  DBUG_TRACE;
   return *ptr_;  // implicit upcast
 }
 
 Cleanable* SharedCleanablePtr::operator->() {
+  DBUG_TRACE;
   return ptr_;  // implicit upcast
 }
 
 Cleanable* SharedCleanablePtr::get() {
+  DBUG_TRACE;
   return ptr_;  // implicit upcast
 }
 
 void SharedCleanablePtr::RegisterCopyWith(Cleanable* target) {
+  DBUG_TRACE;
   if (ptr_) {
     // "Virtual" copy of the pointer
     ptr_->Ref();
@@ -171,6 +186,7 @@ void SharedCleanablePtr::RegisterCopyWith(Cleanable* target) {
 }
 
 void SharedCleanablePtr::MoveAsCleanupTo(Cleanable* target) {
+  DBUG_TRACE;
   if (ptr_) {
     // "Virtual" move of the pointer
     target->RegisterCleanup(&Impl::UnrefWrapper, ptr_, nullptr);

@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "table/block_based/block_based_table_factory.h"
 
 #include <cinttypes>
@@ -35,6 +36,7 @@
 namespace ROCKSDB_NAMESPACE {
 
 void TailPrefetchStats::RecordEffectiveSize(size_t len) {
+  DBUG_TRACE;
   MutexLock l(&mutex_);
   if (num_records_ < kNumTracked) {
     num_records_++;
@@ -46,6 +48,7 @@ void TailPrefetchStats::RecordEffectiveSize(size_t len) {
 }
 
 size_t TailPrefetchStats::GetSuggestedPrefetchSize() {
+  DBUG_TRACE;
   std::vector<size_t> sorted;
   {
     MutexLock l(&mutex_);
@@ -437,6 +440,7 @@ BlockBasedTableFactory::BlockBasedTableFactory(
 }
 
 void BlockBasedTableFactory::InitializeOptions() {
+  DBUG_TRACE;
   if (table_options_.flush_block_policy_factory == nullptr) {
     table_options_.flush_block_policy_factory.reset(
         new FlushBlockBySizePolicyFactory());
@@ -487,6 +491,7 @@ void BlockBasedTableFactory::InitializeOptions() {
 }
 
 Status BlockBasedTableFactory::PrepareOptions(const ConfigOptions& opts) {
+  DBUG_TRACE;
   InitializeOptions();
   return TableFactory::PrepareOptions(opts);
 }
@@ -495,6 +500,7 @@ namespace {
 // Different cache kinds use the same keys for physically different values, so
 // they must not share an underlying key space with each other.
 Status CheckCacheOptionCompatibility(const BlockBasedTableOptions& bbto) {
+  DBUG_TRACE;
   int cache_count = (bbto.block_cache != nullptr) +
                     (bbto.persistent_cache != nullptr);
   if (cache_count <= 1) {
@@ -566,6 +572,7 @@ Status BlockBasedTableFactory::NewTableReader(
     std::unique_ptr<RandomAccessFileReader>&& file, uint64_t file_size,
     std::unique_ptr<TableReader>* table_reader,
     bool prefetch_index_and_filter_in_cache) const {
+  DBUG_TRACE;
   return BlockBasedTable::Open(
       ro, table_reader_options.ioptions, table_reader_options.env_options,
       table_options_, table_reader_options.internal_comparator, std::move(file),
@@ -585,12 +592,14 @@ Status BlockBasedTableFactory::NewTableReader(
 TableBuilder* BlockBasedTableFactory::NewTableBuilder(
     const TableBuilderOptions& table_builder_options,
     WritableFileWriter* file) const {
+  DBUG_TRACE;
   return new BlockBasedTableBuilder(table_options_, table_builder_options,
                                     file);
 }
 
 Status BlockBasedTableFactory::ValidateOptions(
     const DBOptions& db_opts, const ColumnFamilyOptions& cf_opts) const {
+  DBUG_TRACE;
   if (table_options_.index_type == BlockBasedTableOptions::kHashSearch &&
       cf_opts.prefix_extractor == nullptr) {
     return Status::InvalidArgument(
@@ -734,6 +743,7 @@ Status BlockBasedTableFactory::ValidateOptions(
 }
 
 std::string BlockBasedTableFactory::GetPrintableOptions() const {
+  DBUG_TRACE;
   std::string ret;
   ret.reserve(20000);
   const int kBufferSize = 200;
@@ -859,6 +869,7 @@ std::string BlockBasedTableFactory::GetPrintableOptions() const {
 
 const void* BlockBasedTableFactory::GetOptionsPtr(
     const std::string& name) const {
+  DBUG_TRACE;
   if (name == kBlockCacheOpts()) {
     if (table_options_.no_block_cache) {
       return nullptr;
@@ -913,6 +924,7 @@ Status BlockBasedTableFactory::ParseOption(const ConfigOptions& config_options,
                                            const std::string& opt_name,
                                            const std::string& opt_value,
                                            void* opt_ptr) {
+  DBUG_TRACE;
   Status status = TableFactory::ParseOption(config_options, opt_info, opt_name,
                                             opt_value, opt_ptr);
   if (config_options.input_strings_escaped && !status.ok()) {  // Got an error
@@ -929,6 +941,7 @@ Status GetBlockBasedTableOptionsFromString(
     const ConfigOptions& config_options,
     const BlockBasedTableOptions& table_options, const std::string& opts_str,
     BlockBasedTableOptions* new_table_options) {
+  DBUG_TRACE;
   std::unordered_map<std::string, std::string> opts_map;
   Status s = StringToMap(opts_str, &opts_map);
   if (!s.ok()) {
@@ -949,6 +962,7 @@ Status GetBlockBasedTableOptionsFromMap(
     const BlockBasedTableOptions& table_options,
     const std::unordered_map<std::string, std::string>& opts_map,
     BlockBasedTableOptions* new_table_options) {
+  DBUG_TRACE;
   assert(new_table_options);
   BlockBasedTableFactory bbtf(table_options);
   Status s = bbtf.ConfigureFromMap(config_options, opts_map);
@@ -962,6 +976,7 @@ Status GetBlockBasedTableOptionsFromMap(
 
 TableFactory* NewBlockBasedTableFactory(
     const BlockBasedTableOptions& _table_options) {
+  DBUG_TRACE;
   return new BlockBasedTableFactory(_table_options);
 }
 

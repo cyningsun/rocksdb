@@ -8,6 +8,7 @@
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 //
 
+#include "rocksdb/util/dbug.h"
 #ifdef GFLAGS
 #include "db_stress_tool/db_stress_common.h"
 
@@ -52,6 +53,7 @@ namespace ROCKSDB_NAMESPACE {
 // In order to avoid that hot keys are close to each other and skew towards 0,
 // we use Rando64 to shuffle it.
 void InitializeHotKeyGenerator(double alpha) {
+  DBUG_TRACE;
   double c = 0;
   for (int64_t i = 1; i <= zipf_sum_size; i++) {
     c = c + (1.0 / std::pow(static_cast<double>(i), alpha));
@@ -71,6 +73,7 @@ void InitializeHotKeyGenerator(double alpha) {
 // the closer to 0, the higher probability will be. To randomly distribute
 // the hot keys in [0, max_key], we use Random64 to shuffle it.
 int64_t GetOneHotKeyID(double rand_seed, int64_t max_key) {
+  DBUG_TRACE;
   int64_t low = 1, mid, high = zipf_sum_size, zipf = 0;
   while (low <= high) {
     mid = (low + high) / 2;
@@ -89,6 +92,7 @@ int64_t GetOneHotKeyID(double rand_seed, int64_t max_key) {
 }
 
 void PoolSizeChangeThread(void* v) {
+  DBUG_TRACE;
   assert(FLAGS_compaction_thread_pool_adjust_interval > 0);
   ThreadState* thread = static_cast<ThreadState*>(v);
   SharedState* shared = thread->shared;
@@ -124,6 +128,7 @@ void PoolSizeChangeThread(void* v) {
 }
 
 void DbVerificationThread(void* v) {
+  DBUG_TRACE;
   assert(FLAGS_continuous_verification_interval > 0);
   auto* thread = static_cast<ThreadState*>(v);
   SharedState* shared = thread->shared;
@@ -150,6 +155,7 @@ void DbVerificationThread(void* v) {
 }
 
 void CompressedCacheSetCapacityThread(void* v) {
+  DBUG_TRACE;
   assert(FLAGS_compressed_secondary_cache_size > 0 ||
          FLAGS_compressed_secondary_cache_ratio > 0.0);
   auto* thread = static_cast<ThreadState*>(v);
@@ -229,6 +235,7 @@ void CompressedCacheSetCapacityThread(void* v) {
 }
 
 void PrintKeyValue(int cf, uint64_t key, const char* value, size_t sz) {
+  DBUG_TRACE;
   if (!FLAGS_verbose) {
     return;
   }
@@ -250,6 +257,7 @@ void PrintKeyValue(int cf, uint64_t key, const char* value, size_t sz) {
 // not ensure the order of the keys being generated and the keys does not have
 // the active range which is related to FLAGS_active_width.
 int64_t GenerateOneKey(ThreadState* thread, uint64_t iteration) {
+  DBUG_TRACE;
   const double completed_ratio =
       static_cast<double>(iteration) / FLAGS_ops_per_thread;
   const int64_t base_key = static_cast<int64_t>(
@@ -274,6 +282,7 @@ int64_t GenerateOneKey(ThreadState* thread, uint64_t iteration) {
 // range related to FLAGS_active_width.
 std::vector<int64_t> GenerateNKeys(ThreadState* thread, int num_keys,
                                    uint64_t iteration) {
+  DBUG_TRACE;
   const double completed_ratio =
       static_cast<double>(iteration) / FLAGS_ops_per_thread;
   const int64_t base_key = static_cast<int64_t>(
@@ -300,6 +309,7 @@ std::vector<int64_t> GenerateNKeys(ThreadState* thread, int num_keys,
 }
 
 size_t GenerateValue(uint32_t rand, char* v, size_t max_sz) {
+  DBUG_TRACE;
   size_t value_sz =
       ((rand % kRandomValueMaxFactor) + 1) * FLAGS_value_size_mult;
   assert(value_sz <= max_sz && value_sz >= sizeof(uint32_t));
@@ -313,6 +323,7 @@ size_t GenerateValue(uint32_t rand, char* v, size_t max_sz) {
 }
 
 uint32_t GetValueBase(Slice s) {
+  DBUG_TRACE;
   assert(s.size() >= sizeof(uint32_t));
   uint32_t res;
   GetUnaligned(reinterpret_cast<const uint32_t*>(s.data()), &res);
@@ -322,6 +333,7 @@ uint32_t GetValueBase(Slice s) {
 AttributeGroups GenerateAttributeGroups(
     const std::vector<ColumnFamilyHandle*>& cfhs, uint32_t value_base,
     const Slice& slice) {
+  DBUG_TRACE;
   WideColumns columns = GenerateWideColumns(value_base, slice);
   AttributeGroups attribute_groups;
   for (auto* cfh : cfhs) {
@@ -354,6 +366,7 @@ WideColumns GenerateWideColumns(uint32_t value_base, const Slice& slice) {
 
 WideColumns GenerateExpectedWideColumns(uint32_t value_base,
                                         const Slice& slice) {
+  DBUG_TRACE;
   if (FLAGS_use_put_entity_one_in == 0 ||
       (value_base % FLAGS_use_put_entity_one_in) != 0) {
     return WideColumns{{kDefaultWideColumnName, slice}};
@@ -367,6 +380,7 @@ WideColumns GenerateExpectedWideColumns(uint32_t value_base,
 }
 
 bool VerifyWideColumns(const Slice& value, const WideColumns& columns) {
+  DBUG_TRACE;
   if (value.size() < sizeof(uint32_t)) {
     return false;
   }
@@ -384,6 +398,7 @@ bool VerifyWideColumns(const Slice& value, const WideColumns& columns) {
 }
 
 bool VerifyWideColumns(const WideColumns& columns) {
+  DBUG_TRACE;
   if (!WideColumnsHelper::HasDefaultColumn(columns)) {
     return false;
   }
@@ -395,6 +410,7 @@ bool VerifyWideColumns(const WideColumns& columns) {
 
 bool VerifyIteratorAttributeGroups(
     const IteratorAttributeGroups& attribute_groups) {
+  DBUG_TRACE;
   for (const auto& attribute_group : attribute_groups) {
     if (!VerifyWideColumns(attribute_group.columns())) {
       return false;
@@ -404,6 +420,7 @@ bool VerifyIteratorAttributeGroups(
 }
 
 std::string GetNowNanos() {
+  DBUG_TRACE;
   uint64_t t = db_stress_env->NowNanos();
   std::string ret;
   PutFixed64(&ret, t);
@@ -411,6 +428,7 @@ std::string GetNowNanos() {
 }
 
 uint64_t GetWriteUnixTime(ThreadState* thread) {
+  DBUG_TRACE;
   static uint64_t kPreserveSeconds =
       std::max(FLAGS_preserve_internal_time_seconds,
                FLAGS_preclude_last_level_data_seconds);
@@ -443,10 +461,12 @@ class MyXXH64Checksum : public FileChecksumGenerator {
   ~MyXXH64Checksum() override { XXH64_freeState(state_); }
 
   void Update(const char* data, size_t n) override {
+    DBUG_TRACE;
     XXH64_update(state_, data, n);
   }
 
   void Finalize() override {
+    DBUG_TRACE;
     assert(str_.empty());
     uint64_t digest = XXH64_digest(state_);
     // Store as little endian raw bytes
@@ -463,11 +483,13 @@ class MyXXH64Checksum : public FileChecksumGenerator {
   }
 
   std::string GetChecksum() const override {
+    DBUG_TRACE;
     assert(!str_.empty());
     return str_;
   }
 
   const char* Name() const override {
+    DBUG_TRACE;
     return big_ ? "MyBigChecksum" : "MyXXH64Checksum";
   }
 
@@ -482,6 +504,7 @@ class DbStressChecksumGenFactory : public FileChecksumGenFactory {
 
   std::unique_ptr<FileChecksumGenerator> CreateFromFuncName(
       const std::string& func_name) {
+    DBUG_TRACE;
     std::unique_ptr<FileChecksumGenerator> rv;
     if (func_name == "FileChecksumCrc32c") {
       rv.reset(new FileChecksumGenCrc32c(FileChecksumGenContext()));
@@ -502,6 +525,7 @@ class DbStressChecksumGenFactory : public FileChecksumGenFactory {
 
   std::unique_ptr<FileChecksumGenerator> CreateFileChecksumGenerator(
       const FileChecksumGenContext& context) override {
+    DBUG_TRACE;
     if (context.requested_checksum_func_name.empty()) {
       return CreateFromFuncName(default_func_name_);
     } else {
@@ -509,13 +533,14 @@ class DbStressChecksumGenFactory : public FileChecksumGenFactory {
     }
   }
 
-  const char* Name() const override { return "FileChecksumGenCrc32cFactory"; }
+  const char* Name() const override { DBUG_TRACE; return "FileChecksumGenCrc32cFactory"; }
 };
 
 }  // namespace
 
 std::shared_ptr<FileChecksumGenFactory> GetFileChecksumImpl(
     const std::string& name) {
+  DBUG_TRACE;
   // Translate from friendly names to internal names
   std::string internal_name;
   if (name == "crc32c") {
@@ -532,6 +557,7 @@ std::shared_ptr<FileChecksumGenFactory> GetFileChecksumImpl(
 }
 
 Status DeleteFilesInDirectory(const std::string& dirname) {
+  DBUG_TRACE;
   std::vector<std::string> filenames;
   Status s = Env::Default()->GetChildren(dirname, &filenames);
   for (size_t i = 0; s.ok() && i < filenames.size(); ++i) {
@@ -542,6 +568,7 @@ Status DeleteFilesInDirectory(const std::string& dirname) {
 
 Status SaveFilesInDirectory(const std::string& src_dirname,
                             const std::string& dst_dirname) {
+  DBUG_TRACE;
   std::vector<std::string> filenames;
   Status s = Env::Default()->GetChildren(src_dirname, &filenames);
   for (size_t i = 0; s.ok() && i < filenames.size(); ++i) {
@@ -559,6 +586,7 @@ Status SaveFilesInDirectory(const std::string& src_dirname,
 }
 
 Status InitUnverifiedSubdir(const std::string& dirname) {
+  DBUG_TRACE;
   Status s = Env::Default()->FileExists(dirname);
   if (s.IsNotFound()) {
     return Status::OK();
@@ -580,6 +608,7 @@ Status InitUnverifiedSubdir(const std::string& dirname) {
 }
 
 Status DestroyUnverifiedSubdir(const std::string& dirname) {
+  DBUG_TRACE;
   Status s = Env::Default()->FileExists(dirname);
   if (s.IsNotFound()) {
     return Status::OK();

@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/trace_record_result.h"
 
 namespace ROCKSDB_NAMESPACE {
@@ -11,7 +12,7 @@ namespace ROCKSDB_NAMESPACE {
 TraceRecordResult::TraceRecordResult(TraceType trace_type)
     : trace_type_(trace_type) {}
 
-TraceType TraceRecordResult::GetTraceType() const { return trace_type_; }
+TraceType TraceRecordResult::GetTraceType() const { DBUG_TRACE; return trace_type_; }
 
 // TraceExecutionResult
 TraceExecutionResult::TraceExecutionResult(uint64_t start_timestamp,
@@ -23,9 +24,9 @@ TraceExecutionResult::TraceExecutionResult(uint64_t start_timestamp,
   assert(ts_start_ <= ts_end_);
 }
 
-uint64_t TraceExecutionResult::GetStartTimestamp() const { return ts_start_; }
+uint64_t TraceExecutionResult::GetStartTimestamp() const { DBUG_TRACE; return ts_start_; }
 
-uint64_t TraceExecutionResult::GetEndTimestamp() const { return ts_end_; }
+uint64_t TraceExecutionResult::GetEndTimestamp() const { DBUG_TRACE; return ts_end_; }
 
 // StatusOnlyTraceExecutionResult
 StatusOnlyTraceExecutionResult::StatusOnlyTraceExecutionResult(
@@ -35,10 +36,12 @@ StatusOnlyTraceExecutionResult::StatusOnlyTraceExecutionResult(
       status_(std::move(status)) {}
 
 const Status& StatusOnlyTraceExecutionResult::GetStatus() const {
+  DBUG_TRACE;
   return status_;
 }
 
 Status StatusOnlyTraceExecutionResult::Accept(Handler* handler) {
+  DBUG_TRACE;
   assert(handler != nullptr);
   return handler->Handle(*this);
 }
@@ -63,14 +66,17 @@ SingleValueTraceExecutionResult::~SingleValueTraceExecutionResult() {
 }
 
 const Status& SingleValueTraceExecutionResult::GetStatus() const {
+  DBUG_TRACE;
   return status_;
 }
 
 const std::string& SingleValueTraceExecutionResult::GetValue() const {
+  DBUG_TRACE;
   return value_;
 }
 
 Status SingleValueTraceExecutionResult::Accept(Handler* handler) {
+  DBUG_TRACE;
   assert(handler != nullptr);
   return handler->Handle(*this);
 }
@@ -90,15 +96,18 @@ MultiValuesTraceExecutionResult::~MultiValuesTraceExecutionResult() {
 
 const std::vector<Status>& MultiValuesTraceExecutionResult::GetMultiStatus()
     const {
+  DBUG_TRACE;
   return multi_status_;
 }
 
 const std::vector<std::string>& MultiValuesTraceExecutionResult::GetValues()
     const {
+  DBUG_TRACE;
   return values_;
 }
 
 Status MultiValuesTraceExecutionResult::Accept(Handler* handler) {
+  DBUG_TRACE;
   assert(handler != nullptr);
   return handler->Handle(*this);
 }
@@ -128,17 +137,19 @@ IteratorTraceExecutionResult::~IteratorTraceExecutionResult() {
   value_.clear();
 }
 
-bool IteratorTraceExecutionResult::GetValid() const { return valid_; }
+bool IteratorTraceExecutionResult::GetValid() const { DBUG_TRACE; return valid_; }
 
 const Status& IteratorTraceExecutionResult::GetStatus() const {
+  DBUG_TRACE;
   return status_;
 }
 
-Slice IteratorTraceExecutionResult::GetKey() const { return Slice(key_); }
+Slice IteratorTraceExecutionResult::GetKey() const { DBUG_TRACE; return Slice(key_); }
 
-Slice IteratorTraceExecutionResult::GetValue() const { return Slice(value_); }
+Slice IteratorTraceExecutionResult::GetValue() const { DBUG_TRACE; return Slice(value_); }
 
 Status IteratorTraceExecutionResult::Accept(Handler* handler) {
+  DBUG_TRACE;
   assert(handler != nullptr);
   return handler->Handle(*this);
 }

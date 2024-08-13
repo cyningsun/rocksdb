@@ -4,6 +4,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "db/periodic_task_scheduler.h"
 
 #include "rocksdb/system_clock.h"
@@ -37,12 +38,14 @@ static const std::map<PeriodicTaskType, std::string> kPeriodicTaskTypeNames = {
 
 Status PeriodicTaskScheduler::Register(PeriodicTaskType task_type,
                                        const PeriodicTaskFunc& fn) {
+  DBUG_TRACE;
   return Register(task_type, fn, kDefaultPeriodSeconds.at(task_type));
 }
 
 Status PeriodicTaskScheduler::Register(PeriodicTaskType task_type,
                                        const PeriodicTaskFunc& fn,
                                        uint64_t repeat_period_seconds) {
+  DBUG_TRACE;
   MutexLock l(&timer_mutex);
   static std::atomic<uint64_t> initial_delay(0);
 
@@ -81,6 +84,7 @@ Status PeriodicTaskScheduler::Register(PeriodicTaskType task_type,
 }
 
 Status PeriodicTaskScheduler::Unregister(PeriodicTaskType task_type) {
+  DBUG_TRACE;
   MutexLock l(&timer_mutex);
   auto it = tasks_map_.find(task_type);
   if (it != tasks_map_.end()) {
@@ -94,12 +98,14 @@ Status PeriodicTaskScheduler::Unregister(PeriodicTaskType task_type) {
 }
 
 Timer* PeriodicTaskScheduler::Default() {
+  DBUG_TRACE;
   STATIC_AVOID_DESTRUCTION(Timer, timer)(SystemClock::Default().get());
   return &timer;
 }
 
 #ifndef NDEBUG
 void PeriodicTaskScheduler::TEST_OverrideTimer(SystemClock* clock) {
+  DBUG_TRACE;
   static Timer test_timer(clock);
   test_timer.TEST_OverrideTimer(clock);
   MutexLock l(&timer_mutex);

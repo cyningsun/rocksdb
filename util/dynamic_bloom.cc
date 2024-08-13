@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "dynamic_bloom.h"
 
 #include <algorithm>
@@ -17,6 +18,7 @@ namespace ROCKSDB_NAMESPACE {
 namespace {
 
 uint32_t roundUpToPow2(uint32_t x) {
+  DBUG_TRACE;
   uint32_t rv = 1;
   while (rv < x) {
     rv <<= 1;

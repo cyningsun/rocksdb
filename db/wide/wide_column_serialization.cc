@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "db/wide/wide_column_serialization.h"
 
 #include <algorithm>
@@ -18,6 +19,7 @@ namespace ROCKSDB_NAMESPACE {
 
 Status WideColumnSerialization::Serialize(const WideColumns& columns,
                                           std::string& output) {
+  DBUG_TRACE;
   const size_t num_columns = columns.size();
 
   if (num_columns > static_cast<size_t>(std::numeric_limits<uint32_t>::max())) {
@@ -66,6 +68,7 @@ Status WideColumnSerialization::Serialize(const WideColumns& columns,
 
 Status WideColumnSerialization::Deserialize(Slice& input,
                                             WideColumns& columns) {
+  DBUG_TRACE;
   assert(columns.empty());
 
   uint32_t version = 0;
@@ -131,6 +134,7 @@ Status WideColumnSerialization::Deserialize(Slice& input,
 
 WideColumns::const_iterator WideColumnSerialization::Find(
     const WideColumns& columns, const Slice& column_name) {
+  DBUG_TRACE;
   const auto it =
       std::lower_bound(columns.cbegin(), columns.cend(), column_name,
                        [](const WideColumn& lhs, const Slice& rhs) {
@@ -146,6 +150,7 @@ WideColumns::const_iterator WideColumnSerialization::Find(
 
 Status WideColumnSerialization::GetValueOfDefaultColumn(Slice& input,
                                                         Slice& value) {
+  DBUG_TRACE;
   WideColumns columns;
 
   const Status s = Deserialize(input, columns);

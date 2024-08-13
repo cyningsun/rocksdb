@@ -8,6 +8,7 @@
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 //
 
+#include "rocksdb/util/dbug.h"
 #include "db_stress_tool/db_stress_shared_state.h"
 #ifdef GFLAGS
 #include "db_stress_tool/db_stress_common.h"
@@ -15,6 +16,7 @@
 
 namespace ROCKSDB_NAMESPACE {
 void ThreadBody(void* v) {
+  DBUG_TRACE;
   ThreadStatusUtil::RegisterThread(db_stress_env, ThreadStatus::USER);
   ThreadState* thread = static_cast<ThreadState*>(v);
   SharedState* shared = thread->shared;
@@ -64,6 +66,7 @@ void ThreadBody(void* v) {
   ThreadStatusUtil::UnregisterThread();
 }
 bool RunStressTestImpl(SharedState* shared) {
+  DBUG_TRACE;
   SystemClock* clock = db_stress_env->GetSystemClock().get();
   StressTest* stress = shared->GetStressTest();
 
@@ -244,6 +247,7 @@ bool RunStressTestImpl(SharedState* shared) {
   return true;
 }
 bool RunStressTest(SharedState* shared) {
+  DBUG_TRACE;
   ThreadStatusUtil::RegisterThread(db_stress_env, ThreadStatus::USER);
   bool result = RunStressTestImpl(shared);
   ThreadStatusUtil::UnregisterThread();

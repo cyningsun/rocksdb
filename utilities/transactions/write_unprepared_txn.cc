@@ -4,6 +4,7 @@
 //  (found in the LICENSE.Apache file in the root directory).
 
 
+#include "rocksdb/util/dbug.h"
 #include "utilities/transactions/write_unprepared_txn.h"
 
 #include "db/db_impl/db_impl.h"
@@ -14,6 +15,7 @@
 namespace ROCKSDB_NAMESPACE {
 
 bool WriteUnpreparedTxnReadCallback::IsVisibleFullCheck(SequenceNumber seq) {
+  DBUG_TRACE;
   // Since unprep_seqs maps prep_seq => prepare_batch_cnt, to check if seq is
   // in unprep_seqs, we have to check if seq is equal to prep_seq or any of
   // the prepare_batch_cnt seq nums after it.
@@ -81,6 +83,7 @@ WriteUnpreparedTxn::~WriteUnpreparedTxn() {
 }
 
 void WriteUnpreparedTxn::Initialize(const TransactionOptions& txn_options) {
+  DBUG_TRACE;
   PessimisticTransaction::Initialize(txn_options);
   if (txn_options.write_batch_flush_threshold < 0) {
     write_batch_flush_threshold_ =
@@ -100,6 +103,7 @@ void WriteUnpreparedTxn::Initialize(const TransactionOptions& txn_options) {
 }
 
 Status WriteUnpreparedTxn::HandleWrite(std::function<Status()> do_write) {
+  DBUG_TRACE;
   Status s;
   if (active_iterators_.empty()) {
     s = MaybeFlushWriteBatchToDB();
@@ -125,6 +129,7 @@ Status WriteUnpreparedTxn::HandleWrite(std::function<Status()> do_write) {
 Status WriteUnpreparedTxn::Put(ColumnFamilyHandle* column_family,
                                const Slice& key, const Slice& value,
                                const bool assume_tracked) {
+  DBUG_TRACE;
   return HandleWrite([&]() {
     return TransactionBaseImpl::Put(column_family, key, value, assume_tracked);
   });
@@ -133,6 +138,7 @@ Status WriteUnpreparedTxn::Put(ColumnFamilyHandle* column_family,
 Status WriteUnpreparedTxn::Put(ColumnFamilyHandle* column_family,
                                const SliceParts& key, const SliceParts& value,
                                const bool assume_tracked) {
+  DBUG_TRACE;
   return HandleWrite([&]() {
     return TransactionBaseImpl::Put(column_family, key, value, assume_tracked);
   });
@@ -141,6 +147,7 @@ Status WriteUnpreparedTxn::Put(ColumnFamilyHandle* column_family,
 Status WriteUnpreparedTxn::Merge(ColumnFamilyHandle* column_family,
                                  const Slice& key, const Slice& value,
                                  const bool assume_tracked) {
+  DBUG_TRACE;
   return HandleWrite([&]() {
     return TransactionBaseImpl::Merge(column_family, key, value,
                                       assume_tracked);
@@ -149,6 +156,7 @@ Status WriteUnpreparedTxn::Merge(ColumnFamilyHandle* column_family,
 
 Status WriteUnpreparedTxn::Delete(ColumnFamilyHandle* column_family,
                                   const Slice& key, const bool assume_tracked) {
+  DBUG_TRACE;
   return HandleWrite([&]() {
     return TransactionBaseImpl::Delete(column_family, key, assume_tracked);
   });
@@ -157,6 +165,7 @@ Status WriteUnpreparedTxn::Delete(ColumnFamilyHandle* column_family,
 Status WriteUnpreparedTxn::Delete(ColumnFamilyHandle* column_family,
                                   const SliceParts& key,
                                   const bool assume_tracked) {
+  DBUG_TRACE;
   return HandleWrite([&]() {
     return TransactionBaseImpl::Delete(column_family, key, assume_tracked);
   });
@@ -165,6 +174,7 @@ Status WriteUnpreparedTxn::Delete(ColumnFamilyHandle* column_family,
 Status WriteUnpreparedTxn::SingleDelete(ColumnFamilyHandle* column_family,
                                         const Slice& key,
                                         const bool assume_tracked) {
+  DBUG_TRACE;
   return HandleWrite([&]() {
     return TransactionBaseImpl::SingleDelete(column_family, key,
                                              assume_tracked);
@@ -174,6 +184,7 @@ Status WriteUnpreparedTxn::SingleDelete(ColumnFamilyHandle* column_family,
 Status WriteUnpreparedTxn::SingleDelete(ColumnFamilyHandle* column_family,
                                         const SliceParts& key,
                                         const bool assume_tracked) {
+  DBUG_TRACE;
   return HandleWrite([&]() {
     return TransactionBaseImpl::SingleDelete(column_family, key,
                                              assume_tracked);
@@ -190,6 +201,7 @@ Status WriteUnpreparedTxn::SingleDelete(ColumnFamilyHandle* column_family,
 // implementation in PessimisticTransactionDB::Initialize where we set
 // skip_concurrency_control to true.
 Status WriteUnpreparedTxn::RebuildFromWriteBatch(WriteBatch* wb) {
+  DBUG_TRACE;
   struct TrackKeyHandler : public WriteBatch::Handler {
     WriteUnpreparedTxn* txn_;
     bool rollback_merge_operands_;
@@ -198,24 +210,28 @@ Status WriteUnpreparedTxn::RebuildFromWriteBatch(WriteBatch* wb) {
         : txn_(txn), rollback_merge_operands_(rollback_merge_operands) {}
 
     Status PutCF(uint32_t cf, const Slice& key, const Slice&) override {
+      DBUG_TRACE;
       txn_->TrackKey(cf, key.ToString(), kMaxSequenceNumber,
                      false /* read_only */, true /* exclusive */);
       return Status::OK();
     }
 
     Status DeleteCF(uint32_t cf, const Slice& key) override {
+      DBUG_TRACE;
       txn_->TrackKey(cf, key.ToString(), kMaxSequenceNumber,
                      false /* read_only */, true /* exclusive */);
       return Status::OK();
     }
 
     Status SingleDeleteCF(uint32_t cf, const Slice& key) override {
+      DBUG_TRACE;
       txn_->TrackKey(cf, key.ToString(), kMaxSequenceNumber,
                      false /* read_only */, true /* exclusive */);
       return Status::OK();
     }
 
     Status MergeCF(uint32_t cf, const Slice& key, const Slice&) override {
+      DBUG_TRACE;
       if (rollback_merge_operands_) {
         txn_->TrackKey(cf, key.ToString(), kMaxSequenceNumber,
                        false /* read_only */, true /* exclusive */);
@@ -224,19 +240,22 @@ Status WriteUnpreparedTxn::RebuildFromWriteBatch(WriteBatch* wb) {
     }
 
     // Recovered batches do not contain 2PC markers.
-    Status MarkBeginPrepare(bool) override { return Status::InvalidArgument(); }
+    Status MarkBeginPrepare(bool) override { DBUG_TRACE; return Status::InvalidArgument(); }
 
     Status MarkEndPrepare(const Slice&) override {
+      DBUG_TRACE;
       return Status::InvalidArgument();
     }
 
-    Status MarkNoop(bool) override { return Status::InvalidArgument(); }
+    Status MarkNoop(bool) override { DBUG_TRACE; return Status::InvalidArgument(); }
 
     Status MarkCommit(const Slice&) override {
+      DBUG_TRACE;
       return Status::InvalidArgument();
     }
 
     Status MarkRollback(const Slice&) override {
+      DBUG_TRACE;
       return Status::InvalidArgument();
     }
   };
@@ -247,6 +266,7 @@ Status WriteUnpreparedTxn::RebuildFromWriteBatch(WriteBatch* wb) {
 }
 
 Status WriteUnpreparedTxn::MaybeFlushWriteBatchToDB() {
+  DBUG_TRACE;
   const bool kPrepared = true;
   Status s;
   if (write_batch_flush_threshold_ > 0 &&
@@ -260,6 +280,7 @@ Status WriteUnpreparedTxn::MaybeFlushWriteBatchToDB() {
 }
 
 Status WriteUnpreparedTxn::FlushWriteBatchToDB(bool prepared) {
+  DBUG_TRACE;
   // If the current write batch contains savepoints, then some special handling
   // is required so that RollbackToSavepoint can work.
   //
@@ -274,6 +295,7 @@ Status WriteUnpreparedTxn::FlushWriteBatchToDB(bool prepared) {
 }
 
 Status WriteUnpreparedTxn::FlushWriteBatchToDBInternal(bool prepared) {
+  DBUG_TRACE;
   if (name_.empty()) {
     assert(!prepared);
 #ifndef NDEBUG
@@ -298,6 +320,7 @@ Status WriteUnpreparedTxn::FlushWriteBatchToDBInternal(bool prepared) {
         : txn_(txn), rollback_merge_operands_(rollback_merge_operands) {}
 
     Status AddUntrackedKey(uint32_t cf, const Slice& key) {
+      DBUG_TRACE;
       auto str = key.ToString();
       PointLockStatus lock_status =
           txn_->tracked_locks_->GetPointLockStatus(cf, str);
@@ -308,18 +331,22 @@ Status WriteUnpreparedTxn::FlushWriteBatchToDBInternal(bool prepared) {
     }
 
     Status PutCF(uint32_t cf, const Slice& key, const Slice&) override {
+      DBUG_TRACE;
       return AddUntrackedKey(cf, key);
     }
 
     Status DeleteCF(uint32_t cf, const Slice& key) override {
+      DBUG_TRACE;
       return AddUntrackedKey(cf, key);
     }
 
     Status SingleDeleteCF(uint32_t cf, const Slice& key) override {
+      DBUG_TRACE;
       return AddUntrackedKey(cf, key);
     }
 
     Status MergeCF(uint32_t cf, const Slice& key, const Slice&) override {
+      DBUG_TRACE;
       if (rollback_merge_operands_) {
         return AddUntrackedKey(cf, key);
       }
@@ -328,20 +355,24 @@ Status WriteUnpreparedTxn::FlushWriteBatchToDBInternal(bool prepared) {
 
     // The only expected 2PC marker is the initial Noop marker.
     Status MarkNoop(bool empty_batch) override {
+      DBUG_TRACE;
       return empty_batch ? Status::OK() : Status::InvalidArgument();
     }
 
-    Status MarkBeginPrepare(bool) override { return Status::InvalidArgument(); }
+    Status MarkBeginPrepare(bool) override { DBUG_TRACE; return Status::InvalidArgument(); }
 
     Status MarkEndPrepare(const Slice&) override {
+      DBUG_TRACE;
       return Status::InvalidArgument();
     }
 
     Status MarkCommit(const Slice&) override {
+      DBUG_TRACE;
       return Status::InvalidArgument();
     }
 
     Status MarkRollback(const Slice&) override {
+      DBUG_TRACE;
       return Status::InvalidArgument();
     }
   };
@@ -408,6 +439,7 @@ Status WriteUnpreparedTxn::FlushWriteBatchToDBInternal(bool prepared) {
 }
 
 Status WriteUnpreparedTxn::FlushWriteBatchWithSavePointToDB() {
+  DBUG_TRACE;
   assert(unflushed_save_points_ != nullptr &&
          unflushed_save_points_->size() > 0);
   assert(save_points_ != nullptr && save_points_->size() > 0);
@@ -424,37 +456,45 @@ Status WriteUnpreparedTxn::FlushWriteBatchWithSavePointToDB() {
         : wb_(wb), handles_(handles) {}
 
     Status PutCF(uint32_t cf, const Slice& key, const Slice& value) override {
+      DBUG_TRACE;
       return wb_->Put(handles_.at(cf), key, value);
     }
 
     Status DeleteCF(uint32_t cf, const Slice& key) override {
+      DBUG_TRACE;
       return wb_->Delete(handles_.at(cf), key);
     }
 
     Status SingleDeleteCF(uint32_t cf, const Slice& key) override {
+      DBUG_TRACE;
       return wb_->SingleDelete(handles_.at(cf), key);
     }
 
     Status MergeCF(uint32_t cf, const Slice& key, const Slice& value) override {
+      DBUG_TRACE;
       return wb_->Merge(handles_.at(cf), key, value);
     }
 
     // The only expected 2PC marker is the initial Noop marker.
     Status MarkNoop(bool empty_batch) override {
+      DBUG_TRACE;
       return empty_batch ? Status::OK() : Status::InvalidArgument();
     }
 
-    Status MarkBeginPrepare(bool) override { return Status::InvalidArgument(); }
+    Status MarkBeginPrepare(bool) override { DBUG_TRACE; return Status::InvalidArgument(); }
 
     Status MarkEndPrepare(const Slice&) override {
+      DBUG_TRACE;
       return Status::InvalidArgument();
     }
 
     Status MarkCommit(const Slice&) override {
+      DBUG_TRACE;
       return Status::InvalidArgument();
     }
 
     Status MarkRollback(const Slice&) override {
+      DBUG_TRACE;
       return Status::InvalidArgument();
     }
   };
@@ -519,11 +559,13 @@ Status WriteUnpreparedTxn::FlushWriteBatchWithSavePointToDB() {
 }
 
 Status WriteUnpreparedTxn::PrepareInternal() {
+  DBUG_TRACE;
   const bool kPrepared = true;
   return FlushWriteBatchToDB(kPrepared);
 }
 
 Status WriteUnpreparedTxn::CommitWithoutPrepareInternal() {
+  DBUG_TRACE;
   if (unprep_seqs_.empty()) {
     assert(log_number_ == 0);
     assert(GetId() == 0);
@@ -540,6 +582,7 @@ Status WriteUnpreparedTxn::CommitWithoutPrepareInternal() {
 }
 
 Status WriteUnpreparedTxn::CommitInternal() {
+  DBUG_TRACE;
   // TODO(lth): Reduce duplicate code with WritePrepared commit logic.
 
   // We take the commit-time batch and append the Commit marker.  The Memtable
@@ -657,6 +700,7 @@ Status WriteUnpreparedTxn::CommitInternal() {
 Status WriteUnpreparedTxn::WriteRollbackKeys(
     const LockTracker& lock_tracker, WriteBatchWithIndex* rollback_batch,
     ReadCallback* callback, const ReadOptions& roptions) {
+  DBUG_TRACE;
   // This assertion can be removed when range lock is supported.
   assert(lock_tracker.IsPointLockSupported());
   const auto& cf_map = *wupt_db_->GetCFHandleMap();
@@ -720,6 +764,7 @@ Status WriteUnpreparedTxn::WriteRollbackKeys(
 }
 
 Status WriteUnpreparedTxn::RollbackInternal() {
+  DBUG_TRACE;
   // TODO(lth): Reduce duplicate code with WritePrepared rollback logic.
   WriteBatchWithIndex rollback_batch(
       wpt_db_->DefaultColumnFamily()->GetComparator(), 0, true, 0,
@@ -825,6 +870,7 @@ Status WriteUnpreparedTxn::RollbackInternal() {
 }
 
 void WriteUnpreparedTxn::Clear() {
+  DBUG_TRACE;
   if (!recovered_txn_) {
     txn_db_impl_->UnLock(this, *tracked_locks_);
   }
@@ -844,6 +890,7 @@ void WriteUnpreparedTxn::Clear() {
 }
 
 void WriteUnpreparedTxn::SetSavePoint() {
+  DBUG_TRACE;
   assert((unflushed_save_points_ ? unflushed_save_points_->size() : 0) +
              (flushed_save_points_ ? flushed_save_points_->size() : 0) ==
          (save_points_ ? save_points_->size() : 0));
@@ -855,6 +902,7 @@ void WriteUnpreparedTxn::SetSavePoint() {
 }
 
 Status WriteUnpreparedTxn::RollbackToSavePoint() {
+  DBUG_TRACE;
   assert((unflushed_save_points_ ? unflushed_save_points_->size() : 0) +
              (flushed_save_points_ ? flushed_save_points_->size() : 0) ==
          (save_points_ ? save_points_->size() : 0));
@@ -873,6 +921,7 @@ Status WriteUnpreparedTxn::RollbackToSavePoint() {
 }
 
 Status WriteUnpreparedTxn::RollbackToSavePointInternal() {
+  DBUG_TRACE;
   Status s;
 
   const bool kClear = true;
@@ -921,6 +970,7 @@ Status WriteUnpreparedTxn::RollbackToSavePointInternal() {
 }
 
 Status WriteUnpreparedTxn::PopSavePoint() {
+  DBUG_TRACE;
   assert((unflushed_save_points_ ? unflushed_save_points_->size() : 0) +
              (flushed_save_points_ ? flushed_save_points_->size() : 0) ==
          (save_points_ ? save_points_->size() : 0));
@@ -951,6 +1001,7 @@ void WriteUnpreparedTxn::MultiGet(const ReadOptions& _read_options,
                                   const size_t num_keys, const Slice* keys,
                                   PinnableSlice* values, Status* statuses,
                                   const bool sorted_input) {
+  DBUG_TRACE;
   if (_read_options.io_activity != Env::IOActivity::kUnknown &&
       _read_options.io_activity != Env::IOActivity::kMultiGet) {
     Status s = Status::InvalidArgument(
@@ -988,6 +1039,7 @@ void WriteUnpreparedTxn::MultiGet(const ReadOptions& _read_options,
 Status WriteUnpreparedTxn::Get(const ReadOptions& _read_options,
                                ColumnFamilyHandle* column_family,
                                const Slice& key, PinnableSlice* value) {
+  DBUG_TRACE;
   if (_read_options.io_activity != Env::IOActivity::kUnknown &&
       _read_options.io_activity != Env::IOActivity::kGet) {
     return Status::InvalidArgument(
@@ -1005,6 +1057,7 @@ Status WriteUnpreparedTxn::Get(const ReadOptions& _read_options,
 Status WriteUnpreparedTxn::GetImpl(const ReadOptions& options,
                                    ColumnFamilyHandle* column_family,
                                    const Slice& key, PinnableSlice* value) {
+  DBUG_TRACE;
   SequenceNumber min_uncommitted, snap_seq;
   const SnapshotBackup backed_by_snapshot =
       wupt_db_->AssignMinMaxSeqs(options.snapshot, &min_uncommitted, &snap_seq);
@@ -1024,6 +1077,7 @@ Status WriteUnpreparedTxn::GetImpl(const ReadOptions& options,
 
 namespace {
 static void CleanupWriteUnpreparedWBWIIterator(void* arg1, void* arg2) {
+  DBUG_TRACE;
   auto txn = static_cast<WriteUnpreparedTxn*>(arg1);
   auto iter = static_cast<Iterator*>(arg2);
   txn->RemoveActiveIterator(iter);
@@ -1031,11 +1085,13 @@ static void CleanupWriteUnpreparedWBWIIterator(void* arg1, void* arg2) {
 }  // anonymous namespace
 
 Iterator* WriteUnpreparedTxn::GetIterator(const ReadOptions& options) {
+  DBUG_TRACE;
   return GetIterator(options, wupt_db_->DefaultColumnFamily());
 }
 
 Iterator* WriteUnpreparedTxn::GetIterator(const ReadOptions& options,
                                           ColumnFamilyHandle* column_family) {
+  DBUG_TRACE;
   // Make sure to get iterator from WriteUnprepareTxnDB, not the root db.
   Iterator* db_iter = wupt_db_->NewIterator(options, column_family, this);
   assert(db_iter);
@@ -1050,6 +1106,7 @@ Iterator* WriteUnpreparedTxn::GetIterator(const ReadOptions& options,
 Status WriteUnpreparedTxn::ValidateSnapshot(ColumnFamilyHandle* column_family,
                                             const Slice& key,
                                             SequenceNumber* tracked_at_seq) {
+  DBUG_TRACE;
   // TODO(lth): Reduce duplicate code with WritePrepared ValidateSnapshot logic.
   assert(snapshot_);
 
@@ -1083,6 +1140,7 @@ Status WriteUnpreparedTxn::ValidateSnapshot(ColumnFamilyHandle* column_family,
 
 const std::map<SequenceNumber, size_t>&
 WriteUnpreparedTxn::GetUnpreparedSequenceNumbers() {
+  DBUG_TRACE;
   return unprep_seqs_;
 }
 

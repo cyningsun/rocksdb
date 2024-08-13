@@ -59,6 +59,7 @@
 //   Store per-table metadata (smallest, largest, largest-seq#, ...)
 //   in the table's meta section to speed up ScanTable.
 
+#include "rocksdb/util/dbug.h"
 #include "db/version_builder.h"
 
 #include <cinttypes>
@@ -133,6 +134,7 @@ class Repairer {
 
   const ColumnFamilyOptions* GetColumnFamilyOptions(
       const std::string& cf_name) {
+    DBUG_TRACE;
     if (cf_name_to_opts_.find(cf_name) == cf_name_to_opts_.end()) {
       if (create_unknown_cfs_) {
         return &unknown_cf_opts_;
@@ -145,6 +147,7 @@ class Repairer {
   // Adds a column family to the VersionSet with cf_options_ and updates
   // manifest.
   Status AddColumnFamily(const std::string& cf_name, uint32_t cf_id) {
+    DBUG_TRACE;
     // TODO: plumb Env::IOActivity, Env::IOPriority;
     const ReadOptions read_options;
     const WriteOptions write_options;
@@ -180,6 +183,7 @@ class Repairer {
   }
 
   Status Close() {
+    DBUG_TRACE;
     Status s = Status::OK();
     if (!closed_) {
       if (db_lock_ != nullptr) {
@@ -194,6 +198,7 @@ class Repairer {
   ~Repairer() { Close().PermitUncheckedError(); }
 
   Status Run() {
+    DBUG_TRACE;
     Status status = env_->LockFile(LockFileName(dbname_), &db_lock_);
     if (!status.ok()) {
       return status;
@@ -282,6 +287,7 @@ class Repairer {
   bool closed_;
 
   Status FindFiles() {
+    DBUG_TRACE;
     std::vector<std::string> filenames;
     bool found_file = false;
     std::vector<std::string> to_search_paths;
@@ -336,6 +342,7 @@ class Repairer {
   }
 
   void ConvertLogFilesToTables() {
+    DBUG_TRACE;
     const auto& wal_dir = immutable_db_options_.GetWalDir();
     for (size_t i = 0; i < logs_.size(); i++) {
       // we should use LogFileName(wal_dir, logs_[i]) here. user might uses
@@ -352,11 +359,13 @@ class Repairer {
   }
 
   Status ConvertLogToTable(const std::string& wal_dir, uint64_t log) {
+    DBUG_TRACE;
     struct LogReporter : public log::Reader::Reporter {
       Env* env;
       std::shared_ptr<Logger> info_log;
       uint64_t lognum;
       void Corruption(size_t bytes, const Status& s) override {
+        DBUG_TRACE;
         // We print error messages for corruption, but continue repairing.
         ROCKS_LOG_ERROR(info_log, "Log #%" PRIu64 ": dropping %d bytes; %s",
                         lognum, static_cast<int>(bytes), s.ToString().c_str());
@@ -503,6 +512,7 @@ class Repairer {
   }
 
   void ExtractMetaData() {
+    DBUG_TRACE;
     for (size_t i = 0; i < table_fds_.size(); i++) {
       TableInfo t;
       t.meta.fd = table_fds_[i];
@@ -523,6 +533,7 @@ class Repairer {
   }
 
   Status ScanTable(TableInfo* t) {
+    DBUG_TRACE;
     std::string fname = TableFileName(
         db_options_.db_paths, t->meta.fd.GetNumber(), t->meta.fd.GetPathId());
     int counter = 0;
@@ -669,6 +680,7 @@ class Repairer {
   }
 
   Status AddTables() {
+    DBUG_TRACE;
     // TODO: plumb Env::IOActivity, Env::IOPriority;
     const ReadOptions read_options;
     const WriteOptions write_options;
@@ -773,6 +785,7 @@ class Repairer {
   }
 
   void ArchiveFile(const std::string& fname) {
+    DBUG_TRACE;
     // Move into another directory.  E.g., for
     //    dir/foo
     // rename to
@@ -796,6 +809,7 @@ class Repairer {
 Status GetDefaultCFOptions(
     const std::vector<ColumnFamilyDescriptor>& column_families,
     ColumnFamilyOptions* res) {
+  DBUG_TRACE;
   assert(res != nullptr);
   auto iter = std::find_if(column_families.begin(), column_families.end(),
                            [](const ColumnFamilyDescriptor& cfd) {
@@ -812,6 +826,7 @@ Status GetDefaultCFOptions(
 
 Status RepairDB(const std::string& dbname, const DBOptions& db_options,
                 const std::vector<ColumnFamilyDescriptor>& column_families) {
+  DBUG_TRACE;
   ColumnFamilyOptions default_cf_opts;
   Status status = GetDefaultCFOptions(column_families, &default_cf_opts);
   if (!status.ok()) {
@@ -831,6 +846,7 @@ Status RepairDB(const std::string& dbname, const DBOptions& db_options,
 Status RepairDB(const std::string& dbname, const DBOptions& db_options,
                 const std::vector<ColumnFamilyDescriptor>& column_families,
                 const ColumnFamilyOptions& unknown_cf_opts) {
+  DBUG_TRACE;
   ColumnFamilyOptions default_cf_opts;
   Status status = GetDefaultCFOptions(column_families, &default_cf_opts);
   if (!status.ok()) {
@@ -847,6 +863,7 @@ Status RepairDB(const std::string& dbname, const DBOptions& db_options,
 }
 
 Status RepairDB(const std::string& dbname, const Options& options) {
+  DBUG_TRACE;
   Options opts(options);
   DBOptions db_options(opts);
   ColumnFamilyOptions cf_options(opts);

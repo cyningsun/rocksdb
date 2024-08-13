@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/filter_policy.h"
 
 #include <array>
@@ -51,11 +52,13 @@ namespace {
 static constexpr uint32_t kMetadataLen = 5;
 
 Slice FinishAlwaysFalse(std::unique_ptr<const char[]>* /*buf*/) {
+  DBUG_TRACE;
   // Missing metadata, treated as zero entries
   return Slice(nullptr, 0);
 }
 
 Slice FinishAlwaysTrue(std::unique_ptr<const char[]>* /*buf*/) {
+  DBUG_TRACE;
   return Slice("\0\0\0\0\0\0", 6);
 }
 
@@ -75,6 +78,7 @@ class XXPH3FilterBitsBuilder : public BuiltinFilterBitsBuilder {
   ~XXPH3FilterBitsBuilder() override = default;
 
   void AddKey(const Slice& key) override {
+    DBUG_TRACE;
     uint64_t hash = GetSliceHash64(key);
     // Especially with prefixes, it is common to have repetition,
     // though only adjacent repetition, which we want to immediately
@@ -101,6 +105,7 @@ class XXPH3FilterBitsBuilder : public BuiltinFilterBitsBuilder {
   }
 
   size_t EstimateEntriesAdded() override {
+    DBUG_TRACE;
     return hash_entries_info_.entries.size();
   }
 
@@ -118,11 +123,12 @@ class XXPH3FilterBitsBuilder : public BuiltinFilterBitsBuilder {
 
   // For delegating between XXPH3FilterBitsBuilders
   void SwapEntriesWith(XXPH3FilterBitsBuilder* other) {
+    DBUG_TRACE;
     assert(other != nullptr);
     hash_entries_info_.Swap(&(other->hash_entries_info_));
   }
 
-  void ResetEntries() { hash_entries_info_.Reset(); }
+  void ResetEntries() { DBUG_TRACE; hash_entries_info_.Reset(); }
 
   virtual size_t RoundDownUsableSpace(size_t available_size) = 0;
 
@@ -130,6 +136,7 @@ class XXPH3FilterBitsBuilder : public BuiltinFilterBitsBuilder {
   size_t AllocateMaybeRounding(size_t target_len_with_metadata,
                                size_t num_entries,
                                std::unique_ptr<char[]>* buf) {
+    DBUG_TRACE;
     // Return value set to a default; overwritten in some cases
     size_t rv = target_len_with_metadata;
 #ifdef ROCKSDB_MALLOC_USABLE_SIZE
@@ -232,6 +239,7 @@ class XXPH3FilterBitsBuilder : public BuiltinFilterBitsBuilder {
   // pass a custom iterator that tracks the xor checksum as
   // it iterates to ResetAndFindSeedToSolve
   Status MaybeVerifyHashEntriesChecksum() {
+    DBUG_TRACE;
     if (!detect_filter_construct_corruption_) {
       return Status::OK();
     }
@@ -283,6 +291,7 @@ class XXPH3FilterBitsBuilder : public BuiltinFilterBitsBuilder {
     uint64_t xor_checksum = 0;
 
     void Swap(HashEntriesInfo* other) {
+      DBUG_TRACE;
       assert(other != nullptr);
       std::swap(entries, other->entries);
       std::swap(cache_res_bucket_handles, other->cache_res_bucket_handles);
@@ -290,6 +299,7 @@ class XXPH3FilterBitsBuilder : public BuiltinFilterBitsBuilder {
     }
 
     void Reset() {
+      DBUG_TRACE;
       entries.clear();
       cache_res_bucket_handles.clear();
       xor_checksum = 0;
@@ -326,10 +336,12 @@ class FastLocalBloomBitsBuilder : public XXPH3FilterBitsBuilder {
   using FilterBitsBuilder::Finish;
 
   Slice Finish(std::unique_ptr<const char[]>* buf) override {
+    DBUG_TRACE;
     return Finish(buf, nullptr);
   }
 
   Slice Finish(std::unique_ptr<const char[]>* buf, Status* status) override {
+    DBUG_TRACE;
     size_t num_entries = hash_entries_info_.entries.size();
     size_t len_with_metadata = CalculateSpace(num_entries);
 
@@ -401,6 +413,7 @@ class FastLocalBloomBitsBuilder : public XXPH3FilterBitsBuilder {
   }
 
   size_t ApproximateNumEntries(size_t bytes) override {
+    DBUG_TRACE;
     size_t bytes_no_meta =
         bytes >= kMetadataLen ? RoundDownUsableSpace(bytes) - kMetadataLen : 0;
     return static_cast<size_t>(uint64_t{8000} * bytes_no_meta /
@@ -408,6 +421,7 @@ class FastLocalBloomBitsBuilder : public XXPH3FilterBitsBuilder {
   }
 
   size_t CalculateSpace(size_t num_entries) override {
+    DBUG_TRACE;
     // If not for cache line blocks in the filter, what would the target
     // length in bytes be?
     size_t raw_target_len = static_cast<size_t>(
@@ -425,6 +439,7 @@ class FastLocalBloomBitsBuilder : public XXPH3FilterBitsBuilder {
   }
 
   double EstimatedFpRate(size_t keys, size_t len_with_metadata) override {
+    DBUG_TRACE;
     if (len_with_metadata <= kMetadataLen) {
       return keys > 0 ? 1.0 : 0.0;
     }
@@ -435,6 +450,7 @@ class FastLocalBloomBitsBuilder : public XXPH3FilterBitsBuilder {
 
  protected:
   size_t RoundDownUsableSpace(size_t available_size) override {
+    DBUG_TRACE;
     size_t rv = available_size - kMetadataLen;
 
     if (rv >= size_t{0xffffffc0}) {
@@ -451,6 +467,7 @@ class FastLocalBloomBitsBuilder : public XXPH3FilterBitsBuilder {
  private:
   // Compute num_probes after any rounding / adjustments
   int GetNumProbes(size_t keys, size_t len_with_metadata) {
+    DBUG_TRACE;
     uint64_t millibits = uint64_t{len_with_metadata - kMetadataLen} * 8000;
     int actual_millibits_per_key =
         static_cast<int>(millibits / std::max(keys, size_t{1}));
@@ -530,6 +547,7 @@ class FastLocalBloomBitsReader : public BuiltinFilterBitsReader {
   ~FastLocalBloomBitsReader() override = default;
 
   bool MayMatch(const Slice& key) override {
+    DBUG_TRACE;
     uint64_t h = GetSliceHash64(key);
     uint32_t byte_offset;
     FastLocalBloomImpl::PrepareHash(Lower32of64(h), len_bytes_, data_,
@@ -539,6 +557,7 @@ class FastLocalBloomBitsReader : public BuiltinFilterBitsReader {
   }
 
   void MayMatch(int num_keys, Slice** keys, bool* may_match) override {
+    DBUG_TRACE;
     std::array<uint32_t, MultiGetContext::MAX_BATCH_SIZE> hashes;
     std::array<uint32_t, MultiGetContext::MAX_BATCH_SIZE> byte_offsets;
     for (int i = 0; i < num_keys; ++i) {
@@ -554,6 +573,7 @@ class FastLocalBloomBitsReader : public BuiltinFilterBitsReader {
   }
 
   bool HashMayMatch(const uint64_t h) override {
+    DBUG_TRACE;
     return FastLocalBloomImpl::HashMayMatch(Lower32of64(h), Upper32of64(h),
                                             len_bytes_, num_probes_, data_);
   }
@@ -613,10 +633,12 @@ class Standard128RibbonBitsBuilder : public XXPH3FilterBitsBuilder {
   using FilterBitsBuilder::Finish;
 
   Slice Finish(std::unique_ptr<const char[]>* buf) override {
+    DBUG_TRACE;
     return Finish(buf, nullptr);
   }
 
   Slice Finish(std::unique_ptr<const char[]>* buf, Status* status) override {
+    DBUG_TRACE;
     if (hash_entries_info_.entries.size() > kMaxRibbonEntries) {
       ROCKS_LOG_WARN(
           info_log_, "Too many keys for Ribbon filter: %llu",
@@ -771,6 +793,7 @@ class Standard128RibbonBitsBuilder : public XXPH3FilterBitsBuilder {
   void CalculateSpaceAndSlots(size_t num_entries,
                               size_t* target_len_with_metadata,
                               uint32_t* num_slots) {
+    DBUG_TRACE;
     if (num_entries > kMaxRibbonEntries) {
       // More entries than supported by this Ribbon
       *num_slots = 0;  // use Bloom
@@ -800,6 +823,7 @@ class Standard128RibbonBitsBuilder : public XXPH3FilterBitsBuilder {
   }
 
   size_t CalculateSpace(size_t num_entries) override {
+    DBUG_TRACE;
     if (num_entries == 0) {
       // See FinishAlwaysFalse
       return 0;
@@ -814,6 +838,7 @@ class Standard128RibbonBitsBuilder : public XXPH3FilterBitsBuilder {
   // This is a somewhat ugly but reasonably fast and reasonably accurate
   // reversal of CalculateSpace.
   size_t ApproximateNumEntries(size_t bytes) override {
+    DBUG_TRACE;
     size_t len_no_metadata =
         RoundDownUsableSpace(std::max(bytes, size_t{kMetadataLen})) -
         kMetadataLen;
@@ -894,6 +919,7 @@ class Standard128RibbonBitsBuilder : public XXPH3FilterBitsBuilder {
 
   double EstimatedFpRate(size_t num_entries,
                          size_t len_with_metadata) override {
+    DBUG_TRACE;
     if (len_with_metadata <= kMetadataLen) {
       return num_entries > 0 ? 1.0 : 0.0;
     }
@@ -909,6 +935,7 @@ class Standard128RibbonBitsBuilder : public XXPH3FilterBitsBuilder {
   }
 
   Status MaybePostVerify(const Slice& filter_content) override {
+    DBUG_TRACE;
     bool fall_back = (bloom_fallback_.EstimateEntriesAdded() > 0);
     return fall_back ? bloom_fallback_.MaybePostVerify(filter_content)
                      : XXPH3FilterBitsBuilder::MaybePostVerify(filter_content);
@@ -916,6 +943,7 @@ class Standard128RibbonBitsBuilder : public XXPH3FilterBitsBuilder {
 
  protected:
   size_t RoundDownUsableSpace(size_t available_size) override {
+    DBUG_TRACE;
     size_t rv = available_size - kMetadataLen;
 
     // round down to multiple of 16 (segment size)
@@ -931,6 +959,7 @@ class Standard128RibbonBitsBuilder : public XXPH3FilterBitsBuilder {
   using ConfigHelper = ribbon::BandingConfigHelper1TS<ribbon::kOneIn20, TS>;
 
   static uint32_t NumEntriesToNumSlots(uint32_t num_entries) {
+    DBUG_TRACE;
     uint32_t num_slots1 = ConfigHelper::GetNumSlots(num_entries);
     return SolnType::RoundUpNumSlots(num_slots1);
   }
@@ -974,11 +1003,13 @@ class Standard128RibbonBitsReader : public BuiltinFilterBitsReader {
   ~Standard128RibbonBitsReader() override = default;
 
   bool MayMatch(const Slice& key) override {
+    DBUG_TRACE;
     uint64_t h = GetSliceHash64(key);
     return soln_.FilterQuery(h, hasher_);
   }
 
   void MayMatch(int num_keys, Slice** keys, bool* may_match) override {
+    DBUG_TRACE;
     struct SavedData {
       uint64_t seeded_hash;
       uint32_t segment_num;
@@ -999,6 +1030,7 @@ class Standard128RibbonBitsReader : public BuiltinFilterBitsReader {
   }
 
   bool HashMayMatch(const uint64_t h) override {
+    DBUG_TRACE;
     return soln_.FilterQuery(h, hasher_);
   }
 
@@ -1024,19 +1056,21 @@ class LegacyBloomBitsBuilder : public BuiltinFilterBitsBuilder {
 
   void AddKey(const Slice& key) override;
 
-  size_t EstimateEntriesAdded() override { return hash_entries_.size(); }
+  size_t EstimateEntriesAdded() override { DBUG_TRACE; return hash_entries_.size(); }
 
   using FilterBitsBuilder::Finish;
 
   Slice Finish(std::unique_ptr<const char[]>* buf) override;
 
   size_t CalculateSpace(size_t num_entries) override {
+    DBUG_TRACE;
     uint32_t dont_care1;
     uint32_t dont_care2;
     return CalculateSpace(num_entries, &dont_care1, &dont_care2);
   }
 
   double EstimatedFpRate(size_t keys, size_t len_with_metadata) override {
+    DBUG_TRACE;
     if (len_with_metadata <= kMetadataLen) {
       return keys > 0 ? 1.0 : 0.0;
     }
@@ -1078,6 +1112,7 @@ LegacyBloomBitsBuilder::LegacyBloomBitsBuilder(const int bits_per_key,
 LegacyBloomBitsBuilder::~LegacyBloomBitsBuilder() = default;
 
 void LegacyBloomBitsBuilder::AddKey(const Slice& key) {
+  DBUG_TRACE;
   uint32_t hash = BloomHash(key);
   if (hash_entries_.size() == 0 || hash != hash_entries_.back()) {
     hash_entries_.push_back(hash);
@@ -1085,6 +1120,7 @@ void LegacyBloomBitsBuilder::AddKey(const Slice& key) {
 }
 
 Slice LegacyBloomBitsBuilder::Finish(std::unique_ptr<const char[]>* buf) {
+  DBUG_TRACE;
   uint32_t total_bits, num_lines;
   size_t num_entries = hash_entries_.size();
   char* data =
@@ -1132,6 +1168,7 @@ Slice LegacyBloomBitsBuilder::Finish(std::unique_ptr<const char[]>* buf) {
 }
 
 size_t LegacyBloomBitsBuilder::ApproximateNumEntries(size_t bytes) {
+  DBUG_TRACE;
   assert(bits_per_key_);
   assert(bytes > 0);
 
@@ -1154,6 +1191,7 @@ size_t LegacyBloomBitsBuilder::ApproximateNumEntries(size_t bytes) {
 }
 
 uint32_t LegacyBloomBitsBuilder::GetTotalBitsForLocality(uint32_t total_bits) {
+  DBUG_TRACE;
   uint32_t num_lines =
       (total_bits + CACHE_LINE_SIZE * 8 - 1) / (CACHE_LINE_SIZE * 8);
 
@@ -1168,6 +1206,7 @@ uint32_t LegacyBloomBitsBuilder::GetTotalBitsForLocality(uint32_t total_bits) {
 uint32_t LegacyBloomBitsBuilder::CalculateSpace(size_t num_entries,
                                                 uint32_t* total_bits,
                                                 uint32_t* num_lines) {
+  DBUG_TRACE;
   assert(bits_per_key_);
   if (num_entries != 0) {
     size_t total_bits_tmp = num_entries * bits_per_key_;
@@ -1194,6 +1233,7 @@ uint32_t LegacyBloomBitsBuilder::CalculateSpace(size_t num_entries,
 char* LegacyBloomBitsBuilder::ReserveSpace(size_t num_entries,
                                            uint32_t* total_bits,
                                            uint32_t* num_lines) {
+  DBUG_TRACE;
   uint32_t sz = CalculateSpace(num_entries, total_bits, num_lines);
   char* data = new char[sz];
   memset(data, 0, sz);
@@ -1203,6 +1243,7 @@ char* LegacyBloomBitsBuilder::ReserveSpace(size_t num_entries,
 inline void LegacyBloomBitsBuilder::AddHash(uint32_t h, char* data,
                                             uint32_t num_lines,
                                             uint32_t total_bits) {
+DBUG_TRACE;
 #ifdef NDEBUG
   static_cast<void>(total_bits);
 #endif
@@ -1233,6 +1274,7 @@ class LegacyBloomBitsReader : public BuiltinFilterBitsReader {
   // if the key was not on the list, but it should aim to return false with a
   // high probability.
   bool MayMatch(const Slice& key) override {
+    DBUG_TRACE;
     uint32_t hash = BloomHash(key);
     uint32_t byte_offset;
     LegacyBloomImpl::PrepareHashMayMatch(
@@ -1242,6 +1284,7 @@ class LegacyBloomBitsReader : public BuiltinFilterBitsReader {
   }
 
   void MayMatch(int num_keys, Slice** keys, bool* may_match) override {
+    DBUG_TRACE;
     std::array<uint32_t, MultiGetContext::MAX_BATCH_SIZE> hashes;
     std::array<uint32_t, MultiGetContext::MAX_BATCH_SIZE> byte_offsets;
     for (int i = 0; i < num_keys; ++i) {
@@ -1257,7 +1300,7 @@ class LegacyBloomBitsReader : public BuiltinFilterBitsReader {
     }
   }
 
-  bool HashMayMatch(const uint64_t /* h */) override { return false; }
+  bool HashMayMatch(const uint64_t /* h */) override { DBUG_TRACE; return false; }
 
  private:
   const char* data_;
@@ -1268,21 +1311,22 @@ class LegacyBloomBitsReader : public BuiltinFilterBitsReader {
 
 class AlwaysTrueFilter : public BuiltinFilterBitsReader {
  public:
-  bool MayMatch(const Slice&) override { return true; }
+  bool MayMatch(const Slice&) override { DBUG_TRACE; return true; }
   using FilterBitsReader::MayMatch;  // inherit overload
-  bool HashMayMatch(const uint64_t) override { return true; }
+  bool HashMayMatch(const uint64_t) override { DBUG_TRACE; return true; }
   using BuiltinFilterBitsReader::HashMayMatch;  // inherit overload
 };
 
 class AlwaysFalseFilter : public BuiltinFilterBitsReader {
  public:
-  bool MayMatch(const Slice&) override { return false; }
+  bool MayMatch(const Slice&) override { DBUG_TRACE; return false; }
   using FilterBitsReader::MayMatch;  // inherit overload
-  bool HashMayMatch(const uint64_t) override { return false; }
+  bool HashMayMatch(const uint64_t) override { DBUG_TRACE; return false; }
   using BuiltinFilterBitsReader::HashMayMatch;  // inherit overload
 };
 
 Status XXPH3FilterBitsBuilder::MaybePostVerify(const Slice& filter_content) {
+  DBUG_TRACE;
   Status s = Status::OK();
 
   if (!detect_filter_construct_corruption_) {
@@ -1310,10 +1354,12 @@ Status XXPH3FilterBitsBuilder::MaybePostVerify(const Slice& filter_content) {
 }  // namespace
 
 const char* BuiltinFilterPolicy::kClassName() {
+  DBUG_TRACE;
   return "rocksdb.internal.BuiltinFilter";
 }
 
 bool BuiltinFilterPolicy::IsInstanceOf(const std::string& name) const {
+  DBUG_TRACE;
   if (name == kClassName()) {
     return true;
   } else {
@@ -1324,10 +1370,12 @@ bool BuiltinFilterPolicy::IsInstanceOf(const std::string& name) const {
 static const char* kBuiltinFilterMetadataName = "rocksdb.BuiltinBloomFilter";
 
 const char* BuiltinFilterPolicy::kCompatibilityName() {
+  DBUG_TRACE;
   return kBuiltinFilterMetadataName;
 }
 
 const char* BuiltinFilterPolicy::CompatibilityName() const {
+  DBUG_TRACE;
   return kBuiltinFilterMetadataName;
 }
 
@@ -1366,10 +1414,12 @@ BloomLikeFilterPolicy::BloomLikeFilterPolicy(double bits_per_key)
 
 BloomLikeFilterPolicy::~BloomLikeFilterPolicy() = default;
 const char* BloomLikeFilterPolicy::kClassName() {
+  DBUG_TRACE;
   return "rocksdb.internal.BloomLikeFilter";
 }
 
 bool BloomLikeFilterPolicy::IsInstanceOf(const std::string& name) const {
+  DBUG_TRACE;
   if (name == kClassName()) {
     return true;
   } else {
@@ -1378,10 +1428,12 @@ bool BloomLikeFilterPolicy::IsInstanceOf(const std::string& name) const {
 }
 
 const char* ReadOnlyBuiltinFilterPolicy::kClassName() {
+  DBUG_TRACE;
   return kBuiltinFilterMetadataName;
 }
 
 std::string BloomLikeFilterPolicy::GetId() const {
+  DBUG_TRACE;
   return Name() + GetBitsPerKeySuffix();
 }
 
@@ -1390,6 +1442,7 @@ BloomFilterPolicy::BloomFilterPolicy(double bits_per_key)
 
 FilterBitsBuilder* BloomFilterPolicy::GetBuilderWithContext(
     const FilterBuildingContext& context) const {
+  DBUG_TRACE;
   if (GetMillibitsPerKey() == 0) {
     // "No filter" special case
     return nullptr;
@@ -1400,10 +1453,11 @@ FilterBitsBuilder* BloomFilterPolicy::GetBuilderWithContext(
   }
 }
 
-const char* BloomFilterPolicy::kClassName() { return "bloomfilter"; }
-const char* BloomFilterPolicy::kNickName() { return "rocksdb.BloomFilter"; }
+const char* BloomFilterPolicy::kClassName() { DBUG_TRACE; return "bloomfilter"; }
+const char* BloomFilterPolicy::kNickName() { DBUG_TRACE; return "rocksdb.BloomFilter"; }
 
 std::string BloomFilterPolicy::GetId() const {
+  DBUG_TRACE;
   // Including ":false" for better forward-compatibility with 6.29 and earlier
   // which required a boolean `use_block_based_builder` parameter
   return BloomLikeFilterPolicy::GetId() + ":false";
@@ -1411,6 +1465,7 @@ std::string BloomFilterPolicy::GetId() const {
 
 FilterBitsBuilder* BloomLikeFilterPolicy::GetFastLocalBloomBuilderWithContext(
     const FilterBuildingContext& context) const {
+  DBUG_TRACE;
   bool offm = context.table_options.optimize_filters_for_memory;
   const auto options_overrides_iter =
       context.table_options.cache_usage_options.options_overrides.find(
@@ -1436,6 +1491,7 @@ FilterBitsBuilder* BloomLikeFilterPolicy::GetFastLocalBloomBuilderWithContext(
 
 FilterBitsBuilder* BloomLikeFilterPolicy::GetLegacyBloomBuilderWithContext(
     const FilterBuildingContext& context) const {
+  DBUG_TRACE;
   if (whole_bits_per_key_ >= 14 && context.info_log &&
       !warned_.load(std::memory_order_relaxed)) {
     warned_ = true;
@@ -1459,6 +1515,7 @@ FilterBitsBuilder* BloomLikeFilterPolicy::GetLegacyBloomBuilderWithContext(
 FilterBitsBuilder*
 BloomLikeFilterPolicy::GetStandard128RibbonBuilderWithContext(
     const FilterBuildingContext& context) const {
+  DBUG_TRACE;
   // FIXME: code duplication with GetFastLocalBloomBuilderWithContext
   bool offm = context.table_options.optimize_filters_for_memory;
   const auto options_overrides_iter =
@@ -1486,6 +1543,7 @@ BloomLikeFilterPolicy::GetStandard128RibbonBuilderWithContext(
 }
 
 std::string BloomLikeFilterPolicy::GetBitsPerKeySuffix() const {
+  DBUG_TRACE;
   std::string rv = ":" + std::to_string(millibits_per_key_ / 1000);
   int frac = millibits_per_key_ % 1000;
   if (frac > 0) {
@@ -1505,6 +1563,7 @@ std::string BloomLikeFilterPolicy::GetBitsPerKeySuffix() const {
 
 FilterBitsBuilder* BuiltinFilterPolicy::GetBuilderFromContext(
     const FilterBuildingContext& context) {
+  DBUG_TRACE;
   if (context.table_options.filter_policy) {
     return context.table_options.filter_policy->GetBuilderWithContext(context);
   } else {
@@ -1516,11 +1575,13 @@ FilterBitsBuilder* BuiltinFilterPolicy::GetBuilderFromContext(
 namespace test {
 
 const char* LegacyBloomFilterPolicy::kClassName() {
+  DBUG_TRACE;
   return "rocksdb.internal.LegacyBloomFilter";
 }
 
 FilterBitsBuilder* LegacyBloomFilterPolicy::GetBuilderWithContext(
     const FilterBuildingContext& context) const {
+  DBUG_TRACE;
   if (GetMillibitsPerKey() == 0) {
     // "No filter" special case
     return nullptr;
@@ -1529,11 +1590,13 @@ FilterBitsBuilder* LegacyBloomFilterPolicy::GetBuilderWithContext(
 }
 
 const char* FastLocalBloomFilterPolicy::kClassName() {
+  DBUG_TRACE;
   return "rocksdb.internal.FastLocalBloomFilter";
 }
 
 FilterBitsBuilder* FastLocalBloomFilterPolicy::GetBuilderWithContext(
     const FilterBuildingContext& context) const {
+  DBUG_TRACE;
   if (GetMillibitsPerKey() == 0) {
     // "No filter" special case
     return nullptr;
@@ -1542,11 +1605,13 @@ FilterBitsBuilder* FastLocalBloomFilterPolicy::GetBuilderWithContext(
 }
 
 const char* Standard128RibbonFilterPolicy::kClassName() {
+  DBUG_TRACE;
   return "rocksdb.internal.Standard128RibbonFilter";
 }
 
 FilterBitsBuilder* Standard128RibbonFilterPolicy::GetBuilderWithContext(
     const FilterBuildingContext& context) const {
+  DBUG_TRACE;
   if (GetMillibitsPerKey() == 0) {
     // "No filter" special case
     return nullptr;
@@ -1558,6 +1623,7 @@ FilterBitsBuilder* Standard128RibbonFilterPolicy::GetBuilderWithContext(
 
 BuiltinFilterBitsReader* BuiltinFilterPolicy::GetBuiltinFilterBitsReader(
     const Slice& contents) {
+  DBUG_TRACE;
   uint32_t len_with_meta = static_cast<uint32_t>(contents.size());
   if (len_with_meta <= kMetadataLen) {
     // filter is empty or broken. Treat like zero keys added.
@@ -1641,11 +1707,13 @@ BuiltinFilterBitsReader* BuiltinFilterPolicy::GetBuiltinFilterBitsReader(
 // and return a new one.
 FilterBitsReader* BuiltinFilterPolicy::GetFilterBitsReader(
     const Slice& contents) const {
+  DBUG_TRACE;
   return BuiltinFilterPolicy::GetBuiltinFilterBitsReader(contents);
 }
 
 BuiltinFilterBitsReader* BuiltinFilterPolicy::GetRibbonBitsReader(
     const Slice& contents) {
+  DBUG_TRACE;
   uint32_t len_with_meta = static_cast<uint32_t>(contents.size());
   uint32_t len = len_with_meta - kMetadataLen;
 
@@ -1670,6 +1738,7 @@ BuiltinFilterBitsReader* BuiltinFilterPolicy::GetRibbonBitsReader(
 // For newer Bloom filter implementations
 BuiltinFilterBitsReader* BuiltinFilterPolicy::GetBloomBitsReader(
     const Slice& contents) {
+  DBUG_TRACE;
   uint32_t len_with_meta = static_cast<uint32_t>(contents.size());
   uint32_t len = len_with_meta - kMetadataLen;
 
@@ -1729,6 +1798,7 @@ BuiltinFilterBitsReader* BuiltinFilterPolicy::GetBloomBitsReader(
 
 const FilterPolicy* NewBloomFilterPolicy(double bits_per_key,
                                          bool /*use_block_based_builder*/) {
+  DBUG_TRACE;
   // NOTE: use_block_based_builder now ignored so block-based filter is no
   // longer accessible in public API.
   return new BloomFilterPolicy(bits_per_key);
@@ -1749,6 +1819,7 @@ RibbonFilterPolicy::RibbonFilterPolicy(double bloom_equivalent_bits_per_key,
 
 FilterBitsBuilder* RibbonFilterPolicy::GetBuilderWithContext(
     const FilterBuildingContext& context) const {
+  DBUG_TRACE;
   if (GetMillibitsPerKey() == 0) {
     // "No filter" special case
     return nullptr;
@@ -1791,17 +1862,19 @@ FilterBitsBuilder* RibbonFilterPolicy::GetBuilderWithContext(
   }
 }
 
-const char* RibbonFilterPolicy::kClassName() { return "ribbonfilter"; }
-const char* RibbonFilterPolicy::kNickName() { return "rocksdb.RibbonFilter"; }
-const char* RibbonFilterPolicy::kName() { return "RibbonFilterPolicy"; }
+const char* RibbonFilterPolicy::kClassName() { DBUG_TRACE; return "ribbonfilter"; }
+const char* RibbonFilterPolicy::kNickName() { DBUG_TRACE; return "rocksdb.RibbonFilter"; }
+const char* RibbonFilterPolicy::kName() { DBUG_TRACE; return "RibbonFilterPolicy"; }
 
 std::string RibbonFilterPolicy::GetId() const {
+  DBUG_TRACE;
   return BloomLikeFilterPolicy::GetId() + ":" +
          std::to_string(bloom_before_level_.load(std::memory_order_acquire));
 }
 
 FilterPolicy* NewRibbonFilterPolicy(double bloom_equivalent_bits_per_key,
                                     int bloom_before_level) {
+  DBUG_TRACE;
   return new RibbonFilterPolicy(bloom_equivalent_bits_per_key,
                                 bloom_before_level);
 }
@@ -1814,6 +1887,7 @@ FilterPolicy::~FilterPolicy() = default;
 
 std::shared_ptr<const FilterPolicy> BloomLikeFilterPolicy::Create(
     const std::string& name, double bits_per_key) {
+  DBUG_TRACE;
   if (name == test::LegacyBloomFilterPolicy::kClassName()) {
     return std::make_shared<test::LegacyBloomFilterPolicy>(bits_per_key);
   } else if (name == test::FastLocalBloomFilterPolicy::kClassName()) {
@@ -1835,6 +1909,7 @@ std::shared_ptr<const FilterPolicy> BloomLikeFilterPolicy::Create(
 namespace {
 static ObjectLibrary::PatternEntry FilterPatternEntryWithBits(
     const char* name) {
+  DBUG_TRACE;
   return ObjectLibrary::PatternEntry(name, false).AddNumber(":", false);
 }
 
@@ -1846,6 +1921,7 @@ T* NewBuiltinFilterPolicyWithBits(const std::string& uri) {
 }
 static int RegisterBuiltinFilterPolicies(ObjectLibrary& library,
                                          const std::string& /*arg*/) {
+  DBUG_TRACE;
   library.AddFactory<const FilterPolicy>(
       ReadOnlyBuiltinFilterPolicy::kClassName(),
       [](const std::string& /*uri*/, std::unique_ptr<const FilterPolicy>* guard,
@@ -1944,6 +2020,7 @@ static int RegisterBuiltinFilterPolicies(ObjectLibrary& library,
 Status FilterPolicy::CreateFromString(
     const ConfigOptions& options, const std::string& value,
     std::shared_ptr<const FilterPolicy>* policy) {
+  DBUG_TRACE;
   if (value == kNullptrString || value.empty()) {
     policy->reset();
     return Status::OK();
@@ -1977,6 +2054,7 @@ Status FilterPolicy::CreateFromString(
 }
 
 const std::vector<std::string>& BloomLikeFilterPolicy::GetAllFixedImpls() {
+  DBUG_TRACE;
   STATIC_AVOID_DESTRUCTION(std::vector<std::string>, impls){
       // Match filter_bench -impl=x ordering
       test::LegacyBloomFilterPolicy::kClassName(),

@@ -4,6 +4,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #ifdef MEMKIND
 #include <memkind.h>
 #endif  // MEMKIND
@@ -12,6 +13,7 @@
 
 namespace ROCKSDB_NAMESPACE {
 Status MemkindKmemAllocator::PrepareOptions(const ConfigOptions& options) {
+  DBUG_TRACE;
   std::string message;
   if (!IsSupported(&message)) {
     return Status::NotSupported(message);

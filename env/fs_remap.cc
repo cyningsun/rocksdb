@@ -4,6 +4,7 @@
 //  (found in the LICENSE.Apache file in the root directory).
 
 
+#include "rocksdb/util/dbug.h"
 #include "env/fs_remap.h"
 
 namespace ROCKSDB_NAMESPACE {
@@ -13,11 +14,13 @@ RemapFileSystem::RemapFileSystem(const std::shared_ptr<FileSystem>& base)
 
 std::pair<IOStatus, std::string> RemapFileSystem::EncodePathWithNewBasename(
     const std::string& path) {
+  DBUG_TRACE;
   // No difference by default
   return EncodePath(path);
 }
 
 Status RemapFileSystem::RegisterDbPaths(const std::vector<std::string>& paths) {
+  DBUG_TRACE;
   std::vector<std::string> encoded_paths;
   encoded_paths.reserve(paths.size());
   for (auto& path : paths) {
@@ -32,6 +35,7 @@ Status RemapFileSystem::RegisterDbPaths(const std::vector<std::string>& paths) {
 
 Status RemapFileSystem::UnregisterDbPaths(
     const std::vector<std::string>& paths) {
+  DBUG_TRACE;
   std::vector<std::string> encoded_paths;
   encoded_paths.reserve(paths.size());
   for (auto& path : paths) {
@@ -47,6 +51,7 @@ Status RemapFileSystem::UnregisterDbPaths(
 IOStatus RemapFileSystem::NewSequentialFile(
     const std::string& fname, const FileOptions& options,
     std::unique_ptr<FSSequentialFile>* result, IODebugContext* dbg) {
+  DBUG_TRACE;
   auto status_and_enc_path = EncodePathWithNewBasename(fname);
   if (!status_and_enc_path.first.ok()) {
     return status_and_enc_path.first;
@@ -58,6 +63,7 @@ IOStatus RemapFileSystem::NewSequentialFile(
 IOStatus RemapFileSystem::NewRandomAccessFile(
     const std::string& fname, const FileOptions& options,
     std::unique_ptr<FSRandomAccessFile>* result, IODebugContext* dbg) {
+  DBUG_TRACE;
   auto status_and_enc_path = EncodePathWithNewBasename(fname);
   if (!status_and_enc_path.first.ok()) {
     return status_and_enc_path.first;
@@ -69,6 +75,7 @@ IOStatus RemapFileSystem::NewRandomAccessFile(
 IOStatus RemapFileSystem::NewWritableFile(
     const std::string& fname, const FileOptions& options,
     std::unique_ptr<FSWritableFile>* result, IODebugContext* dbg) {
+  DBUG_TRACE;
   auto status_and_enc_path = EncodePathWithNewBasename(fname);
   if (!status_and_enc_path.first.ok()) {
     return status_and_enc_path.first;
@@ -81,6 +88,7 @@ IOStatus RemapFileSystem::ReuseWritableFile(
     const std::string& fname, const std::string& old_fname,
     const FileOptions& options, std::unique_ptr<FSWritableFile>* result,
     IODebugContext* dbg) {
+  DBUG_TRACE;
   auto status_and_enc_path = EncodePathWithNewBasename(fname);
   if (!status_and_enc_path.first.ok()) {
     return status_and_enc_path.first;
@@ -97,6 +105,7 @@ IOStatus RemapFileSystem::ReuseWritableFile(
 IOStatus RemapFileSystem::NewRandomRWFile(
     const std::string& fname, const FileOptions& options,
     std::unique_ptr<FSRandomRWFile>* result, IODebugContext* dbg) {
+  DBUG_TRACE;
   auto status_and_enc_path = EncodePathWithNewBasename(fname);
   if (!status_and_enc_path.first.ok()) {
     return status_and_enc_path.first;
@@ -109,6 +118,7 @@ IOStatus RemapFileSystem::NewDirectory(const std::string& dir,
                                        const IOOptions& options,
                                        std::unique_ptr<FSDirectory>* result,
                                        IODebugContext* dbg) {
+  DBUG_TRACE;
   // A hassle to remap DirFsyncOptions::renamed_new_name
   class RemapFSDirectory : public FSDirectoryWrapper {
    public:
@@ -117,6 +127,7 @@ IOStatus RemapFileSystem::NewDirectory(const std::string& dir,
     IOStatus FsyncWithDirOptions(
         const IOOptions& options, IODebugContext* dbg,
         const DirFsyncOptions& dir_fsync_options) override {
+      DBUG_TRACE;
       if (dir_fsync_options.renamed_new_name.empty()) {
         return FSDirectoryWrapper::FsyncWithDirOptions(options, dbg,
                                                        dir_fsync_options);
@@ -153,6 +164,7 @@ IOStatus RemapFileSystem::NewDirectory(const std::string& dir,
 IOStatus RemapFileSystem::FileExists(const std::string& fname,
                                      const IOOptions& options,
                                      IODebugContext* dbg) {
+  DBUG_TRACE;
   auto status_and_enc_path = EncodePathWithNewBasename(fname);
   if (!status_and_enc_path.first.ok()) {
     return status_and_enc_path.first;
@@ -165,6 +177,7 @@ IOStatus RemapFileSystem::GetChildren(const std::string& dir,
                                       const IOOptions& options,
                                       std::vector<std::string>* result,
                                       IODebugContext* dbg) {
+  DBUG_TRACE;
   auto status_and_enc_path = EncodePath(dir);
   if (!status_and_enc_path.first.ok()) {
     return status_and_enc_path.first;
@@ -176,6 +189,7 @@ IOStatus RemapFileSystem::GetChildren(const std::string& dir,
 IOStatus RemapFileSystem::GetChildrenFileAttributes(
     const std::string& dir, const IOOptions& options,
     std::vector<FileAttributes>* result, IODebugContext* dbg) {
+  DBUG_TRACE;
   auto status_and_enc_path = EncodePath(dir);
   if (!status_and_enc_path.first.ok()) {
     return status_and_enc_path.first;
@@ -187,6 +201,7 @@ IOStatus RemapFileSystem::GetChildrenFileAttributes(
 IOStatus RemapFileSystem::DeleteFile(const std::string& fname,
                                      const IOOptions& options,
                                      IODebugContext* dbg) {
+  DBUG_TRACE;
   auto status_and_enc_path = EncodePath(fname);
   if (!status_and_enc_path.first.ok()) {
     return status_and_enc_path.first;
@@ -198,6 +213,7 @@ IOStatus RemapFileSystem::DeleteFile(const std::string& fname,
 IOStatus RemapFileSystem::CreateDir(const std::string& dirname,
                                     const IOOptions& options,
                                     IODebugContext* dbg) {
+  DBUG_TRACE;
   auto status_and_enc_path = EncodePathWithNewBasename(dirname);
   if (!status_and_enc_path.first.ok()) {
     return status_and_enc_path.first;
@@ -208,6 +224,7 @@ IOStatus RemapFileSystem::CreateDir(const std::string& dirname,
 IOStatus RemapFileSystem::CreateDirIfMissing(const std::string& dirname,
                                              const IOOptions& options,
                                              IODebugContext* dbg) {
+  DBUG_TRACE;
   auto status_and_enc_path = EncodePathWithNewBasename(dirname);
   if (!status_and_enc_path.first.ok()) {
     return status_and_enc_path.first;
@@ -219,6 +236,7 @@ IOStatus RemapFileSystem::CreateDirIfMissing(const std::string& dirname,
 IOStatus RemapFileSystem::DeleteDir(const std::string& dirname,
                                     const IOOptions& options,
                                     IODebugContext* dbg) {
+  DBUG_TRACE;
   auto status_and_enc_path = EncodePath(dirname);
   if (!status_and_enc_path.first.ok()) {
     return status_and_enc_path.first;
@@ -230,6 +248,7 @@ IOStatus RemapFileSystem::GetFileSize(const std::string& fname,
                                       const IOOptions& options,
                                       uint64_t* file_size,
                                       IODebugContext* dbg) {
+  DBUG_TRACE;
   auto status_and_enc_path = EncodePath(fname);
   if (!status_and_enc_path.first.ok()) {
     return status_and_enc_path.first;
@@ -242,6 +261,7 @@ IOStatus RemapFileSystem::GetFileModificationTime(const std::string& fname,
                                                   const IOOptions& options,
                                                   uint64_t* file_mtime,
                                                   IODebugContext* dbg) {
+  DBUG_TRACE;
   auto status_and_enc_path = EncodePath(fname);
   if (!status_and_enc_path.first.ok()) {
     return status_and_enc_path.first;
@@ -253,6 +273,7 @@ IOStatus RemapFileSystem::GetFileModificationTime(const std::string& fname,
 IOStatus RemapFileSystem::IsDirectory(const std::string& path,
                                       const IOOptions& options, bool* is_dir,
                                       IODebugContext* dbg) {
+  DBUG_TRACE;
   auto status_and_enc_path = EncodePath(path);
   if (!status_and_enc_path.first.ok()) {
     return status_and_enc_path.first;
@@ -265,6 +286,7 @@ IOStatus RemapFileSystem::RenameFile(const std::string& src,
                                      const std::string& dest,
                                      const IOOptions& options,
                                      IODebugContext* dbg) {
+  DBUG_TRACE;
   auto status_and_src_enc_path = EncodePath(src);
   if (!status_and_src_enc_path.first.ok()) {
     if (status_and_src_enc_path.first.IsNotFound()) {
@@ -286,6 +308,7 @@ IOStatus RemapFileSystem::LinkFile(const std::string& src,
                                    const std::string& dest,
                                    const IOOptions& options,
                                    IODebugContext* dbg) {
+  DBUG_TRACE;
   auto status_and_src_enc_path = EncodePath(src);
   if (!status_and_src_enc_path.first.ok()) {
     return status_and_src_enc_path.first;
@@ -302,6 +325,7 @@ IOStatus RemapFileSystem::LinkFile(const std::string& src,
 IOStatus RemapFileSystem::LockFile(const std::string& fname,
                                    const IOOptions& options, FileLock** lock,
                                    IODebugContext* dbg) {
+  DBUG_TRACE;
   auto status_and_enc_path = EncodePathWithNewBasename(fname);
   if (!status_and_enc_path.first.ok()) {
     return status_and_enc_path.first;
@@ -317,6 +341,7 @@ IOStatus RemapFileSystem::NewLogger(const std::string& fname,
                                     const IOOptions& options,
                                     std::shared_ptr<Logger>* result,
                                     IODebugContext* dbg) {
+  DBUG_TRACE;
   auto status_and_enc_path = EncodePathWithNewBasename(fname);
   if (!status_and_enc_path.first.ok()) {
     return status_and_enc_path.first;
@@ -329,6 +354,7 @@ IOStatus RemapFileSystem::GetAbsolutePath(const std::string& db_path,
                                           const IOOptions& options,
                                           std::string* output_path,
                                           IODebugContext* dbg) {
+  DBUG_TRACE;
   auto status_and_enc_path = EncodePathWithNewBasename(db_path);
   if (!status_and_enc_path.first.ok()) {
     return status_and_enc_path.first;
@@ -338,4 +364,3 @@ IOStatus RemapFileSystem::GetAbsolutePath(const std::string& db_path,
 }
 
 }  // namespace ROCKSDB_NAMESPACE
-

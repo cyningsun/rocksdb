@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "db/write_controller.h"
 
 #include <algorithm>
@@ -15,12 +16,14 @@
 namespace ROCKSDB_NAMESPACE {
 
 std::unique_ptr<WriteControllerToken> WriteController::GetStopToken() {
+  DBUG_TRACE;
   ++total_stopped_;
   return std::unique_ptr<WriteControllerToken>(new StopWriteToken(this));
 }
 
 std::unique_ptr<WriteControllerToken> WriteController::GetDelayToken(
     uint64_t write_rate) {
+  DBUG_TRACE;
   if (0 == total_delayed_++) {
     // Starting delay, so reset counters.
     next_refill_time_ = 0;
@@ -35,12 +38,14 @@ std::unique_ptr<WriteControllerToken> WriteController::GetDelayToken(
 
 std::unique_ptr<WriteControllerToken>
 WriteController::GetCompactionPressureToken() {
+  DBUG_TRACE;
   ++total_compaction_pressure_;
   return std::unique_ptr<WriteControllerToken>(
       new CompactionPressureToken(this));
 }
 
 bool WriteController::IsStopped() const {
+  DBUG_TRACE;
   return total_stopped_.load(std::memory_order_relaxed) > 0;
 }
 // This is inside DB mutex, so we can't sleep and need to minimize
@@ -49,6 +54,7 @@ bool WriteController::IsStopped() const {
 // synchronization model here.
 // The function trust caller will sleep micros returned.
 uint64_t WriteController::GetDelay(SystemClock* clock, uint64_t num_bytes) {
+  DBUG_TRACE;
   if (total_stopped_.load(std::memory_order_relaxed) > 0) {
     return 0;
   }
@@ -100,6 +106,7 @@ uint64_t WriteController::GetDelay(SystemClock* clock, uint64_t num_bytes) {
 }
 
 uint64_t WriteController::NowMicrosMonotonic(SystemClock* clock) {
+  DBUG_TRACE;
   return clock->NowNanos() / std::milli::den;
 }
 

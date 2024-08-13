@@ -4,6 +4,7 @@
 //  (found in the LICENSE.Apache file in the root directory).
 
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/utilities/cache_dump_load.h"
 
 #include "file/writable_file_writer.h"
@@ -20,6 +21,7 @@ IOStatus NewToFileCacheDumpWriter(const std::shared_ptr<FileSystem>& fs,
                                   const FileOptions& file_opts,
                                   const std::string& file_name,
                                   std::unique_ptr<CacheDumpWriter>* writer) {
+  DBUG_TRACE;
   std::unique_ptr<WritableFileWriter> file_writer;
   IOStatus io_s = WritableFileWriter::Create(fs, file_name, file_opts,
                                              &file_writer, nullptr);
@@ -34,6 +36,7 @@ IOStatus NewFromFileCacheDumpReader(const std::shared_ptr<FileSystem>& fs,
                                     const FileOptions& file_opts,
                                     const std::string& file_name,
                                     std::unique_ptr<CacheDumpReader>* reader) {
+  DBUG_TRACE;
   std::unique_ptr<RandomAccessFileReader> file_reader;
   IOStatus io_s = RandomAccessFileReader::Create(fs, file_name, file_opts,
                                                  &file_reader, nullptr);
@@ -48,6 +51,7 @@ Status NewDefaultCacheDumper(const CacheDumpOptions& dump_options,
                              const std::shared_ptr<Cache>& cache,
                              std::unique_ptr<CacheDumpWriter>&& writer,
                              std::unique_ptr<CacheDumper>* cache_dumper) {
+  DBUG_TRACE;
   cache_dumper->reset(
       new CacheDumperImpl(dump_options, cache, std::move(writer)));
   return Status::OK();
@@ -59,6 +63,7 @@ Status NewDefaultCacheDumpedLoader(
     const std::shared_ptr<SecondaryCache>& secondary_cache,
     std::unique_ptr<CacheDumpReader>&& reader,
     std::unique_ptr<CacheDumpedLoader>* cache_dump_loader) {
+  DBUG_TRACE;
   cache_dump_loader->reset(new CacheDumpedLoaderImpl(
       dump_options, toptions, secondary_cache, std::move(reader)));
   return Status::OK();

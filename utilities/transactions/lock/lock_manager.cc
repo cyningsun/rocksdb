@@ -4,6 +4,7 @@
 // (found in the LICENSE.Apache file in the root directory).
 
 
+#include "rocksdb/util/dbug.h"
 #include "utilities/transactions/lock/lock_manager.h"
 
 #include "utilities/transactions/lock/point/point_lock_manager.h"
@@ -12,6 +13,7 @@ namespace ROCKSDB_NAMESPACE {
 
 std::shared_ptr<LockManager> NewLockManager(PessimisticTransactionDB* db,
                                             const TransactionDBOptions& opt) {
+  DBUG_TRACE;
   assert(db);
   if (opt.lock_mgr_handle) {
     // A custom lock manager was provided in options
@@ -24,4 +26,3 @@ std::shared_ptr<LockManager> NewLockManager(PessimisticTransactionDB* db,
 }
 
 }  // namespace ROCKSDB_NAMESPACE
-

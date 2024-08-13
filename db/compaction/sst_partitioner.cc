@@ -4,6 +4,7 @@
 //  (found in the LICENSE.Apache file in the root directory).
 //
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/sst_partitioner.h"
 
 #include <algorithm>
@@ -27,6 +28,7 @@ SstPartitionerFixedPrefixFactory::SstPartitionerFixedPrefixFactory(size_t len)
 
 PartitionerResult SstPartitionerFixedPrefix::ShouldPartition(
     const PartitionerRequest& request) {
+  DBUG_TRACE;
   Slice last_key_fixed(*request.prev_user_key);
   if (last_key_fixed.size() > len_) {
     last_key_fixed.size_ = len_;
@@ -41,6 +43,7 @@ PartitionerResult SstPartitionerFixedPrefix::ShouldPartition(
 
 bool SstPartitionerFixedPrefix::CanDoTrivialMove(
     const Slice& smallest_user_key, const Slice& largest_user_key) {
+  DBUG_TRACE;
   return ShouldPartition(PartitionerRequest(smallest_user_key, largest_user_key,
                                             0)) == kNotRequired;
 }
@@ -48,17 +51,20 @@ bool SstPartitionerFixedPrefix::CanDoTrivialMove(
 std::unique_ptr<SstPartitioner>
 SstPartitionerFixedPrefixFactory::CreatePartitioner(
     const SstPartitioner::Context& /* context */) const {
+  DBUG_TRACE;
   return std::unique_ptr<SstPartitioner>(new SstPartitionerFixedPrefix(len_));
 }
 
 std::shared_ptr<SstPartitionerFactory> NewSstPartitionerFixedPrefixFactory(
     size_t prefix_len) {
+  DBUG_TRACE;
   return std::make_shared<SstPartitionerFixedPrefixFactory>(prefix_len);
 }
 
 namespace {
 static int RegisterSstPartitionerFactories(ObjectLibrary& library,
                                            const std::string& /*arg*/) {
+  DBUG_TRACE;
   library.AddFactory<SstPartitionerFactory>(
       SstPartitionerFixedPrefixFactory::kClassName(),
       [](const std::string& /*uri*/,
@@ -74,6 +80,7 @@ static int RegisterSstPartitionerFactories(ObjectLibrary& library,
 Status SstPartitionerFactory::CreateFromString(
     const ConfigOptions& options, const std::string& value,
     std::shared_ptr<SstPartitionerFactory>* result) {
+  DBUG_TRACE;
   static std::once_flag once;
   std::call_once(once, [&]() {
     RegisterSstPartitionerFactories(*(ObjectLibrary::Default().get()), "");

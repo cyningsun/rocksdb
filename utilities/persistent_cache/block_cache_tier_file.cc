@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "utilities/persistent_cache/block_cache_tier_file.h"
 
 #ifndef OS_WIN
@@ -26,6 +27,7 @@ namespace ROCKSDB_NAMESPACE {
 Status NewWritableCacheFile(Env* const env, const std::string& filepath,
                             std::unique_ptr<WritableFile>* file,
                             const bool use_direct_writes = false) {
+  DBUG_TRACE;
   EnvOptions opt;
   opt.use_direct_writes = use_direct_writes;
   Status s = env->NewWritableFile(filepath, file, opt);
@@ -36,6 +38,7 @@ Status NewRandomAccessCacheFile(const std::shared_ptr<FileSystem>& fs,
                                 const std::string& filepath,
                                 std::unique_ptr<FSRandomAccessFile>* file,
                                 const bool use_direct_reads = true) {
+  DBUG_TRACE;
   assert(fs.get());
 
   FileOptions opt;
@@ -47,6 +50,7 @@ Status NewRandomAccessCacheFile(const std::shared_ptr<FileSystem>& fs,
 // BlockCacheFile
 //
 Status BlockCacheFile::Delete(uint64_t* size) {
+  DBUG_TRACE;
   assert(env_);
 
   Status status = env_->GetFileSize(Path(), size);
@@ -93,6 +97,7 @@ struct CacheRecord {
   bool Deserialize(const Slice& buf);
 
   static uint32_t CalcSize(const Slice& key, const Slice& val) {
+    DBUG_TRACE;
     return static_cast<uint32_t>(sizeof(CacheRecordHeader) + key.size() +
                                  val.size());
   }
@@ -110,6 +115,7 @@ struct CacheRecord {
 static_assert(sizeof(CacheRecordHeader) == 16, "DataHeader is not aligned");
 
 uint32_t CacheRecord::ComputeCRC() const {
+  DBUG_TRACE;
   uint32_t crc = 0;
   CacheRecordHeader tmp = hdr_;
   tmp.crc_ = 0;
@@ -123,6 +129,7 @@ uint32_t CacheRecord::ComputeCRC() const {
 
 bool CacheRecord::Serialize(std::vector<CacheWriteBuffer*>* bufs,
                             size_t* woff) {
+  DBUG_TRACE;
   assert(bufs->size());
   return Append(bufs, woff, reinterpret_cast<const char*>(&hdr_),
                 sizeof(hdr_)) &&
@@ -134,6 +141,7 @@ bool CacheRecord::Serialize(std::vector<CacheWriteBuffer*>* bufs,
 
 bool CacheRecord::Append(std::vector<CacheWriteBuffer*>* bufs, size_t* woff,
                          const char* data, const size_t data_size) {
+  DBUG_TRACE;
   assert(*woff < bufs->size());
 
   const char* p = data;
@@ -164,6 +172,7 @@ bool CacheRecord::Append(std::vector<CacheWriteBuffer*>* bufs, size_t* woff,
 }
 
 bool CacheRecord::Deserialize(const Slice& data) {
+  DBUG_TRACE;
   assert(data.size() >= sizeof(CacheRecordHeader));
   if (data.size() < sizeof(CacheRecordHeader)) {
     return false;
@@ -200,11 +209,13 @@ bool CacheRecord::Deserialize(const Slice& data) {
 //
 
 bool RandomAccessCacheFile::Open(const bool enable_direct_reads) {
+  DBUG_TRACE;
   WriteLock _(&rwlock_);
   return OpenImpl(enable_direct_reads);
 }
 
 bool RandomAccessCacheFile::OpenImpl(const bool enable_direct_reads) {
+  DBUG_TRACE;
   rwlock_.AssertHeld();
 
   ROCKS_LOG_DEBUG(log_, "Opening cache file %s", Path().c_str());
@@ -226,6 +237,7 @@ bool RandomAccessCacheFile::OpenImpl(const bool enable_direct_reads) {
 
 bool RandomAccessCacheFile::Read(const LBA& lba, Slice* key, Slice* val,
                                  char* scratch) {
+  DBUG_TRACE;
   ReadLock _(&rwlock_);
 
   assert(lba.cache_id_ == cache_id_);
@@ -250,6 +262,7 @@ bool RandomAccessCacheFile::Read(const LBA& lba, Slice* key, Slice* val,
 
 bool RandomAccessCacheFile::ParseRec(const LBA& lba, Slice* key, Slice* val,
                                      char* scratch) {
+  DBUG_TRACE;
   Slice data(scratch, lba.size_);
 
   CacheRecord rec;
@@ -287,6 +300,7 @@ WriteableCacheFile::~WriteableCacheFile() {
 
 bool WriteableCacheFile::Create(const bool /*enable_direct_writes*/,
                                 const bool enable_direct_reads) {
+  DBUG_TRACE;
   WriteLock _(&rwlock_);
 
   enable_direct_reads_ = enable_direct_reads;
@@ -316,6 +330,7 @@ bool WriteableCacheFile::Create(const bool /*enable_direct_writes*/,
 }
 
 bool WriteableCacheFile::Append(const Slice& key, const Slice& val, LBA* lba) {
+  DBUG_TRACE;
   WriteLock _(&rwlock_);
 
   if (eof_) {
@@ -353,6 +368,7 @@ bool WriteableCacheFile::Append(const Slice& key, const Slice& val, LBA* lba) {
 }
 
 bool WriteableCacheFile::ExpandBuffer(const size_t size) {
+  DBUG_TRACE;
   rwlock_.AssertHeld();
   assert(!eof_);
 
@@ -387,6 +403,7 @@ bool WriteableCacheFile::ExpandBuffer(const size_t size) {
 }
 
 void WriteableCacheFile::DispatchBuffer() {
+  DBUG_TRACE;
   rwlock_.AssertHeld();
 
   assert(bufs_.size());
@@ -425,6 +442,7 @@ void WriteableCacheFile::DispatchBuffer() {
 }
 
 void WriteableCacheFile::BufferWriteDone() {
+  DBUG_TRACE;
   WriteLock _(&rwlock_);
 
   assert(bufs_.size());
@@ -442,6 +460,7 @@ void WriteableCacheFile::BufferWriteDone() {
 }
 
 void WriteableCacheFile::CloseAndOpenForReading() {
+  DBUG_TRACE;
   // Our env abstraction do not allow reading from a file opened for appending
   // We need close the file and re-open it for reading
   Close();
@@ -450,6 +469,7 @@ void WriteableCacheFile::CloseAndOpenForReading() {
 
 bool WriteableCacheFile::ReadBuffer(const LBA& lba, Slice* key, Slice* block,
                                     char* scratch) {
+  DBUG_TRACE;
   rwlock_.AssertHeld();
 
   if (!ReadBuffer(lba, scratch)) {
@@ -462,6 +482,7 @@ bool WriteableCacheFile::ReadBuffer(const LBA& lba, Slice* key, Slice* block,
 }
 
 bool WriteableCacheFile::ReadBuffer(const LBA& lba, char* data) {
+  DBUG_TRACE;
   rwlock_.AssertHeld();
 
   assert(lba.off_ < disk_woff_);
@@ -505,6 +526,7 @@ bool WriteableCacheFile::ReadBuffer(const LBA& lba, char* data) {
 }
 
 void WriteableCacheFile::Close() {
+  DBUG_TRACE;
   rwlock_.AssertHeld();
 
   assert(size_ >= max_size_);
@@ -524,6 +546,7 @@ void WriteableCacheFile::Close() {
 }
 
 void WriteableCacheFile::ClearBuffers() {
+  DBUG_TRACE;
   assert(alloc_);
 
   for (size_t i = 0; i < bufs_.size(); ++i) {
@@ -546,6 +569,7 @@ ThreadedWriter::ThreadedWriter(PersistentCacheTier* const cache,
 }
 
 void ThreadedWriter::Stop() {
+  DBUG_TRACE;
   // notify all threads to exit
   for (size_t i = 0; i < threads_.size(); ++i) {
     q_.Push(IO(/*signal=*/true));
@@ -562,10 +586,12 @@ void ThreadedWriter::Stop() {
 void ThreadedWriter::Write(WritableFile* const file, CacheWriteBuffer* buf,
                            const uint64_t file_off,
                            const std::function<void()> callback) {
+  DBUG_TRACE;
   q_.Push(IO(file, buf, file_off, callback));
 }
 
 void ThreadedWriter::ThreadMain() {
+  DBUG_TRACE;
   while (true) {
     // Fetch the IO to process
     IO io(q_.Pop());
@@ -589,6 +615,7 @@ void ThreadedWriter::ThreadMain() {
 }
 
 void ThreadedWriter::DispatchIO(const IO& io) {
+  DBUG_TRACE;
   size_t written = 0;
   while (written < io.buf_->Used()) {
     Slice data(io.buf_->Data() + written, io_size_);

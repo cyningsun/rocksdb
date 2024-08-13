@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #ifdef GFLAGS
 #ifdef NUMA
 #include <numa.h>
@@ -327,10 +328,12 @@ DEFINE_bool(use_uint64_comparator, false, "use Uint64 user comparator");
 DEFINE_int64(batch_size, 1, "Batch size");
 
 static bool ValidateKeySize(const char* /*flagname*/, int32_t /*value*/) {
+  DBUG_TRACE;
   return true;
 }
 
 static bool ValidateUint32Range(const char* flagname, uint64_t value) {
+  DBUG_TRACE;
   if (value > std::numeric_limits<uint32_t>::max()) {
     fprintf(stderr, "Invalid value for --%s: %lu, overflow\n", flagname,
             (unsigned long)value);
@@ -814,6 +817,7 @@ DEFINE_bool(read_cache_direct_read, true,
 DEFINE_bool(use_keep_filter, false, "Whether to use a noop compaction filter");
 
 static bool ValidateCacheNumshardbits(const char* flagname, int32_t value) {
+  DBUG_TRACE;
   if (value >= 20) {
     fprintf(stderr, "Invalid value for --%s: %d, must be < 20\n", flagname,
             value);
@@ -904,6 +908,7 @@ DEFINE_uint64(periodic_compaction_seconds,
 DEFINE_uint64(ttl_seconds, ROCKSDB_NAMESPACE::Options().ttl, "Set options.ttl");
 
 static bool ValidateInt32Percent(const char* flagname, int32_t value) {
+  DBUG_TRACE;
   if (value <= 0 || value >= 100) {
     fprintf(stderr, "Invalid value for --%s: %d, 0< pct <100 \n", flagname,
             value);
@@ -1181,7 +1186,7 @@ DEFINE_int32(trace_replay_threads, 1,
 
 DEFINE_bool(io_uring_enabled, true,
             "If true, enable the use of IO uring if the platform supports it");
-extern "C" bool RocksDbIOUringEnable() { return FLAGS_io_uring_enabled; }
+extern "C" bool RocksDbIOUringEnable() { DBUG_TRACE; return FLAGS_io_uring_enabled; }
 
 DEFINE_bool(adaptive_readahead, false,
             "carry forward internal auto readahead size from one file to next "
@@ -1277,6 +1282,7 @@ DEFINE_bool(
 
 static enum ROCKSDB_NAMESPACE::CompressionType StringToCompressionType(
     const char* ctype) {
+  DBUG_TRACE;
   assert(ctype);
 
   if (!strcasecmp(ctype, "none")) {
@@ -1303,6 +1309,7 @@ static enum ROCKSDB_NAMESPACE::CompressionType StringToCompressionType(
 
 static enum ROCKSDB_NAMESPACE::TieredAdmissionPolicy StringToAdmissionPolicy(
     const char* policy) {
+  DBUG_TRACE;
   assert(policy);
 
   if (!strcasecmp(policy, "auto")) {
@@ -1322,6 +1329,7 @@ static enum ROCKSDB_NAMESPACE::TieredAdmissionPolicy StringToAdmissionPolicy(
 }
 
 static std::string ColumnFamilyName(size_t i) {
+  DBUG_TRACE;
   if (i == 0) {
     return ROCKSDB_NAMESPACE::kDefaultColumnFamilyName;
   } else {
@@ -1373,6 +1381,7 @@ DEFINE_bool(compression_use_zstd_dict_trainer,
 
 static bool ValidateTableCacheNumshardbits(const char* flagname,
                                            int32_t value) {
+  DBUG_TRACE;
   if (0 >= value || value >= 20) {
     fprintf(stderr, "Invalid value for --%s: %d, must be  0 < val < 20\n",
             flagname, value);
@@ -1667,6 +1676,7 @@ DEFINE_bool(strict_max_successive_merges, false,
             "`max_successive_merges` limit");
 
 static bool ValidatePrefixSize(const char* flagname, int32_t value) {
+  DBUG_TRACE;
   if (value < 0 || value >= 2000000000) {
     fprintf(stderr, "Invalid value for --%s: %d. 0<= PrefixSize <=2000000000\n",
             flagname, value);
@@ -1801,6 +1811,7 @@ namespace {
 static Status CreateMemTableRepFactory(
     const ConfigOptions& config_options,
     std::shared_ptr<MemTableRepFactory>* factory) {
+  DBUG_TRACE;
   Status s;
   if (!strcasecmp(FLAGS_memtablerep.c_str(), SkipListFactory::kNickName())) {
     factory->reset(new SkipListFactory(FLAGS_skip_list_lookahead));
@@ -1829,6 +1840,7 @@ enum DistributionType : unsigned char { kFixed = 0, kUniform, kNormal };
 static enum DistributionType FLAGS_value_size_distribution_type_e = kFixed;
 
 static enum DistributionType StringToDistributionType(const char* ctype) {
+  DBUG_TRACE;
   assert(ctype);
 
   if (!strcasecmp(ctype, "fixed")) {
@@ -1850,6 +1862,7 @@ class BaseDistribution {
   virtual ~BaseDistribution() = default;
 
   unsigned int Generate() {
+    DBUG_TRACE;
     auto val = Get();
     if (NeedTruncate()) {
       val = std::max(min_value_size_, val);
@@ -1860,7 +1873,7 @@ class BaseDistribution {
 
  private:
   virtual unsigned int Get() = 0;
-  virtual bool NeedTruncate() { return true; }
+  virtual bool NeedTruncate() { DBUG_TRACE; return true; }
   unsigned int min_value_size_;
   unsigned int max_value_size_;
 };
@@ -1871,8 +1884,8 @@ class FixedDistribution : public BaseDistribution {
       : BaseDistribution(size, size), size_(size) {}
 
  private:
-  unsigned int Get() override { return size_; }
-  bool NeedTruncate() override { return false; }
+  unsigned int Get() override { DBUG_TRACE; return size_; }
+  bool NeedTruncate() override { DBUG_TRACE; return false; }
   unsigned int size_;
 };
 
@@ -1889,6 +1902,7 @@ class NormalDistribution : public BaseDistribution,
 
  private:
   unsigned int Get() override {
+    DBUG_TRACE;
     return static_cast<unsigned int>((*this)(gen_));
   }
   std::random_device rd_;
@@ -1904,8 +1918,8 @@ class UniformDistribution : public BaseDistribution,
         gen_(rd_()) {}
 
  private:
-  unsigned int Get() override { return (*this)(gen_); }
-  bool NeedTruncate() override { return false; }
+  unsigned int Get() override { DBUG_TRACE; return (*this)(gen_); }
+  bool NeedTruncate() override { DBUG_TRACE; return false; }
   std::random_device rd_;
   std::mt19937 gen_;
 };
@@ -1949,6 +1963,7 @@ class RandomGenerator {
   }
 
   Slice Generate(unsigned int len) {
+    DBUG_TRACE;
     assert(len <= data_.size());
     if (pos_ + len > data_.size()) {
       pos_ = 0;
@@ -1958,12 +1973,14 @@ class RandomGenerator {
   }
 
   Slice Generate() {
+    DBUG_TRACE;
     auto len = dist_->Generate();
     return Generate(len);
   }
 };
 
 static void AppendWithSpace(std::string* str, Slice msg) {
+  DBUG_TRACE;
   if (msg.empty()) {
     return;
   }
@@ -2006,6 +2023,7 @@ struct DBWithColumnFamilies {
   }
 
   void DeleteDBs() {
+    DBUG_TRACE;
     std::for_each(cfh.begin(), cfh.end(),
                   [](ColumnFamilyHandle* cfhi) { delete cfhi; });
     cfh.clear();
@@ -2019,6 +2037,7 @@ struct DBWithColumnFamilies {
   }
 
   ColumnFamilyHandle* GetCfh(int64_t rand_num) {
+    DBUG_TRACE;
     assert(num_hot > 0);
     size_t rand_offset = 0;
     if (!cfh_idx_to_prob.empty()) {
@@ -2039,6 +2058,7 @@ struct DBWithColumnFamilies {
   // stage: assume CF from 0 to stage * num_hot has be created. Need to create
   //        stage * num_hot + 1 to stage * (num_hot + 1).
   void CreateNewCf(ColumnFamilyOptions options, int64_t stage) {
+    DBUG_TRACE;
     MutexLock l(&create_cf_mutex);
     if ((stage + 1) * num_hot <= num_created) {
       // Already created.
@@ -2096,12 +2116,14 @@ class ReporterAgent {
 
   // thread safe
   void ReportFinishedOps(int64_t num_ops) {
+    DBUG_TRACE;
     total_ops_done_.fetch_add(num_ops);
   }
 
  private:
-  std::string Header() const { return "secs_elapsed,interval_qps"; }
+  std::string Header() const { DBUG_TRACE; return "secs_elapsed,interval_qps"; }
   void SleepAndReport() {
+    DBUG_TRACE;
     auto* clock = env_->GetSystemClock().get();
     auto time_started = clock->NowMicros();
     while (true) {
@@ -2198,10 +2220,12 @@ class Stats {
   Stats() : clock_(FLAGS_env->GetSystemClock().get()) { Start(-1); }
 
   void SetReporterAgent(ReporterAgent* reporter_agent) {
+    DBUG_TRACE;
     reporter_agent_ = reporter_agent;
   }
 
   void Start(int id) {
+    DBUG_TRACE;
     id_ = id;
     next_report_ = FLAGS_stats_interval ? FLAGS_stats_interval : 100;
     last_op_finish_ = start_;
@@ -2220,6 +2244,7 @@ class Stats {
   }
 
   void Merge(const Stats& other) {
+    DBUG_TRACE;
     if (other.exclude_from_merge_) {
       return;
     }
@@ -2250,16 +2275,18 @@ class Stats {
   }
 
   void Stop() {
+    DBUG_TRACE;
     finish_ = clock_->NowMicros();
     seconds_ = (finish_ - start_) * 1e-6;
   }
 
-  void AddMessage(Slice msg) { AppendWithSpace(&message_, msg); }
+  void AddMessage(Slice msg) { DBUG_TRACE; AppendWithSpace(&message_, msg); }
 
-  void SetId(int id) { id_ = id; }
-  void SetExcludeFromMerge() { exclude_from_merge_ = true; }
+  void SetId(int id) { DBUG_TRACE; id_ = id; }
+  void SetExcludeFromMerge() { DBUG_TRACE; exclude_from_merge_ = true; }
 
   void PrintThreadStatus() {
+    DBUG_TRACE;
     std::vector<ThreadStatus> thread_list;
     FLAGS_env->GetThreadList(&thread_list);
 
@@ -2289,19 +2316,21 @@ class Stats {
     }
   }
 
-  void ResetSineInterval() { sine_interval_ = clock_->NowMicros(); }
+  void ResetSineInterval() { DBUG_TRACE; sine_interval_ = clock_->NowMicros(); }
 
-  uint64_t GetSineInterval() { return sine_interval_; }
+  uint64_t GetSineInterval() { DBUG_TRACE; return sine_interval_; }
 
-  uint64_t GetStart() { return start_; }
+  uint64_t GetStart() { DBUG_TRACE; return start_; }
 
   void ResetLastOpTime() {
+    DBUG_TRACE;
     // Set to now to avoid latency from calls to SleepForMicroseconds.
     last_op_finish_ = clock_->NowMicros();
   }
 
   void FinishedOps(DBWithColumnFamilies* db_with_cfh, DB* db, int64_t num_ops,
                    enum OperationType op_type = kOthers) {
+    DBUG_TRACE;
     if (reporter_agent_) {
       reporter_agent_->ReportFinishedOps(num_ops);
     }
@@ -2426,9 +2455,10 @@ class Stats {
     }
   }
 
-  void AddBytes(int64_t n) { bytes_ += n; }
+  void AddBytes(int64_t n) { DBUG_TRACE; bytes_ += n; }
 
   void Report(const Slice& name) {
+    DBUG_TRACE;
     // Pretend at least one op was done in case we are running a benchmark
     // that does not call FinishedOps().
     if (done_ < 1) {
@@ -2474,6 +2504,7 @@ class Stats {
 class CombinedStats {
  public:
   void AddStats(const Stats& stat) {
+    DBUG_TRACE;
     uint64_t total_ops = stat.done_;
     uint64_t total_bytes_ = stat.bytes_;
     double elapsed;
@@ -2492,6 +2523,7 @@ class CombinedStats {
   }
 
   void Report(const std::string& bench_name) {
+    DBUG_TRACE;
     if (throughput_ops_.size() < 2) {
       // skip if there are not enough samples
       return;
@@ -2515,6 +2547,7 @@ class CombinedStats {
   }
 
   void ReportWithConfidenceIntervals(const std::string& bench_name) {
+    DBUG_TRACE;
     if (throughput_ops_.size() < 2) {
       // skip if there are not enough samples
       return;
@@ -2541,6 +2574,7 @@ class CombinedStats {
   }
 
   void ReportFinal(const std::string& bench_name) {
+    DBUG_TRACE;
     if (throughput_ops_.size() < 2) {
       // skip if there are not enough samples
       return;
@@ -2572,6 +2606,7 @@ class CombinedStats {
 
  private:
   double CalcAvg(std::vector<double>& data) {
+    DBUG_TRACE;
     double avg = 0;
     for (double x : data) {
       avg += x;
@@ -2584,6 +2619,7 @@ class CombinedStats {
   // Samples are not from a normal distribution, but it still
   // provides useful approximation.
   double CalcConfidence95(std::vector<double>& data) {
+    DBUG_TRACE;
     assert(data.size() > 1);
     double avg = CalcAvg(data);
     double std_error = CalcStdDev(data, avg) / std::sqrt(data.size());
@@ -2594,6 +2630,7 @@ class CombinedStats {
   }
 
   double CalcMedian(std::vector<double>& data) {
+    DBUG_TRACE;
     assert(data.size() > 0);
     std::sort(data.begin(), data.end());
 
@@ -2608,6 +2645,7 @@ class CombinedStats {
   }
 
   double CalcStdDev(std::vector<double>& data, double average) {
+    DBUG_TRACE;
     assert(data.size() > 1);
     double squared_sum = 0.0;
     for (double x : data) {
@@ -2629,9 +2667,10 @@ class TimestampEmulator {
 
  public:
   TimestampEmulator() : timestamp_(0) {}
-  uint64_t Get() const { return timestamp_.load(); }
-  void Inc() { timestamp_++; }
+  uint64_t Get() const { DBUG_TRACE; return timestamp_.load(); }
+  void Inc() { DBUG_TRACE; timestamp_++; }
   Slice Allocate(char* scratch) {
+    DBUG_TRACE;
     // TODO: support larger timestamp sizes
     assert(FLAGS_user_timestamp_size == 8);
     assert(scratch);
@@ -2640,6 +2679,7 @@ class TimestampEmulator {
     return Slice(scratch, FLAGS_user_timestamp_size);
   }
   Slice GetTimestampForRead(Random64& rand, char* scratch) {
+    DBUG_TRACE;
     assert(FLAGS_user_timestamp_size == 8);
     assert(scratch);
     if (FLAGS_read_with_latest_user_timestamp) {
@@ -2695,9 +2735,10 @@ class Duration {
     start_at_ = FLAGS_env->NowMicros();
   }
 
-  int64_t GetStage() { return std::min(ops_, max_ops_ - 1) / ops_per_stage_; }
+  int64_t GetStage() { DBUG_TRACE; return std::min(ops_, max_ops_ - 1) / ops_per_stage_; }
 
   bool Done(int64_t increment) {
+    DBUG_TRACE;
     if (increment <= 0) {
       increment = 1;  // avoid Done(0) and infinite loops
     }
@@ -2769,24 +2810,27 @@ class Benchmark {
 
     ~ErrorHandlerListener() override = default;
 
-    const char* Name() const override { return kClassName(); }
-    static const char* kClassName() { return "ErrorHandlerListener"; }
+    const char* Name() const override { DBUG_TRACE; return kClassName(); }
+    static const char* kClassName() { DBUG_TRACE; return "ErrorHandlerListener"; }
 
     void OnErrorRecoveryBegin(BackgroundErrorReason /*reason*/,
                               Status /*bg_error*/,
                               bool* auto_recovery) override {
+      DBUG_TRACE;
       if (*auto_recovery && no_auto_recovery_) {
         *auto_recovery = false;
       }
     }
 
     void OnErrorRecoveryCompleted(Status /*old_bg_error*/) override {
+      DBUG_TRACE;
       InstrumentedMutexLock l(&mutex_);
       recovery_complete_ = true;
       cv_.SignalAll();
     }
 
     bool WaitForRecovery(uint64_t abs_time_us) {
+      DBUG_TRACE;
       InstrumentedMutexLock l(&mutex_);
       if (!recovery_complete_) {
         cv_.TimedWait(abs_time_us);
@@ -2798,7 +2842,7 @@ class Benchmark {
       return false;
     }
 
-    void EnableAutoRecovery(bool enable = true) { no_auto_recovery_ = !enable; }
+    void EnableAutoRecovery(bool enable = true) { DBUG_TRACE; no_auto_recovery_ = !enable; }
 
    private:
     InstrumentedMutex mutex_;
@@ -2812,6 +2856,7 @@ class Benchmark {
   std::unique_ptr<TimestampEmulator> mock_app_clock_;
 
   bool SanityCheck() {
+    DBUG_TRACE;
     if (FLAGS_compression_ratio > 1) {
       fprintf(stderr, "compression_ratio should be between 0 and 1\n");
       return false;
@@ -2828,6 +2873,7 @@ class Benchmark {
   }
 
   void PrintHeader(const Options& options) {
+    DBUG_TRACE;
     PrintEnvironment();
     fprintf(stdout,
             "Keys:       %d bytes each (+ %d bytes user-defined timestamp)\n",
@@ -2890,6 +2936,7 @@ class Benchmark {
   }
 
   void PrintWarnings(const char* compression) {
+DBUG_TRACE;
 #if defined(__GNUC__) && !defined(__OPTIMIZE__)
     fprintf(
         stdout,
@@ -2924,6 +2971,7 @@ class Benchmark {
 // Current the following isn't equivalent to OS_LINUX.
 #if defined(__linux)
   static Slice TrimSpace(Slice s) {
+    DBUG_TRACE;
     unsigned int start = 0;
     while (start < s.size() && isspace(s[start])) {
       start++;
@@ -2937,6 +2985,7 @@ class Benchmark {
 #endif
 
   void PrintEnvironment() {
+    DBUG_TRACE;
     fprintf(stderr, "RocksDB:    version %s\n",
             GetRocksVersionAsString(true).c_str());
 
@@ -3017,6 +3066,7 @@ class Benchmark {
 
   static bool KeyExpired(const TimestampEmulator* timestamp_emulator,
                          const Slice& key) {
+    DBUG_TRACE;
     const char* pos = key.data();
     pos += 8;
     uint64_t timestamp = 0;
@@ -3040,9 +3090,10 @@ class Benchmark {
     bool Filter(int /*level*/, const Slice& key,
                 const Slice& /*existing_value*/, std::string* /*new_value*/,
                 bool* /*value_changed*/) const override {
+      DBUG_TRACE;
       return KeyExpired(timestamp_emulator_.get(), key);
     }
-    const char* Name() const override { return "ExpiredTimeFilter"; }
+    const char* Name() const override { DBUG_TRACE; return "ExpiredTimeFilter"; }
 
    private:
     std::shared_ptr<TimestampEmulator> timestamp_emulator_;
@@ -3053,13 +3104,15 @@ class Benchmark {
     bool Filter(int /*level*/, const Slice& /*key*/, const Slice& /*value*/,
                 std::string* /*new_value*/,
                 bool* /*value_changed*/) const override {
+      DBUG_TRACE;
       return false;
     }
 
-    const char* Name() const override { return "KeepFilter"; }
+    const char* Name() const override { DBUG_TRACE; return "KeepFilter"; }
   };
 
   static std::shared_ptr<MemoryAllocator> GetCacheAllocator() {
+    DBUG_TRACE;
     std::shared_ptr<MemoryAllocator> allocator;
 
     if (FLAGS_use_cache_jemalloc_no_dump_allocator) {
@@ -3081,11 +3134,13 @@ class Benchmark {
   }
 
   static int32_t GetCacheHashSeed() {
+    DBUG_TRACE;
     // For a fixed Cache seed, need a non-negative int32
     return static_cast<int32_t>(*seed_base) & 0x7fffffff;
   }
 
   static std::shared_ptr<Cache> NewCache(int64_t capacity) {
+    DBUG_TRACE;
     CompressedSecondaryCacheOptions secondary_cache_opts;
     TieredAdmissionPolicy adm_policy = TieredAdmissionPolicy::kAdmPolicyAuto;
     bool use_tiered_cache = false;
@@ -3291,6 +3346,7 @@ class Benchmark {
   }
 
   void DeleteDBs() {
+    DBUG_TRACE;
     db_.DeleteDBs();
     for (const DBWithColumnFamilies& dbwcf : multi_dbs_) {
       delete dbwcf.db;
@@ -3308,6 +3364,7 @@ class Benchmark {
   }
 
   Slice AllocateKey(std::unique_ptr<const char[]>* key_guard) {
+    DBUG_TRACE;
     char* data = new char[key_size_];
     const char* const_data = data;
     key_guard->reset(const_data);
@@ -3329,6 +3386,7 @@ class Benchmark {
   //     |        key 00000         |
   //     ----------------------------
   void GenerateKeyFromInt(uint64_t v, int64_t num_keys, Slice* key) {
+    DBUG_TRACE;
     if (!keys_.empty()) {
       assert(FLAGS_use_existing_keys);
       assert(keys_.size() == static_cast<size_t>(num_keys));
@@ -3371,6 +3429,7 @@ class Benchmark {
   }
 
   void GenerateKeyFromIntForSeek(uint64_t v, int64_t num_keys, Slice* key) {
+    DBUG_TRACE;
     GenerateKeyFromInt(v, num_keys, key);
     if (FLAGS_seek_missing_prefix) {
       assert(prefix_size_ > 8);
@@ -3382,6 +3441,7 @@ class Benchmark {
   }
 
   std::string GetPathForMultiple(std::string base_name, size_t id) {
+    DBUG_TRACE;
     if (!base_name.empty()) {
 #ifndef OS_WIN
       if (base_name.back() != '/') {
@@ -3397,6 +3457,7 @@ class Benchmark {
   }
 
   void VerifyDBFromDB(std::string& truth_db_name) {
+    DBUG_TRACE;
     DBWithColumnFamilies truth_db;
     auto s = DB::OpenForReadOnly(open_options_, truth_db_name, &truth_db.db);
     if (!s.ok()) {
@@ -3430,11 +3491,13 @@ class Benchmark {
   }
 
   void ErrorExit() {
+    DBUG_TRACE;
     DeleteDBs();
     exit(1);
   }
 
   void Run() {
+    DBUG_TRACE;
     if (!SanityCheck()) {
       ErrorExit();
     }
@@ -3936,6 +3999,7 @@ class Benchmark {
   };
 
   static void ThreadBody(void* v) {
+    DBUG_TRACE;
     ThreadArg* arg = static_cast<ThreadArg*>(v);
     SharedState* shared = arg->shared;
     ThreadState* thread = arg->thread;
@@ -3971,6 +4035,7 @@ class Benchmark {
 
   Stats RunBenchmark(int n, Slice name,
                      void (Benchmark::*method)(ThreadState*)) {
+    DBUG_TRACE;
     SharedState shared;
     shared.total = n;
     shared.num_initialized = 0;
@@ -4072,22 +4137,27 @@ class Benchmark {
   }
 
   void Crc32c(ThreadState* thread) {
+    DBUG_TRACE;
     ChecksumBenchmark<kCrc>(crc32c::Value, thread);
   }
 
   void xxHash(ThreadState* thread) {
+    DBUG_TRACE;
     ChecksumBenchmark<kHash>(XXH32, thread, /*seed*/ 0);
   }
 
   void xxHash64(ThreadState* thread) {
+    DBUG_TRACE;
     ChecksumBenchmark<kHash>(XXH64, thread, /*seed*/ 0);
   }
 
   void xxh3(ThreadState* thread) {
+    DBUG_TRACE;
     ChecksumBenchmark<kHash>(XXH3_64bits, thread);
   }
 
   void AcquireLoad(ThreadState* thread) {
+    DBUG_TRACE;
     int dummy;
     std::atomic<void*> ap(&dummy);
     int count = 0;
@@ -4106,6 +4176,7 @@ class Benchmark {
   }
 
   void Compress(ThreadState* thread) {
+    DBUG_TRACE;
     RandomGenerator gen;
     Slice input = gen.Generate(FLAGS_block_size);
     int64_t bytes = 0;
@@ -4180,6 +4251,7 @@ class Benchmark {
   // Returns true if the options is initialized from the specified
   // options file.
   bool InitializeOptionsFromFile(Options* opts) {
+    DBUG_TRACE;
     printf("Initializing RocksDB Options from the specified file\n");
     DBOptions db_opts;
     std::vector<ColumnFamilyDescriptor> cf_descs;
@@ -4203,6 +4275,7 @@ class Benchmark {
   }
 
   void InitializeOptionsFromFlags(Options* opts) {
+    DBUG_TRACE;
     printf("Initializing RocksDB Options from command-line flags\n");
     Options& options = *opts;
     ConfigOptions config_options(options);
@@ -4735,6 +4808,7 @@ class Benchmark {
   }
 
   void InitializeOptionsGeneral(Options* opts) {
+    DBUG_TRACE;
     // Be careful about what is set here to avoid accidentally overwriting
     // settings already configured by OPTIONS file. Only configure settings that
     // are needed for the benchmark to run, settings for shared objects that
@@ -4864,6 +4938,7 @@ class Benchmark {
   }
 
   void Open(Options* opts) {
+    DBUG_TRACE;
     if (!InitializeOptionsFromFile(opts)) {
       InitializeOptionsFromFlags(opts);
     }
@@ -4873,6 +4948,7 @@ class Benchmark {
 
   void OpenDb(Options options, const std::string& db_name,
               DBWithColumnFamilies* db) {
+    DBUG_TRACE;
     uint64_t open_start = FLAGS_report_open_timing ? FLAGS_env->NowNanos() : 0;
     Status s;
     // Open with column families if necessary.
@@ -5028,19 +5104,22 @@ class Benchmark {
   enum WriteMode { RANDOM, SEQUENTIAL, UNIQUE_RANDOM };
 
   void WriteSeqDeterministic(ThreadState* thread) {
+    DBUG_TRACE;
     DoDeterministicCompact(thread, open_options_.compaction_style, SEQUENTIAL);
   }
 
   void WriteUniqueRandomDeterministic(ThreadState* thread) {
+    DBUG_TRACE;
     DoDeterministicCompact(thread, open_options_.compaction_style,
                            UNIQUE_RANDOM);
   }
 
-  void WriteSeq(ThreadState* thread) { DoWrite(thread, SEQUENTIAL); }
+  void WriteSeq(ThreadState* thread) { DBUG_TRACE; DoWrite(thread, SEQUENTIAL); }
 
-  void WriteRandom(ThreadState* thread) { DoWrite(thread, RANDOM); }
+  void WriteRandom(ThreadState* thread) { DBUG_TRACE; DoWrite(thread, RANDOM); }
 
   void WriteUniqueRandom(ThreadState* thread) {
+    DBUG_TRACE;
     DoWrite(thread, UNIQUE_RANDOM);
   }
 
@@ -5064,6 +5143,7 @@ class Benchmark {
     }
 
     uint64_t Next() {
+      DBUG_TRACE;
       switch (mode_) {
         case SEQUENTIAL:
           return next_++;
@@ -5079,6 +5159,7 @@ class Benchmark {
 
     // Only available for UNIQUE_RANDOM mode.
     uint64_t Fetch(uint64_t index) {
+      DBUG_TRACE;
       assert(mode_ == UNIQUE_RANDOM);
       assert(index < values_.size());
       return values_[index];
@@ -5092,13 +5173,15 @@ class Benchmark {
     std::vector<uint64_t> values_;
   };
 
-  DB* SelectDB(ThreadState* thread) { return SelectDBWithCfh(thread)->db; }
+  DB* SelectDB(ThreadState* thread) { DBUG_TRACE; return SelectDBWithCfh(thread)->db; }
 
   DBWithColumnFamilies* SelectDBWithCfh(ThreadState* thread) {
+    DBUG_TRACE;
     return SelectDBWithCfh(thread->rand.Next());
   }
 
   DBWithColumnFamilies* SelectDBWithCfh(uint64_t rand_int) {
+    DBUG_TRACE;
     if (db_.db != nullptr) {
       return &db_;
     } else {
@@ -5107,10 +5190,12 @@ class Benchmark {
   }
 
   double SineRate(double x) {
+    DBUG_TRACE;
     return FLAGS_sine_a * sin((FLAGS_sine_b * x) + FLAGS_sine_c) + FLAGS_sine_d;
   }
 
   void DoWrite(ThreadState* thread, WriteMode write_mode) {
+    DBUG_TRACE;
     const int test_duration = write_mode == RANDOM ? FLAGS_duration : 0;
     const int64_t num_ops = writes_ == 0 ? num_ : writes_;
 
@@ -5551,6 +5636,7 @@ class Benchmark {
   Status DoDeterministicCompact(ThreadState* thread,
                                 CompactionStyle compaction_style,
                                 WriteMode write_mode) {
+    DBUG_TRACE;
     ColumnFamilyMetaData meta;
     std::vector<DB*> db_list;
     if (db_.db != nullptr) {
@@ -5854,6 +5940,7 @@ class Benchmark {
   }
 
   void ReadSequential(ThreadState* thread) {
+    DBUG_TRACE;
     if (db_.db != nullptr) {
       ReadSequential(thread, db_.db);
     } else {
@@ -5864,6 +5951,7 @@ class Benchmark {
   }
 
   void ReadSequential(ThreadState* thread, DB* db) {
+    DBUG_TRACE;
     ReadOptions options = read_options_;
     std::unique_ptr<char[]> ts_guard;
     Slice ts;
@@ -5898,6 +5986,7 @@ class Benchmark {
   }
 
   void ReadToRowCache(ThreadState* thread) {
+    DBUG_TRACE;
     int64_t read = 0;
     int64_t found = 0;
     int64_t bytes = 0;
@@ -5951,6 +6040,7 @@ class Benchmark {
   }
 
   void ReadReverse(ThreadState* thread) {
+    DBUG_TRACE;
     if (db_.db != nullptr) {
       ReadReverse(thread, db_.db);
     } else {
@@ -5961,6 +6051,7 @@ class Benchmark {
   }
 
   void ReadReverse(ThreadState* thread, DB* db) {
+    DBUG_TRACE;
     Iterator* iter = db->NewIterator(read_options_);
     int64_t i = 0;
     int64_t bytes = 0;
@@ -5980,6 +6071,7 @@ class Benchmark {
   }
 
   void ReadRandomFast(ThreadState* thread) {
+    DBUG_TRACE;
     int64_t read = 0;
     int64_t found = 0;
     int64_t nonexist = 0;
@@ -6044,6 +6136,7 @@ class Benchmark {
   }
 
   int64_t GetRandomKey(Random64* rand) {
+    DBUG_TRACE;
     uint64_t rand_int = rand->Next();
     int64_t key_rand;
     if (read_random_exp_range_ == 0) {
@@ -6065,6 +6158,7 @@ class Benchmark {
   }
 
   void ReadRandom(ThreadState* thread) {
+    DBUG_TRACE;
     int64_t read = 0;
     int64_t found = 0;
     int64_t bytes = 0;
@@ -6182,6 +6276,7 @@ class Benchmark {
   // Calls MultiGet over a list of keys from a random distribution.
   // Returns the total number of keys found.
   void MultiReadRandom(ThreadState* thread) {
+    DBUG_TRACE;
     int64_t read = 0;
     int64_t bytes = 0;
     int64_t num_multireads = 0;
@@ -6280,6 +6375,7 @@ class Benchmark {
 
   // Calls ApproximateSize over random key ranges.
   void ApproximateSizeRandom(ThreadState* thread) {
+    DBUG_TRACE;
     int64_t size_sum = 0;
     int64_t num_sizes = 0;
     const size_t batch_size = entries_per_batch_;
@@ -6327,6 +6423,7 @@ class Benchmark {
 
   // The inverse function of Pareto distribution
   int64_t ParetoCdfInversion(double u, double theta, double k, double sigma) {
+    DBUG_TRACE;
     double ret;
     if (k == 0.0) {
       ret = theta - sigma * std::log(u);
@@ -6337,6 +6434,7 @@ class Benchmark {
   }
   // The inverse function of power distribution (y=ax^b)
   int64_t PowerCdfInversion(double u, double a, double b) {
+    DBUG_TRACE;
     double ret;
     ret = std::pow((u / a), (1 / b));
     return static_cast<int64_t>(ceil(ret));
@@ -6344,6 +6442,7 @@ class Benchmark {
 
   // Add the noice to the QPS
   double AddNoise(double origin, double noise_ratio) {
+    DBUG_TRACE;
     if (noise_ratio < 0.0 || noise_ratio > 1.0) {
       return origin;
     }
@@ -6368,6 +6467,7 @@ class Benchmark {
     ~QueryDecider() = default;
 
     Status Initiate(std::vector<double> ratio_input) {
+      DBUG_TRACE;
       int range_max = 1000;
       double sum = 0.0;
       for (auto& ratio : ratio_input) {
@@ -6383,6 +6483,7 @@ class Benchmark {
     }
 
     int GetType(int64_t rand_num) {
+      DBUG_TRACE;
       if (rand_num < 0) {
         rand_num = rand_num * (-1);
       }
@@ -6431,6 +6532,7 @@ class Benchmark {
     Status InitiateExpDistribution(int64_t total_keys, double prefix_a,
                                    double prefix_b, double prefix_c,
                                    double prefix_d) {
+      DBUG_TRACE;
       int64_t amplify = 0;
       int64_t keyrange_start = 0;
       if (FLAGS_keyrange_num <= 0) {
@@ -6504,6 +6606,7 @@ class Benchmark {
     // Generate the Key ID according to the input ini_rand and key distribution
     int64_t DistGetKeyID(int64_t ini_rand, double key_dist_a,
                          double key_dist_b) {
+      DBUG_TRACE;
       int64_t keyrange_rand = ini_rand % keyrange_rand_max_;
 
       // Calculate and select one key-range that contains the new key
@@ -6543,6 +6646,7 @@ class Benchmark {
   // needs to decide the ratio between Get, Put, Iterator queries before
   // starting the benchmark.
   void MixGraph(ThreadState* thread) {
+    DBUG_TRACE;
     int64_t gets = 0;
     int64_t puts = 0;
     int64_t get_found = 0;
@@ -6741,6 +6845,7 @@ class Benchmark {
   }
 
   void IteratorCreation(ThreadState* thread) {
+    DBUG_TRACE;
     Duration duration(FLAGS_duration, reads_);
     ReadOptions options = read_options_;
     std::unique_ptr<char[]> ts_guard;
@@ -6761,6 +6866,7 @@ class Benchmark {
   }
 
   void IteratorCreationWhileWriting(ThreadState* thread) {
+    DBUG_TRACE;
     if (thread->tid > 0) {
       IteratorCreation(thread);
     } else {
@@ -6769,6 +6875,7 @@ class Benchmark {
   }
 
   void SeekRandom(ThreadState* thread) {
+    DBUG_TRACE;
     int64_t read = 0;
     int64_t found = 0;
     int64_t bytes = 0;
@@ -6890,6 +6997,7 @@ class Benchmark {
   }
 
   void SeekRandomWhileWriting(ThreadState* thread) {
+    DBUG_TRACE;
     if (thread->tid > 0) {
       SeekRandom(thread);
     } else {
@@ -6898,6 +7006,7 @@ class Benchmark {
   }
 
   void SeekRandomWhileMerging(ThreadState* thread) {
+    DBUG_TRACE;
     if (thread->tid > 0) {
       SeekRandom(thread);
     } else {
@@ -6906,6 +7015,7 @@ class Benchmark {
   }
 
   void DoDelete(ThreadState* thread, bool seq) {
+    DBUG_TRACE;
     WriteBatch batch(/*reserved_bytes=*/0, /*max_bytes=*/0,
                      FLAGS_write_batch_protection_bytes_per_key,
                      user_timestamp_size_);
@@ -6947,11 +7057,12 @@ class Benchmark {
     }
   }
 
-  void DeleteSeq(ThreadState* thread) { DoDelete(thread, true); }
+  void DeleteSeq(ThreadState* thread) { DBUG_TRACE; DoDelete(thread, true); }
 
-  void DeleteRandom(ThreadState* thread) { DoDelete(thread, false); }
+  void DeleteRandom(ThreadState* thread) { DBUG_TRACE; DoDelete(thread, false); }
 
   void ReadWhileWriting(ThreadState* thread) {
+    DBUG_TRACE;
     if (thread->tid > 0) {
       ReadRandom(thread);
     } else {
@@ -6960,6 +7071,7 @@ class Benchmark {
   }
 
   void MultiReadWhileWriting(ThreadState* thread) {
+    DBUG_TRACE;
     if (thread->tid > 0) {
       MultiReadRandom(thread);
     } else {
@@ -6968,6 +7080,7 @@ class Benchmark {
   }
 
   void ReadWhileMerging(ThreadState* thread) {
+    DBUG_TRACE;
     if (thread->tid > 0) {
       ReadRandom(thread);
     } else {
@@ -6976,6 +7089,7 @@ class Benchmark {
   }
 
   void BGWriter(ThreadState* thread, enum OperationType write_merge) {
+    DBUG_TRACE;
     // Special thread that keeps writing until other threads are done.
     RandomGenerator gen;
     int64_t bytes = 0;
@@ -7111,6 +7225,7 @@ class Benchmark {
   }
 
   void ReadWhileScanning(ThreadState* thread) {
+    DBUG_TRACE;
     if (thread->tid > 0) {
       ReadRandom(thread);
     } else {
@@ -7119,6 +7234,7 @@ class Benchmark {
   }
 
   void BGScan(ThreadState* thread) {
+    DBUG_TRACE;
     if (FLAGS_num_multi_db > 0) {
       fprintf(stderr, "Not supporting multiple DBs.\n");
       abort();
@@ -7162,6 +7278,7 @@ class Benchmark {
   // in DB atomically i.e in a single batch. Also refer GetMany.
   Status PutMany(DB* db, const WriteOptions& writeoptions, const Slice& key,
                  const Slice& value) {
+    DBUG_TRACE;
     std::string suffixes[3] = {"2", "1", "0"};
     std::string keys[3];
 
@@ -7195,6 +7312,7 @@ class Benchmark {
   // in DB atomically i.e in a single batch. Also refer GetMany.
   Status DeleteMany(DB* db, const WriteOptions& writeoptions,
                     const Slice& key) {
+    DBUG_TRACE;
     std::string suffixes[3] = {"1", "2", "0"};
     std::string keys[3];
 
@@ -7227,6 +7345,7 @@ class Benchmark {
   // in the same snapshot, and verifies that all the values are identical.
   // ASSUMES that PutMany was used to put (K, V) into the DB.
   Status GetMany(DB* db, const Slice& key, std::string* value) {
+    DBUG_TRACE;
     std::string suffixes[3] = {"0", "1", "2"};
     std::string keys[3];
     Slice key_slices[3];
@@ -7279,6 +7398,7 @@ class Benchmark {
   //     FLAGS_numdistinct distinct keys instead of FLAGS_num distinct keys.
   // (d) Does not have a MultiGet option.
   void RandomWithVerify(ThreadState* thread) {
+    DBUG_TRACE;
     RandomGenerator gen;
     std::string value;
     int64_t found = 0;
@@ -7349,6 +7469,7 @@ class Benchmark {
   // This is different from ReadWhileWriting because it does not use
   // an extra thread.
   void ReadRandomWriteRandom(ThreadState* thread) {
+    DBUG_TRACE;
     ReadOptions options = read_options_;
     RandomGenerator gen;
     std::string value;
@@ -7425,6 +7546,7 @@ class Benchmark {
   //
   // Read-modify-write for random keys
   void UpdateRandom(ThreadState* thread) {
+    DBUG_TRACE;
     ReadOptions options = read_options_;
     RandomGenerator gen;
     std::string value;
@@ -7492,6 +7614,7 @@ class Benchmark {
   // representing the existing value, we generate an array B of the same size,
   // then compute C = A^B as C[i]=A[i]^B[i], and store C
   void XORUpdateRandom(ThreadState* thread) {
+    DBUG_TRACE;
     ReadOptions options = read_options_;
     RandomGenerator gen;
     std::string existing_value;
@@ -7559,6 +7682,7 @@ class Benchmark {
   // Each operation causes the key grow by value_size (simulating an append).
   // Generally used for benchmarking against merges of similar type
   void AppendRandom(ThreadState* thread) {
+    DBUG_TRACE;
     ReadOptions options = read_options_;
     RandomGenerator gen;
     std::string value;
@@ -7637,6 +7761,7 @@ class Benchmark {
   // The number of merges on the same key can be controlled by adjusting
   // FLAGS_merge_keys.
   void MergeRandom(ThreadState* thread) {
+    DBUG_TRACE;
     RandomGenerator gen;
     int64_t bytes = 0;
     std::unique_ptr<const char[]> key_guard;
@@ -7681,6 +7806,7 @@ class Benchmark {
   // As with MergeRandom, the merge operator to use should be defined by
   // FLAGS_merge_operator.
   void ReadRandomMergeRandom(ThreadState* thread) {
+    DBUG_TRACE;
     RandomGenerator gen;
     std::string value;
     int64_t num_hits = 0;
@@ -7733,6 +7859,7 @@ class Benchmark {
   }
 
   void WriteSeqSeekSeq(ThreadState* thread) {
+    DBUG_TRACE;
     writes_ = FLAGS_num;
     DoWrite(thread, SEQUENTIAL);
     // exclude writes from the ops/sec calculation
@@ -7775,6 +7902,7 @@ class Benchmark {
   }
 
   bool binary_search(std::vector<int>& data, int start, int end, int key) {
+    DBUG_TRACE;
     if (data.empty()) {
       return false;
     }
@@ -7800,6 +7928,7 @@ class Benchmark {
   // list vs calling GetMergeOperands for key1 and then searching for the key2
   // in all the sorted sub-lists. Later case is expected to be a lot faster.
   void GetMergeOperands(ThreadState* thread) {
+    DBUG_TRACE;
     DB* db = SelectDB(thread);
     const int kTotalValues = 100000;
     const int kListSize = 100;
@@ -7876,6 +8005,7 @@ class Benchmark {
   }
 
   void VerifyChecksum(ThreadState* thread) {
+    DBUG_TRACE;
     DB* db = SelectDB(thread);
     ReadOptions ro;
     ro.adaptive_readahead = FLAGS_adaptive_readahead;
@@ -7892,6 +8022,7 @@ class Benchmark {
   }
 
   void VerifyFileChecksums(ThreadState* thread) {
+    DBUG_TRACE;
     DB* db = SelectDB(thread);
     ReadOptions ro;
     ro.adaptive_readahead = FLAGS_adaptive_readahead;
@@ -7921,6 +8052,7 @@ class Benchmark {
   // RandomTransactionVerify() will then validate the correctness of the results
   // by checking if the sum of all keys in each set is the same.
   void RandomTransaction(ThreadState* thread) {
+    DBUG_TRACE;
     Duration duration(FLAGS_duration, readwrites_);
     uint16_t num_prefix_ranges = static_cast<uint16_t>(FLAGS_transaction_sets);
     uint64_t transactions_done = 0;
@@ -7985,6 +8117,7 @@ class Benchmark {
   // Since each iteration of RandomTransaction() incremented a key in each set
   // by the same value, the sum of the keys in each set should be the same.
   void RandomTransactionVerify() {
+    DBUG_TRACE;
     if (!FLAGS_transaction_db && !FLAGS_optimistic_transaction_db) {
       // transactions not used, nothing to verify.
       return;
@@ -8006,6 +8139,7 @@ class Benchmark {
   // secondary indices: All data is stored in keys and updates happen by
   // deleting the old version of the key and inserting the new version.
   void RandomReplaceKeys(ThreadState* thread) {
+    DBUG_TRACE;
     std::unique_ptr<const char[]> key_guard;
     Slice key = AllocateKey(&key_guard);
     std::unique_ptr<char[]> ts_guard;
@@ -8081,6 +8215,7 @@ class Benchmark {
   }
 
   void TimeSeriesReadOrDelete(ThreadState* thread, bool do_deletion) {
+    DBUG_TRACE;
     int64_t read = 0;
     int64_t found = 0;
     int64_t bytes = 0;
@@ -8157,6 +8292,7 @@ class Benchmark {
   }
 
   void TimeSeriesWrite(ThreadState* thread) {
+    DBUG_TRACE;
     // Special thread that keeps writing until other threads are done.
     RandomGenerator gen;
     int64_t bytes = 0;
@@ -8218,6 +8354,7 @@ class Benchmark {
   }
 
   void TimeSeries(ThreadState* thread) {
+    DBUG_TRACE;
     if (thread->tid > 0) {
       bool do_deletion = FLAGS_expire_style == "delete" &&
                          thread->tid <= FLAGS_num_deletion_threads;
@@ -8230,6 +8367,7 @@ class Benchmark {
   }
 
   void Compact(ThreadState* thread) {
+    DBUG_TRACE;
     DB* db = SelectDB(thread);
     CompactRangeOptions cro;
     cro.bottommost_level_compaction =
@@ -8239,6 +8377,7 @@ class Benchmark {
   }
 
   void CompactAll() {
+    DBUG_TRACE;
     CompactRangeOptions cro;
     cro.max_subcompactions = static_cast<uint32_t>(FLAGS_subcompactions);
     if (db_.db != nullptr) {
@@ -8250,6 +8389,7 @@ class Benchmark {
   }
 
   void WaitForCompactionHelper(DBWithColumnFamilies& db) {
+    DBUG_TRACE;
     fprintf(stdout, "waitforcompaction(%s): started\n",
             db.db->GetName().c_str());
 
@@ -8260,6 +8400,7 @@ class Benchmark {
   }
 
   void WaitForCompaction() {
+    DBUG_TRACE;
     // Give background threads a chance to wake
     FLAGS_env->SleepForMicroseconds(5 * 1000000);
 
@@ -8273,6 +8414,7 @@ class Benchmark {
   }
 
   bool CompactLevelHelper(DBWithColumnFamilies& db_with_cfh, int from_level) {
+    DBUG_TRACE;
     std::vector<LiveFileMetaData> files;
     db_with_cfh.db->GetLiveFilesMetaData(&files);
 
@@ -8347,6 +8489,7 @@ class Benchmark {
   }
 
   void CompactLevel(int from_level) {
+    DBUG_TRACE;
     if (db_.db != nullptr) {
       while (!CompactLevelHelper(db_, from_level)) {
         WaitForCompaction();
@@ -8360,6 +8503,7 @@ class Benchmark {
   }
 
   void Flush() {
+    DBUG_TRACE;
     FlushOptions flush_opt;
     flush_opt.wait = true;
 
@@ -8395,6 +8539,7 @@ class Benchmark {
   }
 
   void ResetStats() {
+    DBUG_TRACE;
     if (db_.db != nullptr) {
       db_.db->ResetStats();
     }
@@ -8404,6 +8549,7 @@ class Benchmark {
   }
 
   void PrintStatsHistory() {
+    DBUG_TRACE;
     if (db_.db != nullptr) {
       PrintStatsHistoryImpl(db_.db, false);
     }
@@ -8413,6 +8559,7 @@ class Benchmark {
   }
 
   void PrintStatsHistoryImpl(DB* db, bool print_header) {
+    DBUG_TRACE;
     if (print_header) {
       fprintf(stdout, "\n==== DB: %s ===\n", db->GetName().c_str());
     }
@@ -8438,11 +8585,13 @@ class Benchmark {
   }
 
   void CacheReportProblems() {
+    DBUG_TRACE;
     auto debug_logger = std::make_shared<StderrLogger>(DEBUG_LEVEL);
     cache_->ReportProblems(debug_logger);
   }
 
   void PrintStats(const char* key) {
+    DBUG_TRACE;
     if (db_.db != nullptr) {
       PrintStats(db_.db, key, false);
     }
@@ -8452,6 +8601,7 @@ class Benchmark {
   }
 
   void PrintStats(DB* db, const char* key, bool print_header = false) {
+    DBUG_TRACE;
     if (print_header) {
       fprintf(stdout, "\n==== DB: %s ===\n", db->GetName().c_str());
     }
@@ -8463,6 +8613,7 @@ class Benchmark {
   }
 
   void PrintStats(const std::vector<std::string>& keys) {
+    DBUG_TRACE;
     if (db_.db != nullptr) {
       PrintStats(db_.db, keys);
     }
@@ -8473,6 +8624,7 @@ class Benchmark {
 
   void PrintStats(DB* db, const std::vector<std::string>& keys,
                   bool print_header = false) {
+    DBUG_TRACE;
     if (print_header) {
       fprintf(stdout, "\n==== DB: %s ===\n", db->GetName().c_str());
     }
@@ -8488,12 +8640,14 @@ class Benchmark {
 
 
   void Replay(ThreadState* thread) {
+    DBUG_TRACE;
     if (db_.db != nullptr) {
       Replay(thread, &db_);
     }
   }
 
   void Replay(ThreadState* /*thread*/, DBWithColumnFamilies* db_with_cfh) {
+    DBUG_TRACE;
     Status s;
     std::unique_ptr<TraceReader> trace_reader;
     s = NewFileTraceReader(FLAGS_env, EnvOptions(), FLAGS_trace_file,
@@ -8535,6 +8689,7 @@ class Benchmark {
   }
 
   void Backup(ThreadState* thread) {
+    DBUG_TRACE;
     DB* db = SelectDB(thread);
     std::unique_ptr<BackupEngineOptions> engine_options(
         new BackupEngineOptions(FLAGS_backup_dir));
@@ -8558,6 +8713,7 @@ class Benchmark {
   }
 
   void Restore(ThreadState* /* thread */) {
+    DBUG_TRACE;
     std::unique_ptr<BackupEngineOptions> engine_options(
         new BackupEngineOptions(FLAGS_backup_dir));
     if (FLAGS_restore_rate_limit > 0) {
@@ -8578,6 +8734,7 @@ class Benchmark {
 };
 
 int db_bench_tool(int argc, char** argv) {
+  DBUG_TRACE;
   ROCKSDB_NAMESPACE::port::InstallStackTraceHandler();
   ConfigOptions config_options;
   static bool initialized = false;

@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "file/writable_file_writer.h"
 
 #include <algorithm>
@@ -27,6 +28,7 @@
 namespace ROCKSDB_NAMESPACE {
 inline Histograms GetFileWriteHistograms(Histograms file_writer_hist,
                                          Env::IOActivity io_activity) {
+  DBUG_TRACE;
   if (file_writer_hist == Histograms::SST_WRITE_MICROS ||
       file_writer_hist == Histograms::BLOB_DB_BLOB_FILE_WRITE_MICROS) {
     switch (io_activity) {
@@ -48,6 +50,7 @@ IOStatus WritableFileWriter::Create(const std::shared_ptr<FileSystem>& fs,
                                     const FileOptions& file_opts,
                                     std::unique_ptr<WritableFileWriter>* writer,
                                     IODebugContext* dbg) {
+  DBUG_TRACE;
   if (file_opts.use_direct_writes &&
       0 == file_opts.writable_file_max_buffer_size) {
     return IOStatus::InvalidArgument(
@@ -63,6 +66,7 @@ IOStatus WritableFileWriter::Create(const std::shared_ptr<FileSystem>& fs,
 
 IOStatus WritableFileWriter::Append(const IOOptions& opts, const Slice& data,
                                     uint32_t crc32c_checksum) {
+  DBUG_TRACE;
   if (seen_error()) {
     return GetWriterHasPreviousErrorStatus();
   }
@@ -198,6 +202,7 @@ IOStatus WritableFileWriter::Append(const IOOptions& opts, const Slice& data,
 
 IOStatus WritableFileWriter::Pad(const IOOptions& opts,
                                  const size_t pad_bytes) {
+  DBUG_TRACE;
   if (seen_error()) {
     return GetWriterHasPreviousErrorStatus();
   }
@@ -240,6 +245,7 @@ IOStatus WritableFileWriter::Pad(const IOOptions& opts,
 }
 
 IOStatus WritableFileWriter::Close(const IOOptions& opts) {
+  DBUG_TRACE;
   IOOptions io_options = FinalizeIOOptions(opts);
   if (seen_error()) {
     IOStatus interim;
@@ -347,6 +353,7 @@ IOStatus WritableFileWriter::Close(const IOOptions& opts) {
 // write out the cached data to the OS cache or storage if direct I/O
 // enabled
 IOStatus WritableFileWriter::Flush(const IOOptions& opts) {
+  DBUG_TRACE;
   if (seen_error()) {
     return GetWriterHasPreviousErrorStatus();
   }
@@ -435,6 +442,7 @@ IOStatus WritableFileWriter::Flush(const IOOptions& opts) {
 }
 
 std::string WritableFileWriter::GetFileChecksum() {
+  DBUG_TRACE;
   if (checksum_generator_ != nullptr) {
     assert(checksum_finalized_);
     return checksum_generator_->GetChecksum();
@@ -444,6 +452,7 @@ std::string WritableFileWriter::GetFileChecksum() {
 }
 
 const char* WritableFileWriter::GetFileChecksumFuncName() const {
+  DBUG_TRACE;
   if (checksum_generator_ != nullptr) {
     return checksum_generator_->Name();
   } else {
@@ -453,10 +462,12 @@ const char* WritableFileWriter::GetFileChecksumFuncName() const {
 
 IOStatus WritableFileWriter::PrepareIOOptions(const WriteOptions& wo,
                                               IOOptions& opts) {
+  DBUG_TRACE;
   return PrepareIOFromWriteOptions(wo, opts);
 }
 
 IOStatus WritableFileWriter::Sync(const IOOptions& opts, bool use_fsync) {
+  DBUG_TRACE;
   if (seen_error()) {
     return GetWriterHasPreviousErrorStatus();
   }
@@ -482,6 +493,7 @@ IOStatus WritableFileWriter::Sync(const IOOptions& opts, bool use_fsync) {
 
 IOStatus WritableFileWriter::SyncWithoutFlush(const IOOptions& opts,
                                               bool use_fsync) {
+  DBUG_TRACE;
   if (seen_error()) {
     return GetWriterHasPreviousErrorStatus();
   }
@@ -502,6 +514,7 @@ IOStatus WritableFileWriter::SyncWithoutFlush(const IOOptions& opts,
 
 IOStatus WritableFileWriter::SyncInternal(const IOOptions& opts,
                                           bool use_fsync) {
+  DBUG_TRACE;
   // Caller is supposed to check seen_error_
   IOStatus s;
   IOSTATS_TIMER_GUARD(fsync_nanos);
@@ -539,6 +552,7 @@ IOStatus WritableFileWriter::SyncInternal(const IOOptions& opts,
 
 IOStatus WritableFileWriter::RangeSync(const IOOptions& opts, uint64_t offset,
                                        uint64_t nbytes) {
+  DBUG_TRACE;
   if (seen_error()) {
     return GetWriterHasPreviousErrorStatus();
   }
@@ -568,6 +582,7 @@ IOStatus WritableFileWriter::RangeSync(const IOOptions& opts, uint64_t offset,
 // limiter if available
 IOStatus WritableFileWriter::WriteBuffered(const IOOptions& opts,
                                            const char* data, size_t size) {
+  DBUG_TRACE;
   if (seen_error()) {
     return GetWriterHasPreviousErrorStatus();
   }
@@ -659,6 +674,7 @@ IOStatus WritableFileWriter::WriteBuffered(const IOOptions& opts,
 IOStatus WritableFileWriter::WriteBufferedWithChecksum(const IOOptions& opts,
                                                        const char* data,
                                                        size_t size) {
+  DBUG_TRACE;
   if (seen_error()) {
     return GetWriterHasPreviousErrorStatus();
   }
@@ -747,6 +763,7 @@ IOStatus WritableFileWriter::WriteBufferedWithChecksum(const IOOptions& opts,
 }
 
 void WritableFileWriter::UpdateFileChecksum(const Slice& data) {
+  DBUG_TRACE;
   if (checksum_generator_ != nullptr) {
     checksum_generator_->Update(data.data(), data.size());
   }
@@ -761,6 +778,7 @@ void WritableFileWriter::UpdateFileChecksum(const Slice& data) {
 void WritableFileWriter::Crc32cHandoffChecksumCalculation(const char* data,
                                                           size_t size,
                                                           char* buf) {
+  DBUG_TRACE;
   uint32_t v_crc32c = crc32c::Extend(0, data, size);
   EncodeFixed32(buf, v_crc32c);
 }
@@ -774,6 +792,7 @@ void WritableFileWriter::Crc32cHandoffChecksumCalculation(const char* data,
 // only write on aligned
 // offsets.
 IOStatus WritableFileWriter::WriteDirect(const IOOptions& opts) {
+  DBUG_TRACE;
   if (seen_error()) {
     assert(false);
 
@@ -873,6 +892,7 @@ IOStatus WritableFileWriter::WriteDirect(const IOOptions& opts) {
 }
 
 IOStatus WritableFileWriter::WriteDirectWithChecksum(const IOOptions& opts) {
+  DBUG_TRACE;
   if (seen_error()) {
     return GetWriterHasPreviousErrorStatus();
   }
@@ -982,6 +1002,7 @@ IOStatus WritableFileWriter::WriteDirectWithChecksum(const IOOptions& opts) {
 Env::IOPriority WritableFileWriter::DecideRateLimiterPriority(
     Env::IOPriority writable_file_io_priority,
     Env::IOPriority op_rate_limiter_priority) {
+  DBUG_TRACE;
   if (writable_file_io_priority == Env::IO_TOTAL &&
       op_rate_limiter_priority == Env::IO_TOTAL) {
     return Env::IO_TOTAL;
@@ -995,6 +1016,7 @@ Env::IOPriority WritableFileWriter::DecideRateLimiterPriority(
 }
 
 IOOptions WritableFileWriter::FinalizeIOOptions(const IOOptions& opts) const {
+  DBUG_TRACE;
   Env::IOPriority op_rate_limiter_priority = opts.rate_limiter_priority;
   IOOptions io_options(opts);
   if (writable_file_.get() != nullptr) {

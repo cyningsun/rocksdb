@@ -3,12 +3,14 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "db/blob/prefetch_buffer_collection.h"
 
 namespace ROCKSDB_NAMESPACE {
 
 FilePrefetchBuffer* PrefetchBufferCollection::GetOrCreatePrefetchBuffer(
     uint64_t file_number) {
+  DBUG_TRACE;
   auto& prefetch_buffer = prefetch_buffers_[file_number];
   if (!prefetch_buffer) {
     ReadaheadParams readahead_params;

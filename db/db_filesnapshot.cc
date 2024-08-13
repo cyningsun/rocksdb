@@ -5,6 +5,7 @@
 //
 
 
+#include "rocksdb/util/dbug.h"
 #include <algorithm>
 #include <cstdint>
 #include <memory>
@@ -30,12 +31,14 @@
 namespace ROCKSDB_NAMESPACE {
 
 Status DBImpl::FlushForGetLiveFiles() {
+  DBUG_TRACE;
   return DBImpl::FlushAllColumnFamilies(FlushOptions(),
                                         FlushReason::kGetLiveFiles);
 }
 
 Status DBImpl::GetLiveFiles(std::vector<std::string>& ret,
                             uint64_t* manifest_file_size, bool flush_memtable) {
+  DBUG_TRACE;
   *manifest_file_size = 0;
 
   mutex_.Lock();
@@ -93,11 +96,13 @@ Status DBImpl::GetLiveFiles(std::vector<std::string>& ret,
 }
 
 Status DBImpl::GetSortedWalFiles(VectorWalPtr& files) {
+  DBUG_TRACE;
   return GetSortedWalFilesImpl(files,
                                /*need_seqnos*/ true);
 }
 
 Status DBImpl::GetSortedWalFilesImpl(VectorWalPtr& files, bool need_seqnos) {
+  DBUG_TRACE;
   // Record tracked WALs as a (minimum) cross-check for directory scan
   std::vector<uint64_t> required_by_manifest;
 
@@ -187,6 +192,7 @@ Status DBImpl::GetSortedWalFilesImpl(VectorWalPtr& files, bool need_seqnos) {
 }
 
 Status DBImpl::GetCurrentWalFile(std::unique_ptr<WalFile>* current_log_file) {
+  DBUG_TRACE;
   uint64_t current_logfile_number;
   {
     InstrumentedMutexLock l(&mutex_);
@@ -199,6 +205,7 @@ Status DBImpl::GetCurrentWalFile(std::unique_ptr<WalFile>* current_log_file) {
 Status DBImpl::GetLiveFilesStorageInfo(
     const LiveFilesStorageInfoOptions& opts,
     std::vector<LiveFileStorageInfo>* files) {
+  DBUG_TRACE;
   // To avoid returning partial results, only move results to files on success.
   assert(files);
   files->clear();

@@ -8,6 +8,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "db/compaction/compaction_outputs.h"
 
 #include "db/builder.h"
@@ -15,12 +16,14 @@
 namespace ROCKSDB_NAMESPACE {
 
 void CompactionOutputs::NewBuilder(const TableBuilderOptions& tboptions) {
+  DBUG_TRACE;
   builder_.reset(NewTableBuilder(tboptions, file_writer_.get()));
 }
 
 Status CompactionOutputs::Finish(
     const Status& intput_status,
     const SeqnoToTimeMapping& seqno_to_time_mapping) {
+  DBUG_TRACE;
   FileMetaData* meta = GetMetaData();
   assert(meta != nullptr);
   Status s = intput_status;
@@ -63,6 +66,7 @@ IOStatus CompactionOutputs::WriterSyncClose(const Status& input_status,
                                             SystemClock* clock,
                                             Statistics* statistics,
                                             bool use_fsync) {
+  DBUG_TRACE;
   IOStatus io_s;
   IOOptions opts;
   io_s = WritableFileWriter::PrepareIOOptions(
@@ -88,6 +92,7 @@ IOStatus CompactionOutputs::WriterSyncClose(const Status& input_status,
 
 bool CompactionOutputs::UpdateFilesToCutForTTLStates(
     const Slice& internal_key) {
+  DBUG_TRACE;
   if (!files_to_cut_for_ttl_.empty()) {
     const InternalKeyComparator* icmp =
         &compaction_->column_family_data()->internal_comparator();
@@ -128,6 +133,7 @@ bool CompactionOutputs::UpdateFilesToCutForTTLStates(
 
 size_t CompactionOutputs::UpdateGrandparentBoundaryInfo(
     const Slice& internal_key) {
+  DBUG_TRACE;
   size_t curr_key_boundary_switched_num = 0;
   const std::vector<FileMetaData*>& grandparents = compaction_->grandparents();
 
@@ -188,6 +194,7 @@ size_t CompactionOutputs::UpdateGrandparentBoundaryInfo(
 
 uint64_t CompactionOutputs::GetCurrentKeyGrandparentOverlappedBytes(
     const Slice& internal_key) const {
+  DBUG_TRACE;
   // no overlap with any grandparent file
   if (being_grandparent_gap_) {
     return 0;
@@ -229,6 +236,7 @@ uint64_t CompactionOutputs::GetCurrentKeyGrandparentOverlappedBytes(
 }
 
 bool CompactionOutputs::ShouldStopBefore(const CompactionIterator& c_iter) {
+  DBUG_TRACE;
   assert(c_iter.Valid());
   const Slice& internal_key = c_iter.key();
 #ifndef NDEBUG
@@ -358,6 +366,7 @@ Status CompactionOutputs::AddToOutput(
     const CompactionIterator& c_iter,
     const CompactionFileOpenFunc& open_file_func,
     const CompactionFileCloseFunc& close_file_func) {
+  DBUG_TRACE;
   Status s;
   bool is_range_del = c_iter.IsDeleteRangeSentinelKey();
   if (is_range_del && compaction_->bottommost_level()) {
@@ -459,6 +468,7 @@ Status CompactionOutputs::AddRangeDels(
     CompactionIterationStats& range_del_out_stats, bool bottommost_level,
     const InternalKeyComparator& icmp, SequenceNumber earliest_snapshot,
     const Slice& next_table_min_key, const std::string& full_history_ts_low) {
+  DBUG_TRACE;
   // The following example does not happen since
   // CompactionOutput::ShouldStopBefore() always return false for the first
   // point key. But we should consider removing this dependency. Suppose for the
@@ -744,6 +754,7 @@ Status CompactionOutputs::AddRangeDels(
 }
 
 void CompactionOutputs::FillFilesToCutForTtl() {
+  DBUG_TRACE;
   if (compaction_->immutable_options()->compaction_style !=
           kCompactionStyleLevel ||
       compaction_->immutable_options()->compaction_pri !=

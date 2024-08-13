@@ -6,6 +6,7 @@
 // Copyright (c) 2011 The LevelDB Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
+#include "rocksdb/util/dbug.h"
 #include "cache/cache_reservation_manager.h"
 
 #include <cassert>
@@ -57,6 +58,7 @@ CacheReservationManagerImpl<R>::~CacheReservationManagerImpl() {
 template <CacheEntryRole R>
 Status CacheReservationManagerImpl<R>::UpdateCacheReservation(
     std::size_t new_mem_used) {
+  DBUG_TRACE;
   memory_used_ = new_mem_used;
   std::size_t cur_cache_allocated_size =
       cache_allocated_size_.load(std::memory_order_relaxed);
@@ -88,6 +90,7 @@ template <CacheEntryRole R>
 Status CacheReservationManagerImpl<R>::MakeCacheReservation(
     std::size_t incremental_memory_used,
     std::unique_ptr<CacheReservationManager::CacheReservationHandle>* handle) {
+  DBUG_TRACE;
   assert(handle);
   Status s =
       UpdateCacheReservation(GetTotalMemoryUsed() + incremental_memory_used);
@@ -101,6 +104,7 @@ Status CacheReservationManagerImpl<R>::MakeCacheReservation(
 template <CacheEntryRole R>
 Status CacheReservationManagerImpl<R>::ReleaseCacheReservation(
     std::size_t incremental_memory_used) {
+  DBUG_TRACE;
   assert(GetTotalMemoryUsed() >= incremental_memory_used);
   std::size_t updated_total_mem_used =
       GetTotalMemoryUsed() - incremental_memory_used;
@@ -111,6 +115,7 @@ Status CacheReservationManagerImpl<R>::ReleaseCacheReservation(
 template <CacheEntryRole R>
 Status CacheReservationManagerImpl<R>::IncreaseCacheReservation(
     std::size_t new_mem_used) {
+  DBUG_TRACE;
   Status return_status = Status::OK();
   while (new_mem_used > cache_allocated_size_.load(std::memory_order_relaxed)) {
     Cache::Handle* handle = nullptr;
@@ -129,6 +134,7 @@ Status CacheReservationManagerImpl<R>::IncreaseCacheReservation(
 template <CacheEntryRole R>
 Status CacheReservationManagerImpl<R>::DecreaseCacheReservation(
     std::size_t new_mem_used) {
+  DBUG_TRACE;
   Status return_status = Status::OK();
 
   // Decrease to the smallest multiple of kSizeDummyEntry that is greater than
@@ -148,16 +154,19 @@ Status CacheReservationManagerImpl<R>::DecreaseCacheReservation(
 
 template <CacheEntryRole R>
 std::size_t CacheReservationManagerImpl<R>::GetTotalReservedCacheSize() {
+  DBUG_TRACE;
   return cache_allocated_size_.load(std::memory_order_relaxed);
 }
 
 template <CacheEntryRole R>
 std::size_t CacheReservationManagerImpl<R>::GetTotalMemoryUsed() {
+  DBUG_TRACE;
   return memory_used_;
 }
 
 template <CacheEntryRole R>
 Slice CacheReservationManagerImpl<R>::GetNextCacheKey() {
+  DBUG_TRACE;
   // Calling this function will have the side-effect of changing the
   // underlying cache_key_ that is shared among other keys generated from this
   // fucntion. Therefore please make sure the previous keys are saved/copied
@@ -169,6 +178,7 @@ Slice CacheReservationManagerImpl<R>::GetNextCacheKey() {
 template <CacheEntryRole R>
 const Cache::CacheItemHelper*
 CacheReservationManagerImpl<R>::TEST_GetCacheItemHelperForRole() {
+  DBUG_TRACE;
   return CacheInterface::GetHelper();
 }
 

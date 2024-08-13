@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include <cassert>
 
 #include "memory/allocator.h"
@@ -24,6 +25,7 @@ AllocTracker::AllocTracker(WriteBufferManager* write_buffer_manager)
 AllocTracker::~AllocTracker() { FreeMem(); }
 
 void AllocTracker::Allocate(size_t bytes) {
+  DBUG_TRACE;
   assert(write_buffer_manager_ != nullptr);
   if (write_buffer_manager_->enabled() ||
       write_buffer_manager_->cost_to_cache()) {
@@ -33,6 +35,7 @@ void AllocTracker::Allocate(size_t bytes) {
 }
 
 void AllocTracker::DoneAllocating() {
+  DBUG_TRACE;
   if (write_buffer_manager_ != nullptr && !done_allocating_) {
     if (write_buffer_manager_->enabled() ||
         write_buffer_manager_->cost_to_cache()) {
@@ -46,6 +49,7 @@ void AllocTracker::DoneAllocating() {
 }
 
 void AllocTracker::FreeMem() {
+  DBUG_TRACE;
   if (!done_allocating_) {
     DoneAllocating();
   }

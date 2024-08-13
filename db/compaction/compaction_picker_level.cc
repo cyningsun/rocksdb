@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "db/compaction/compaction_picker_level.h"
 
 #include <string>
@@ -21,6 +22,7 @@ namespace ROCKSDB_NAMESPACE {
 
 bool LevelCompactionPicker::NeedsCompaction(
     const VersionStorageInfo* vstorage) const {
+  DBUG_TRACE;
   if (!vstorage->ExpiredTtlFiles().empty()) {
     return true;
   }
@@ -167,6 +169,7 @@ class LevelCompactionBuilder {
 void LevelCompactionBuilder::PickFileToCompact(
     const autovector<std::pair<int, FileMetaData*>>& level_files,
     CompactToNextLevel compact_to_next_level) {
+  DBUG_TRACE;
   for (auto& level_file : level_files) {
     // If it's being compacted it has nothing to do here.
     // If this assert() fails that means that some function marked some
@@ -200,6 +203,7 @@ void LevelCompactionBuilder::PickFileToCompact(
 }
 
 void LevelCompactionBuilder::SetupInitialFiles() {
+  DBUG_TRACE;
   // Find the compactions by size on all levels.
   bool skipped_l0_to_base = false;
   for (int i = 0; i < compaction_picker_->NumberLevels() - 1; i++) {
@@ -323,6 +327,7 @@ void LevelCompactionBuilder::SetupInitialFiles() {
 }
 
 bool LevelCompactionBuilder::SetupOtherL0FilesIfNeeded() {
+  DBUG_TRACE;
   if (start_level_ == 0 && output_level_ != 0 && !is_l0_trivial_move_) {
     return compaction_picker_->GetOverlappingL0Files(
         vstorage_, &start_level_inputs_, output_level_, &parent_index_);
@@ -331,6 +336,7 @@ bool LevelCompactionBuilder::SetupOtherL0FilesIfNeeded() {
 }
 
 void LevelCompactionBuilder::SetupOtherFilesWithRoundRobinExpansion() {
+  DBUG_TRACE;
   // We only expand when the start level is not L0 under round robin
   assert(start_level_ >= 1);
 
@@ -454,6 +460,7 @@ void LevelCompactionBuilder::SetupOtherFilesWithRoundRobinExpansion() {
 }
 
 bool LevelCompactionBuilder::SetupOtherInputsIfNeeded() {
+  DBUG_TRACE;
   // Setup input files from output level. For output to L0, we only compact
   // spans of files that do not interact with any pending compactions, so don't
   // need to consider other levels.
@@ -503,6 +510,7 @@ bool LevelCompactionBuilder::SetupOtherInputsIfNeeded() {
 }
 
 Compaction* LevelCompactionBuilder::PickCompaction() {
+  DBUG_TRACE;
   // Pick up the first file to start compaction. It may have been extended
   // to a clean cut.
   SetupInitialFiles();
@@ -532,6 +540,7 @@ Compaction* LevelCompactionBuilder::PickCompaction() {
 }
 
 Compaction* LevelCompactionBuilder::GetCompaction() {
+  DBUG_TRACE;
   // TryPickL0TrivialMove() does not apply to the case when compacting L0 to an
   // empty output level. So L0 files is picked in PickFileToCompact() by
   // compaction score. We may still be able to do trivial move when this file
@@ -578,6 +587,7 @@ Compaction* LevelCompactionBuilder::GetCompaction() {
 uint32_t LevelCompactionBuilder::GetPathId(
     const ImmutableCFOptions& ioptions,
     const MutableCFOptions& mutable_cf_options, int level) {
+  DBUG_TRACE;
   uint32_t p = 0;
   assert(!ioptions.cf_paths.empty());
 
@@ -625,6 +635,7 @@ uint32_t LevelCompactionBuilder::GetPathId(
 }
 
 bool LevelCompactionBuilder::TryPickL0TrivialMove() {
+  DBUG_TRACE;
   if (vstorage_->base_level() <= 0) {
     return false;
   }
@@ -695,6 +706,7 @@ bool LevelCompactionBuilder::TryPickL0TrivialMove() {
 
 bool LevelCompactionBuilder::TryExtendNonL0TrivialMove(int start_index,
                                                        bool only_expand_right) {
+  DBUG_TRACE;
   if (start_level_inputs_.size() == 1 &&
       (ioptions_.db_paths.empty() || ioptions_.db_paths.size() == 1) &&
       (mutable_cf_options_.compression_per_level.empty())) {
@@ -781,6 +793,7 @@ bool LevelCompactionBuilder::TryExtendNonL0TrivialMove(int start_index,
 }
 
 bool LevelCompactionBuilder::PickFileToCompact() {
+  DBUG_TRACE;
   // level 0 files are overlapping. So we cannot pick more
   // than one concurrent compactions at this level. This
   // could be made better by looking at key-ranges that are
@@ -893,6 +906,7 @@ bool LevelCompactionBuilder::PickFileToCompact() {
 }
 
 bool LevelCompactionBuilder::PickIntraL0Compaction() {
+  DBUG_TRACE;
   start_level_inputs_.clear();
   const std::vector<FileMetaData*>& level_files =
       vstorage_->LevelFiles(0 /* level */);
@@ -911,6 +925,7 @@ bool LevelCompactionBuilder::PickIntraL0Compaction() {
 }
 
 bool LevelCompactionBuilder::PickSizeBasedIntraL0Compaction() {
+  DBUG_TRACE;
   assert(start_level_ == 0);
   int base_level = vstorage_->base_level();
   if (base_level <= 0) {
@@ -969,6 +984,7 @@ Compaction* LevelCompactionPicker::PickCompaction(
     const std::string& cf_name, const MutableCFOptions& mutable_cf_options,
     const MutableDBOptions& mutable_db_options, VersionStorageInfo* vstorage,
     LogBuffer* log_buffer) {
+  DBUG_TRACE;
   LevelCompactionBuilder builder(cf_name, vstorage, this, log_buffer,
                                  mutable_cf_options, ioptions_,
                                  mutable_db_options);

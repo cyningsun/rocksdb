@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include <algorithm>
 
 #include "monitoring/statistics_impl.h"
@@ -20,6 +21,7 @@ namespace ROCKSDB_NAMESPACE {
 size_t RateLimiter::RequestToken(size_t bytes, size_t alignment,
                                  Env::IOPriority io_priority, Statistics* stats,
                                  RateLimiter::OpType op_type) {
+  DBUG_TRACE;
   if (io_priority < Env::IO_TOTAL && IsRateLimited(op_type)) {
     bytes = std::min(bytes, static_cast<size_t>(GetSingleBurstBytes()));
 
@@ -96,11 +98,13 @@ GenericRateLimiter::~GenericRateLimiter() {
 
 // This API allows user to dynamically change rate limiter's bytes per second.
 void GenericRateLimiter::SetBytesPerSecond(int64_t bytes_per_second) {
+  DBUG_TRACE;
   MutexLock g(&request_mutex_);
   SetBytesPerSecondLocked(bytes_per_second);
 }
 
 void GenericRateLimiter::SetBytesPerSecondLocked(int64_t bytes_per_second) {
+  DBUG_TRACE;
   assert(bytes_per_second > 0);
   rate_bytes_per_sec_.store(bytes_per_second, std::memory_order_relaxed);
   refill_bytes_per_period_.store(
@@ -109,6 +113,7 @@ void GenericRateLimiter::SetBytesPerSecondLocked(int64_t bytes_per_second) {
 }
 
 Status GenericRateLimiter::SetSingleBurstBytes(int64_t single_burst_bytes) {
+  DBUG_TRACE;
   if (single_burst_bytes < 0) {
     return Status::InvalidArgument(
         "`single_burst_bytes` must be greater than or equal to 0");
@@ -121,6 +126,7 @@ Status GenericRateLimiter::SetSingleBurstBytes(int64_t single_burst_bytes) {
 
 void GenericRateLimiter::Request(int64_t bytes, const Env::IOPriority pri,
                                  Statistics* stats) {
+  DBUG_TRACE;
   assert(bytes <= GetSingleBurstBytes());
   bytes = std::max(static_cast<int64_t>(0), bytes);
   TEST_SYNC_POINT("GenericRateLimiter::Request");
@@ -233,6 +239,7 @@ void GenericRateLimiter::Request(int64_t bytes, const Env::IOPriority pri,
 
 std::vector<Env::IOPriority>
 GenericRateLimiter::GeneratePriorityIterationOrderLocked() {
+  DBUG_TRACE;
   std::vector<Env::IOPriority> pri_iteration_order(Env::IO_TOTAL /* 4 */);
   // We make Env::IO_USER a superior priority by always iterating its queue
   // first
@@ -271,6 +278,7 @@ GenericRateLimiter::GeneratePriorityIterationOrderLocked() {
 }
 
 void GenericRateLimiter::RefillBytesAndGrantRequestsLocked() {
+  DBUG_TRACE;
   TEST_SYNC_POINT_CALLBACK(
       "GenericRateLimiter::RefillBytesAndGrantRequestsLocked", &request_mutex_);
   next_refill_us_ = NowMicrosMonotonicLocked() + refill_period_us_;
@@ -314,6 +322,7 @@ void GenericRateLimiter::RefillBytesAndGrantRequestsLocked() {
 
 int64_t GenericRateLimiter::CalculateRefillBytesPerPeriodLocked(
     int64_t rate_bytes_per_sec) {
+  DBUG_TRACE;
   if (std::numeric_limits<int64_t>::max() / rate_bytes_per_sec <
       refill_period_us_) {
     // Avoid unexpected result in the overflow case. The result now is still
@@ -325,6 +334,7 @@ int64_t GenericRateLimiter::CalculateRefillBytesPerPeriodLocked(
 }
 
 Status GenericRateLimiter::TuneLocked() {
+  DBUG_TRACE;
   const int kLowWatermarkPct = 50;
   const int kHighWatermarkPct = 90;
   const int kAdjustFactorPct = 5;
@@ -379,6 +389,7 @@ RateLimiter* NewGenericRateLimiter(
     int32_t fairness /* = 10 */,
     RateLimiter::Mode mode /* = RateLimiter::Mode::kWritesOnly */,
     bool auto_tuned /* = false */, int64_t single_burst_bytes /* = 0 */) {
+  DBUG_TRACE;
   assert(rate_bytes_per_sec > 0);
   assert(refill_period_us > 0);
   assert(fairness > 0);

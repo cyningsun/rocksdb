@@ -6,6 +6,7 @@
 // Copyright (c) 2011 The LevelDB Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
+#include "rocksdb/util/dbug.h"
 #include "table/block_based/partitioned_index_reader.h"
 
 #include "block_cache.h"
@@ -19,6 +20,7 @@ Status PartitionIndexReader::Create(
     FilePrefetchBuffer* prefetch_buffer, bool use_cache, bool prefetch,
     bool pin, BlockCacheLookupContext* lookup_context,
     std::unique_ptr<IndexReader>* index_reader) {
+  DBUG_TRACE;
   assert(table != nullptr);
   assert(table->get_rep());
   assert(!pin || prefetch);
@@ -47,6 +49,7 @@ InternalIteratorBase<IndexValue>* PartitionIndexReader::NewIterator(
     const ReadOptions& read_options, bool /* disable_prefix_seek */,
     IndexBlockIter* iter, GetContext* get_context,
     BlockCacheLookupContext* lookup_context) {
+  DBUG_TRACE;
   CachableEntry<Block> index_block;
   const Status s = GetOrReadIndexBlock(get_context, lookup_context,
                                        &index_block, read_options);
@@ -110,6 +113,7 @@ InternalIteratorBase<IndexValue>* PartitionIndexReader::NewIterator(
 }
 Status PartitionIndexReader::CacheDependencies(
     const ReadOptions& ro, bool pin, FilePrefetchBuffer* tail_prefetch_buffer) {
+  DBUG_TRACE;
   if (!partition_map_.empty()) {
     // The dependencies are already cached since `partition_map_` is filled in
     // an all-or-nothing manner.
@@ -219,6 +223,7 @@ Status PartitionIndexReader::CacheDependencies(
 
 void PartitionIndexReader::EraseFromCacheBeforeDestruction(
     uint32_t uncache_aggressiveness) {
+  DBUG_TRACE;
   // NOTE: essentially a copy of
   // PartitionedFilterBlockReader::EraseFromCacheBeforeDestruction
   if (uncache_aggressiveness > 0) {

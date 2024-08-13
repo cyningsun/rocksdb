@@ -9,6 +9,7 @@
 
 #if !defined(OS_WIN)
 
+#include "rocksdb/util/dbug.h"
 #include "port/port_posix.h"
 
 #include <cassert>
@@ -91,6 +92,7 @@ void Mutex::Unlock() {
 }
 
 bool Mutex::TryLock() {
+  DBUG_TRACE;
   bool ret = PthreadCall("trylock", pthread_mutex_trylock(&mu_)) == 0;
 #ifndef NDEBUG
   if (ret) {
@@ -101,6 +103,7 @@ bool Mutex::TryLock() {
 }
 
 void Mutex::AssertHeld() const {
+DBUG_TRACE;
 #ifndef NDEBUG
   assert(locked_);
 #endif
@@ -113,6 +116,7 @@ CondVar::CondVar(Mutex* mu) : mu_(mu) {
 CondVar::~CondVar() { PthreadCall("destroy cv", pthread_cond_destroy(&cv_)); }
 
 void CondVar::Wait() {
+DBUG_TRACE;
 #ifndef NDEBUG
   mu_->locked_ = false;
 #endif
@@ -123,6 +127,7 @@ void CondVar::Wait() {
 }
 
 bool CondVar::TimedWait(uint64_t abs_time_us) {
+  DBUG_TRACE;
   struct timespec ts;
   ts.tv_sec = static_cast<time_t>(abs_time_us / 1000000);
   ts.tv_nsec = static_cast<suseconds_t>((abs_time_us % 1000000) * 1000);
@@ -143,9 +148,10 @@ bool CondVar::TimedWait(uint64_t abs_time_us) {
   return false;
 }
 
-void CondVar::Signal() { PthreadCall("signal", pthread_cond_signal(&cv_)); }
+void CondVar::Signal() { DBUG_TRACE; PthreadCall("signal", pthread_cond_signal(&cv_)); }
 
 void CondVar::SignalAll() {
+  DBUG_TRACE;
   PthreadCall("broadcast", pthread_cond_broadcast(&cv_));
 }
 
@@ -158,22 +164,27 @@ RWMutex::~RWMutex() {
 }
 
 void RWMutex::ReadLock() {
+  DBUG_TRACE;
   PthreadCall("read lock", pthread_rwlock_rdlock(&mu_));
 }
 
 void RWMutex::WriteLock() {
+  DBUG_TRACE;
   PthreadCall("write lock", pthread_rwlock_wrlock(&mu_));
 }
 
 void RWMutex::ReadUnlock() {
+  DBUG_TRACE;
   PthreadCall("read unlock", pthread_rwlock_unlock(&mu_));
 }
 
 void RWMutex::WriteUnlock() {
+  DBUG_TRACE;
   PthreadCall("write unlock", pthread_rwlock_unlock(&mu_));
 }
 
 int PhysicalCoreID() {
+DBUG_TRACE;
 #if defined(ROCKSDB_SCHED_GETCPU_PRESENT) && defined(__x86_64__) && \
     (__GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 22))
   // sched_getcpu uses VDSO getcpu() syscall since 2.22. I believe Linux offers
@@ -199,16 +210,19 @@ int PhysicalCoreID() {
 }
 
 void InitOnce(OnceType* once, void (*initializer)()) {
+  DBUG_TRACE;
   PthreadCall("once", pthread_once(once, initializer));
 }
 
 void Crash(const std::string& srcfile, int srcline) {
+  DBUG_TRACE;
   fprintf(stdout, "Crashing at %s:%d\n", srcfile.c_str(), srcline);
   fflush(stdout);
   kill(getpid(), SIGTERM);
 }
 
 int GetMaxOpenFiles() {
+DBUG_TRACE;
 #if defined(RLIMIT_NOFILE)
   struct rlimit no_files_limit;
   if (getrlimit(RLIMIT_NOFILE, &no_files_limit) != 0) {
@@ -225,6 +239,7 @@ int GetMaxOpenFiles() {
 }
 
 void* cacheline_aligned_alloc(size_t size) {
+DBUG_TRACE;
 #if __GNUC__ < 5 && defined(__SANITIZE_ADDRESS__)
   return malloc(size);
 #elif (_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600 || defined(__APPLE__))
@@ -236,9 +251,10 @@ void* cacheline_aligned_alloc(size_t size) {
 #endif
 }
 
-void cacheline_aligned_free(void* memblock) { free(memblock); }
+void cacheline_aligned_free(void* memblock) { DBUG_TRACE; free(memblock); }
 
 static size_t GetPageSize() {
+DBUG_TRACE;
 #if defined(OS_LINUX) || defined(_SC_PAGESIZE)
   long v = sysconf(_SC_PAGESIZE);
   if (v >= 1024) {
@@ -252,6 +268,7 @@ static size_t GetPageSize() {
 const size_t kPageSize = GetPageSize();
 
 void SetCpuPriority(ThreadId id, CpuPriority priority) {
+DBUG_TRACE;
 #ifdef OS_LINUX
   sched_param param;
   param.sched_priority = 0;
@@ -280,9 +297,10 @@ void SetCpuPriority(ThreadId id, CpuPriority priority) {
 #endif
 }
 
-int64_t GetProcessID() { return getpid(); }
+int64_t GetProcessID() { DBUG_TRACE; return getpid(); }
 
 bool GenerateRfcUuid(std::string* output) {
+  DBUG_TRACE;
   output->clear();
   std::ifstream f("/proc/sys/kernel/random/uuid");
   std::getline(f, /*&*/ *output);

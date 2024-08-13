@@ -3,6 +3,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/wal_filter.h"
 
 #include <memory>
@@ -15,6 +16,7 @@ namespace ROCKSDB_NAMESPACE {
 Status WalFilter::CreateFromString(const ConfigOptions& config_options,
                                    const std::string& value,
                                    WalFilter** filter) {
+  DBUG_TRACE;
   Status s = LoadStaticObject<WalFilter>(config_options, value, filter);
   return s;
 }

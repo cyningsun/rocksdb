@@ -4,6 +4,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "util/stderr_logger.h"
 
 #include "port/malloc.h"
@@ -17,6 +18,7 @@ StderrLogger::~StderrLogger() {
 }
 
 void StderrLogger::Logv(const char* format, va_list ap) {
+  DBUG_TRACE;
   const uint64_t thread_id = Env::Default()->GetThreadID();
 
   port::TimeVal now_tv;

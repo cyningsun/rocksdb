@@ -4,6 +4,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "db/version_builder.h"
 
 #include "db/import_column_family_job.h"
@@ -27,6 +28,7 @@ namespace ROCKSDB_NAMESPACE {
 
 Status ImportColumnFamilyJob::Prepare(uint64_t next_file_number,
                                       SuperVersion* sv) {
+  DBUG_TRACE;
   Status status;
   std::vector<ColumnFamilyIngestFileInfo> cf_ingest_infos;
   for (const auto& metadata_per_cf : metadatas_) {
@@ -165,6 +167,7 @@ Status ImportColumnFamilyJob::Prepare(uint64_t next_file_number,
 // REQUIRES: we have become the only writer by entering both write_thread_ and
 // nonmem_write_thread_
 Status ImportColumnFamilyJob::Run() {
+  DBUG_TRACE;
   // We use the import time as the ancester time. This is the time the data
   // is written to the database.
   int64_t temp_current_time = 0;
@@ -262,6 +265,7 @@ Status ImportColumnFamilyJob::Run() {
 }
 
 void ImportColumnFamilyJob::Cleanup(const Status& status) {
+  DBUG_TRACE;
   if (!status.ok()) {
     // We failed to add files to the database remove all the files we copied.
     for (auto& files_to_import_per_cf : files_to_import_) {
@@ -297,6 +301,7 @@ Status ImportColumnFamilyJob::GetIngestedFileInfo(
     const std::string& external_file, uint64_t new_file_number,
     SuperVersion* sv, const LiveFileMetaData& file_meta,
     IngestedFileInfo* file_to_import) {
+  DBUG_TRACE;
   file_to_import->external_file_path = external_file;
   Status status;
   if (file_meta.size > 0) {

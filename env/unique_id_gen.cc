@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "env/unique_id_gen.h"
 
 #include <algorithm>
@@ -57,6 +58,7 @@ struct EntropyTrackPortUuid {
   std::array<char, 36> uuid;
 
   void Populate(const GenerateRawUniqueIdOpts& opts) {
+    DBUG_TRACE;
     if (opts.exclude_port_uuid) {
       return;
     }
@@ -76,6 +78,7 @@ struct EntropyTrackEnvDetails {
   uint64_t nano_time;
 
   void Populate(const GenerateRawUniqueIdOpts& opts) {
+    DBUG_TRACE;
     if (opts.exclude_env_details) {
       return;
     }
@@ -95,6 +98,7 @@ struct EntropyTrackRandomDevice {
   std::array<RandType, kNumRandVals> rand_vals;
 
   void Populate(const GenerateRawUniqueIdOpts& opts) {
+    DBUG_TRACE;
     if (opts.exclude_random_device) {
       return;
     }
@@ -112,6 +116,7 @@ struct Entropy {
   EntropyTrackPortUuid et3;
 
   void Populate(const GenerateRawUniqueIdOpts& opts) {
+    DBUG_TRACE;
     // If we change the format of what goes into the entropy inputs, it's
     // conceivable there could be a physical collision in the hash input
     // even though they are logically different. This value should change
@@ -127,6 +132,7 @@ struct Entropy {
 
 void GenerateRawUniqueIdImpl(uint64_t* a, uint64_t* b,
                              const GenerateRawUniqueIdOpts& opts) {
+  DBUG_TRACE;
   Entropy e;
   std::memset(&e, 0, sizeof(e));
   e.Populate(opts);
@@ -136,6 +142,7 @@ void GenerateRawUniqueIdImpl(uint64_t* a, uint64_t* b,
 }  // namespace
 
 void GenerateRawUniqueId(uint64_t* a, uint64_t* b, bool exclude_port_uuid) {
+  DBUG_TRACE;
   GenerateRawUniqueIdOpts opts;
   opts.exclude_port_uuid = exclude_port_uuid;
   assert(!opts.exclude_env_details);
@@ -147,6 +154,7 @@ void GenerateRawUniqueId(uint64_t* a, uint64_t* b, bool exclude_port_uuid) {
 void TEST_GenerateRawUniqueId(uint64_t* a, uint64_t* b, bool exclude_port_uuid,
                               bool exclude_env_details,
                               bool exclude_random_device) {
+  DBUG_TRACE;
   GenerateRawUniqueIdOpts opts;
   opts.exclude_port_uuid = exclude_port_uuid;
   opts.exclude_env_details = exclude_env_details;
@@ -156,12 +164,14 @@ void TEST_GenerateRawUniqueId(uint64_t* a, uint64_t* b, bool exclude_port_uuid,
 #endif
 
 void SemiStructuredUniqueIdGen::Reset() {
+  DBUG_TRACE;
   saved_process_id_ = port::GetProcessID();
   GenerateRawUniqueId(&base_upper_, &base_lower_);
   counter_ = 0;
 }
 
 void SemiStructuredUniqueIdGen::GenerateNext(uint64_t* upper, uint64_t* lower) {
+  DBUG_TRACE;
   if (port::GetProcessID() == saved_process_id_) {
     // Safe to increment the atomic for guaranteed uniqueness within this
     // process lifetime. Xor slightly better than +. See
@@ -176,6 +186,7 @@ void SemiStructuredUniqueIdGen::GenerateNext(uint64_t* upper, uint64_t* lower) {
 }
 
 void UnpredictableUniqueIdGen::Reset() {
+  DBUG_TRACE;
   for (size_t i = 0; i < pool_.size(); i += 2) {
     assert(i + 1 < pool_.size());
     uint64_t a, b;
@@ -186,6 +197,7 @@ void UnpredictableUniqueIdGen::Reset() {
 }
 
 void UnpredictableUniqueIdGen::GenerateNext(uint64_t* upper, uint64_t* lower) {
+  DBUG_TRACE;
   uint64_t extra_entropy;
   // Use timing information (if available) to add to entropy. (Not a disaster
   // if unavailable on some platforms. High performance is important.)
@@ -201,6 +213,7 @@ void UnpredictableUniqueIdGen::GenerateNext(uint64_t* upper, uint64_t* lower) {
 void UnpredictableUniqueIdGen::GenerateNextWithEntropy(uint64_t* upper,
                                                        uint64_t* lower,
                                                        uint64_t extra_entropy) {
+  DBUG_TRACE;
   // To efficiently ensure unique inputs to the hash function in the presence
   // of multithreading, we do not require atomicity on the whole entropy pool,
   // but instead only a piece of it (a 64-bit counter) that is sufficient to

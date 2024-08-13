@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "table/plain/plain_table_bloom.h"
 
 #include <algorithm>
@@ -16,6 +17,7 @@ namespace ROCKSDB_NAMESPACE {
 namespace {
 
 uint32_t GetTotalBitsForLocality(uint32_t total_bits) {
+  DBUG_TRACE;
   uint32_t num_blocks =
       (total_bits + CACHE_LINE_SIZE * 8 - 1) / (CACHE_LINE_SIZE * 8);
 
@@ -34,6 +36,7 @@ PlainTableBloomV1::PlainTableBloomV1(uint32_t num_probes)
 
 void PlainTableBloomV1::SetRawData(char* raw_data, uint32_t total_bits,
                                    uint32_t num_blocks) {
+  DBUG_TRACE;
   data_ = raw_data;
   kTotalBits = total_bits;
   kNumBlocks = num_blocks;
@@ -43,6 +46,7 @@ void PlainTableBloomV1::SetTotalBits(Allocator* allocator, uint32_t total_bits,
                                      uint32_t locality,
                                      size_t huge_page_tlb_size,
                                      Logger* logger) {
+  DBUG_TRACE;
   kTotalBits = (locality > 0) ? GetTotalBitsForLocality(total_bits)
                               : (total_bits + 7) / 8 * 8;
   kNumBlocks = (locality > 0) ? (kTotalBits / (CACHE_LINE_SIZE * 8)) : 0;
@@ -67,12 +71,13 @@ void PlainTableBloomV1::SetTotalBits(Allocator* allocator, uint32_t total_bits,
 
 void BloomBlockBuilder::AddKeysHashes(
     const std::vector<uint32_t>& keys_hashes) {
+  DBUG_TRACE;
   for (auto hash : keys_hashes) {
     bloom_.AddHash(hash);
   }
 }
 
-Slice BloomBlockBuilder::Finish() { return bloom_.GetRawData(); }
+Slice BloomBlockBuilder::Finish() { DBUG_TRACE; return bloom_.GetRawData(); }
 
 const std::string BloomBlockBuilder::kBloomBlock = "kBloomBlock";
 }  // namespace ROCKSDB_NAMESPACE

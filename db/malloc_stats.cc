@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "db/malloc_stats.h"
 
 #include <cstring>
@@ -47,6 +48,6 @@ void DumpMallocStats(std::string* stats) {
   stats->append(buf.get());
 }
 #else
-void DumpMallocStats(std::string*) {}
+void DumpMallocStats(std::string*) {DBUG_TRACE;}
 #endif  // ROCKSDB_JEMALLOC
 }  // namespace ROCKSDB_NAMESPACE

@@ -4,6 +4,7 @@
 //  (found in the LICENSE.Apache file in the root directory).
 
 
+#include "rocksdb/util/dbug.h"
 #include "file/filename.h"
 #include "logging/logging.h"
 #include "util/cast_util.h"
@@ -15,6 +16,7 @@
 namespace ROCKSDB_NAMESPACE::blob_db {
 
 Status BlobDBImpl::DisableFileDeletions() {
+  DBUG_TRACE;
   // Disable base DB file deletions.
   Status s = db_impl_->DisableFileDeletions();
   if (!s.ok()) {
@@ -35,6 +37,7 @@ Status BlobDBImpl::DisableFileDeletions() {
 }
 
 Status BlobDBImpl::EnableFileDeletions() {
+  DBUG_TRACE;
   // Enable base DB file deletions.
   Status s = db_impl_->EnableFileDeletions();
   if (!s.ok()) {
@@ -60,6 +63,7 @@ Status BlobDBImpl::EnableFileDeletions() {
 Status BlobDBImpl::GetLiveFiles(std::vector<std::string>& ret,
                                 uint64_t* manifest_file_size,
                                 bool flush_memtable) {
+  DBUG_TRACE;
   if (!bdb_options_.path_relative) {
     return Status::NotSupported(
         "Not able to get relative blob file path from absolute blob_dir.");
@@ -81,6 +85,7 @@ Status BlobDBImpl::GetLiveFiles(std::vector<std::string>& ret,
 }
 
 void BlobDBImpl::GetLiveFilesMetaData(std::vector<LiveFileMetaData>* metadata) {
+  DBUG_TRACE;
   // Path should be relative to db_name.
   assert(bdb_options_.path_relative);
   // Hold a lock in the beginning to avoid updates to base DB during the call
@@ -107,6 +112,7 @@ void BlobDBImpl::GetLiveFilesMetaData(std::vector<LiveFileMetaData>* metadata) {
 Status BlobDBImpl::GetLiveFilesStorageInfo(
     const LiveFilesStorageInfoOptions& opts,
     std::vector<LiveFileStorageInfo>* files) {
+  DBUG_TRACE;
   ReadLock rl(&mutex_);
   Status s = db_->GetLiveFilesStorageInfo(opts, files);
   if (s.ok()) {

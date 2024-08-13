@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/write_batch_base.h"
 
 #include <string>
@@ -16,6 +17,7 @@ namespace ROCKSDB_NAMESPACE {
 // can override these method with more performant solutions if they choose.
 Status WriteBatchBase::Put(ColumnFamilyHandle* column_family,
                            const SliceParts& key, const SliceParts& value) {
+  DBUG_TRACE;
   std::string key_buf, value_buf;
   Slice key_slice(key, &key_buf);
   Slice value_slice(value, &value_buf);
@@ -24,6 +26,7 @@ Status WriteBatchBase::Put(ColumnFamilyHandle* column_family,
 }
 
 Status WriteBatchBase::Put(const SliceParts& key, const SliceParts& value) {
+  DBUG_TRACE;
   std::string key_buf, value_buf;
   Slice key_slice(key, &key_buf);
   Slice value_slice(value, &value_buf);
@@ -33,12 +36,14 @@ Status WriteBatchBase::Put(const SliceParts& key, const SliceParts& value) {
 
 Status WriteBatchBase::Delete(ColumnFamilyHandle* column_family,
                               const SliceParts& key) {
+  DBUG_TRACE;
   std::string key_buf;
   Slice key_slice(key, &key_buf);
   return Delete(column_family, key_slice);
 }
 
 Status WriteBatchBase::Delete(const SliceParts& key) {
+  DBUG_TRACE;
   std::string key_buf;
   Slice key_slice(key, &key_buf);
   return Delete(key_slice);
@@ -46,12 +51,14 @@ Status WriteBatchBase::Delete(const SliceParts& key) {
 
 Status WriteBatchBase::SingleDelete(ColumnFamilyHandle* column_family,
                                     const SliceParts& key) {
+  DBUG_TRACE;
   std::string key_buf;
   Slice key_slice(key, &key_buf);
   return SingleDelete(column_family, key_slice);
 }
 
 Status WriteBatchBase::SingleDelete(const SliceParts& key) {
+  DBUG_TRACE;
   std::string key_buf;
   Slice key_slice(key, &key_buf);
   return SingleDelete(key_slice);
@@ -60,6 +67,7 @@ Status WriteBatchBase::SingleDelete(const SliceParts& key) {
 Status WriteBatchBase::DeleteRange(ColumnFamilyHandle* column_family,
                                    const SliceParts& begin_key,
                                    const SliceParts& end_key) {
+  DBUG_TRACE;
   std::string begin_key_buf, end_key_buf;
   Slice begin_key_slice(begin_key, &begin_key_buf);
   Slice end_key_slice(end_key, &end_key_buf);
@@ -68,6 +76,7 @@ Status WriteBatchBase::DeleteRange(ColumnFamilyHandle* column_family,
 
 Status WriteBatchBase::DeleteRange(const SliceParts& begin_key,
                                    const SliceParts& end_key) {
+  DBUG_TRACE;
   std::string begin_key_buf, end_key_buf;
   Slice begin_key_slice(begin_key, &begin_key_buf);
   Slice end_key_slice(end_key, &end_key_buf);
@@ -76,6 +85,7 @@ Status WriteBatchBase::DeleteRange(const SliceParts& begin_key,
 
 Status WriteBatchBase::Merge(ColumnFamilyHandle* column_family,
                              const SliceParts& key, const SliceParts& value) {
+  DBUG_TRACE;
   std::string key_buf, value_buf;
   Slice key_slice(key, &key_buf);
   Slice value_slice(value, &value_buf);
@@ -84,6 +94,7 @@ Status WriteBatchBase::Merge(ColumnFamilyHandle* column_family,
 }
 
 Status WriteBatchBase::Merge(const SliceParts& key, const SliceParts& value) {
+  DBUG_TRACE;
   std::string key_buf, value_buf;
   Slice key_slice(key, &key_buf);
   Slice value_slice(value, &value_buf);

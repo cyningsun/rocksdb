@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "file/read_write_util.h"
 
 #include <sstream>
@@ -18,6 +19,7 @@ namespace ROCKSDB_NAMESPACE {
 IOStatus NewWritableFile(FileSystem* fs, const std::string& fname,
                          std::unique_ptr<FSWritableFile>* result,
                          const FileOptions& options) {
+  DBUG_TRACE;
   TEST_SYNC_POINT_CALLBACK("NewWritableFile::FileOptions.temperature",
                            const_cast<Temperature*>(&options.temperature));
   IOStatus s = fs->NewWritableFile(fname, options, result, nullptr);
@@ -27,6 +29,7 @@ IOStatus NewWritableFile(FileSystem* fs, const std::string& fname,
 
 #ifndef NDEBUG
 bool IsFileSectorAligned(const size_t off, size_t sector_size) {
+  DBUG_TRACE;
   return off % sector_size == 0;
 }
 #endif  // NDEBUG

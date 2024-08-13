@@ -4,6 +4,7 @@
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
 
+#include "rocksdb/util/dbug.h"
 #include "table/plain/plain_table_reader.h"
 
 #include <string>
@@ -42,6 +43,7 @@ namespace {
 // Safely getting a uint32_t element from a char array, where, starting from
 // `base`, every 4 bytes are considered as an fixed 32 bit integer.
 inline uint32_t GetFixed32Element(const char* base, size_t offset) {
+  DBUG_TRACE;
   return DecodeFixed32(base + offset * sizeof(uint32_t));
 }
 }  // namespace
@@ -120,6 +122,7 @@ Status PlainTableReader::Open(
     double hash_table_ratio, size_t index_sparseness, size_t huge_page_tlb_size,
     bool full_scan_mode, const bool immortal_table,
     const SliceTransform* prefix_extractor) {
+  DBUG_TRACE;
   if (file_size > PlainTableIndex::kMaxFileSize) {
     return Status::NotSupported("File is too large for PlainTableReader!");
   }
@@ -191,12 +194,13 @@ Status PlainTableReader::Open(
   return s;
 }
 
-void PlainTableReader::SetupForCompaction() {}
+void PlainTableReader::SetupForCompaction() {DBUG_TRACE;}
 
 InternalIterator* PlainTableReader::NewIterator(
     const ReadOptions& options, const SliceTransform* /* prefix_extractor */,
     Arena* arena, bool /*skip_filters*/, TableReaderCaller /*caller*/,
     size_t /*compaction_readahead_size*/, bool /* allow_unprepared_value */) {
+  DBUG_TRACE;
   // Not necessarily used here, but make sure this has been initialized
   assert(table_properties_);
 
@@ -214,6 +218,7 @@ InternalIterator* PlainTableReader::NewIterator(
 Status PlainTableReader::PopulateIndexRecordList(
     PlainTableIndexBuilder* index_builder,
     std::vector<uint32_t>* prefix_hashes) {
+  DBUG_TRACE;
   Slice prev_key_prefix_slice;
   std::string prev_key_prefix_buf;
   uint32_t pos = data_start_offset_;
@@ -265,6 +270,7 @@ Status PlainTableReader::PopulateIndexRecordList(
 
 void PlainTableReader::AllocateBloom(int bloom_bits_per_key, int num_keys,
                                      size_t huge_page_tlb_size) {
+  DBUG_TRACE;
   uint32_t bloom_total_bits = num_keys * bloom_bits_per_key;
   if (bloom_total_bits > 0) {
     enable_bloom_ = true;
@@ -274,6 +280,7 @@ void PlainTableReader::AllocateBloom(int bloom_bits_per_key, int num_keys,
 }
 
 void PlainTableReader::FillBloom(const std::vector<uint32_t>& prefix_hashes) {
+  DBUG_TRACE;
   assert(bloom_.IsInitialized());
   for (const auto prefix_hash : prefix_hashes) {
     bloom_.AddHash(prefix_hash);
@@ -281,6 +288,7 @@ void PlainTableReader::FillBloom(const std::vector<uint32_t>& prefix_hashes) {
 }
 
 Status PlainTableReader::MmapDataIfNeeded() {
+  DBUG_TRACE;
   if (file_info_.is_mmap_mode) {
     // Get mmapped memory.
     return file_info_.file->Read(IOOptions(), 0,
@@ -295,6 +303,7 @@ Status PlainTableReader::PopulateIndex(TableProperties* props,
                                        double hash_table_ratio,
                                        size_t index_sparseness,
                                        size_t huge_page_tlb_size) {
+  DBUG_TRACE;
   assert(props != nullptr);
 
   BlockContents index_block_contents;
@@ -432,6 +441,7 @@ Status PlainTableReader::GetOffset(PlainTableKeyDecoder* decoder,
                                    const Slice& target, const Slice& prefix,
                                    uint32_t prefix_hash, bool& prefix_matched,
                                    uint32_t* offset) const {
+  DBUG_TRACE;
   prefix_matched = false;
   uint32_t prefix_index_offset;
   auto res = index_.GetOffset(prefix_hash, &prefix_index_offset);
@@ -508,6 +518,7 @@ Status PlainTableReader::GetOffset(PlainTableKeyDecoder* decoder,
 }
 
 bool PlainTableReader::MatchBloom(uint32_t hash) const {
+  DBUG_TRACE;
   if (!enable_bloom_) {
     return true;
   }
@@ -525,6 +536,7 @@ Status PlainTableReader::Next(PlainTableKeyDecoder* decoder, uint32_t* offset,
                               ParsedInternalKey* parsed_key,
                               Slice* internal_key, Slice* value,
                               bool* seekable) const {
+  DBUG_TRACE;
   if (*offset == file_info_.data_end_offset) {
     *offset = file_info_.data_end_offset;
     return Status::OK();
@@ -545,6 +557,7 @@ Status PlainTableReader::Next(PlainTableKeyDecoder* decoder, uint32_t* offset,
 }
 
 void PlainTableReader::Prepare(const Slice& target) {
+  DBUG_TRACE;
   if (enable_bloom_) {
     uint32_t prefix_hash = GetSliceHash(GetPrefix(target));
     bloom_.Prefetch(prefix_hash);
@@ -555,6 +568,7 @@ Status PlainTableReader::Get(const ReadOptions& /*ro*/, const Slice& target,
                              GetContext* get_context,
                              const SliceTransform* /* prefix_extractor */,
                              bool /*skip_filters*/) {
+  DBUG_TRACE;
   // Check bloom filter first.
   Slice prefix_slice;
   uint32_t prefix_hash;
@@ -630,6 +644,7 @@ Status PlainTableReader::Get(const ReadOptions& /*ro*/, const Slice& target,
 uint64_t PlainTableReader::ApproximateOffsetOf(
     const ReadOptions& /*read_options*/, const Slice& /*key*/,
     TableReaderCaller /*caller*/) {
+  DBUG_TRACE;
   return 0;
 }
 
@@ -637,6 +652,7 @@ uint64_t PlainTableReader::ApproximateSize(const ReadOptions& /* read_options*/,
                                            const Slice& /*start*/,
                                            const Slice& /*end*/,
                                            TableReaderCaller /*caller*/) {
+  DBUG_TRACE;
   return 0;
 }
 
@@ -652,11 +668,13 @@ PlainTableIterator::PlainTableIterator(PlainTableReader* table,
 PlainTableIterator::~PlainTableIterator() = default;
 
 bool PlainTableIterator::Valid() const {
+  DBUG_TRACE;
   return offset_ < table_->file_info_.data_end_offset &&
          offset_ >= table_->data_start_offset_;
 }
 
 void PlainTableIterator::SeekToFirst() {
+  DBUG_TRACE;
   status_ = Status::OK();
   next_offset_ = table_->data_start_offset_;
   if (next_offset_ >= table_->file_info_.data_end_offset) {
@@ -667,12 +685,14 @@ void PlainTableIterator::SeekToFirst() {
 }
 
 void PlainTableIterator::SeekToLast() {
+  DBUG_TRACE;
   assert(false);
   status_ = Status::NotSupported("SeekToLast() is not supported in PlainTable");
   next_offset_ = offset_ = table_->file_info_.data_end_offset;
 }
 
 void PlainTableIterator::Seek(const Slice& target) {
+  DBUG_TRACE;
   if (use_prefix_seek_ != !table_->IsTotalOrderMode()) {
     // This check is done here instead of NewIterator() to permit creating an
     // iterator with total_order_seek = true even if we won't be able to Seek()
@@ -742,6 +762,7 @@ void PlainTableIterator::Seek(const Slice& target) {
 }
 
 void PlainTableIterator::SeekForPrev(const Slice& /*target*/) {
+  DBUG_TRACE;
   assert(false);
   status_ =
       Status::NotSupported("SeekForPrev() is not supported in PlainTable");
@@ -749,6 +770,7 @@ void PlainTableIterator::SeekForPrev(const Slice& /*target*/) {
 }
 
 void PlainTableIterator::Next() {
+  DBUG_TRACE;
   offset_ = next_offset_;
   if (offset_ < table_->file_info_.data_end_offset) {
     Slice tmp_slice;
@@ -761,18 +783,20 @@ void PlainTableIterator::Next() {
   }
 }
 
-void PlainTableIterator::Prev() { assert(false); }
+void PlainTableIterator::Prev() { DBUG_TRACE; assert(false); }
 
 Slice PlainTableIterator::key() const {
+  DBUG_TRACE;
   assert(Valid());
   return key_;
 }
 
 Slice PlainTableIterator::value() const {
+  DBUG_TRACE;
   assert(Valid());
   return value_;
 }
 
-Status PlainTableIterator::status() const { return status_; }
+Status PlainTableIterator::status() const { DBUG_TRACE; return status_; }
 
 }  // namespace ROCKSDB_NAMESPACE

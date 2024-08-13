@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "utilities/transactions/pessimistic_transaction.h"
 
 #include <map>
@@ -32,6 +33,7 @@ struct WriteOptions;
 std::atomic<TransactionID> PessimisticTransaction::txn_id_counter_(1);
 
 TransactionID PessimisticTransaction::GenTxnID() {
+  DBUG_TRACE;
   return txn_id_counter_.fetch_add(1);
 }
 
@@ -59,6 +61,7 @@ PessimisticTransaction::PessimisticTransaction(
 }
 
 void PessimisticTransaction::Initialize(const TransactionOptions& txn_options) {
+  DBUG_TRACE;
   // Range lock manager uses address of transaction object as TXNID
   const TransactionDBOptions& db_options = txn_db_impl_->GetTxnDBOptions();
   if (db_options.lock_mgr_handle &&
@@ -114,6 +117,7 @@ PessimisticTransaction::~PessimisticTransaction() {
 }
 
 void PessimisticTransaction::Clear() {
+  DBUG_TRACE;
   txn_db_impl_->UnLock(this, *tracked_locks_);
   TransactionBaseImpl::Clear();
 }
@@ -121,6 +125,7 @@ void PessimisticTransaction::Clear() {
 void PessimisticTransaction::Reinitialize(
     TransactionDB* txn_db, const WriteOptions& write_options,
     const TransactionOptions& txn_options) {
+  DBUG_TRACE;
   if (!name_.empty() && txn_state_ != COMMITTED) {
     txn_db_impl_->UnregisterTransaction(this);
   }
@@ -129,6 +134,7 @@ void PessimisticTransaction::Reinitialize(
 }
 
 bool PessimisticTransaction::IsExpired() const {
+  DBUG_TRACE;
   if (expiration_time_ > 0) {
     if (dbimpl_->GetSystemClock()->NowMicros() >= expiration_time_) {
       // Transaction is expired.
@@ -148,6 +154,7 @@ Status WriteCommittedTxn::GetForUpdate(const ReadOptions& read_options,
                                        ColumnFamilyHandle* column_family,
                                        const Slice& key, std::string* value,
                                        bool exclusive, const bool do_validate) {
+  DBUG_TRACE;
   return GetForUpdateImpl(read_options, column_family, key, value, exclusive,
                           do_validate);
 }
@@ -157,6 +164,7 @@ Status WriteCommittedTxn::GetForUpdate(const ReadOptions& read_options,
                                        const Slice& key,
                                        PinnableSlice* pinnable_val,
                                        bool exclusive, const bool do_validate) {
+  DBUG_TRACE;
   return GetForUpdateImpl(read_options, column_family, key, pinnable_val,
                           exclusive, do_validate);
 }
@@ -219,6 +227,7 @@ Status WriteCommittedTxn::GetEntityForUpdate(const ReadOptions& read_options,
                                              const Slice& key,
                                              PinnableWideColumns* columns,
                                              bool exclusive, bool do_validate) {
+  DBUG_TRACE;
   if (!column_family) {
     return Status::InvalidArgument(
         "Cannot call GetEntityForUpdate without a column family handle");
@@ -261,6 +270,7 @@ Status WriteCommittedTxn::GetEntityForUpdate(const ReadOptions& read_options,
 }
 
 Status WriteCommittedTxn::SanityCheckReadTimestamp(bool do_validate) {
+  DBUG_TRACE;
   bool enable_udt_validation =
       txn_db_impl_->GetTxnDBOptions().enable_udt_validation;
   if (!enable_udt_validation) {
@@ -291,6 +301,7 @@ Status WriteCommittedTxn::PutEntityImpl(ColumnFamilyHandle* column_family,
                                         const Slice& key,
                                         const WideColumns& columns,
                                         bool do_validate, bool assume_tracked) {
+  DBUG_TRACE;
   return Operate(column_family, key, do_validate, assume_tracked,
                  [column_family, &key, &columns, this]() {
                    Status s = GetBatchForWrite()->PutEntity(column_family, key,
@@ -305,6 +316,7 @@ Status WriteCommittedTxn::PutEntityImpl(ColumnFamilyHandle* column_family,
 Status WriteCommittedTxn::Put(ColumnFamilyHandle* column_family,
                               const Slice& key, const Slice& value,
                               const bool assume_tracked) {
+  DBUG_TRACE;
   const bool do_validate = !assume_tracked;
   return Operate(column_family, key, do_validate, assume_tracked,
                  [column_family, &key, &value, this]() {
@@ -320,6 +332,7 @@ Status WriteCommittedTxn::Put(ColumnFamilyHandle* column_family,
 Status WriteCommittedTxn::Put(ColumnFamilyHandle* column_family,
                               const SliceParts& key, const SliceParts& value,
                               const bool assume_tracked) {
+  DBUG_TRACE;
   const bool do_validate = !assume_tracked;
   return Operate(column_family, key, do_validate, assume_tracked,
                  [column_family, &key, &value, this]() {
@@ -334,6 +347,7 @@ Status WriteCommittedTxn::Put(ColumnFamilyHandle* column_family,
 
 Status WriteCommittedTxn::PutUntracked(ColumnFamilyHandle* column_family,
                                        const Slice& key, const Slice& value) {
+  DBUG_TRACE;
   return Operate(
       column_family, key, /*do_validate=*/false,
       /*assume_tracked=*/false, [column_family, &key, &value, this]() {
@@ -348,6 +362,7 @@ Status WriteCommittedTxn::PutUntracked(ColumnFamilyHandle* column_family,
 Status WriteCommittedTxn::PutUntracked(ColumnFamilyHandle* column_family,
                                        const SliceParts& key,
                                        const SliceParts& value) {
+  DBUG_TRACE;
   return Operate(
       column_family, key, /*do_validate=*/false,
       /*assume_tracked=*/false, [column_family, &key, &value, this]() {
@@ -361,6 +376,7 @@ Status WriteCommittedTxn::PutUntracked(ColumnFamilyHandle* column_family,
 
 Status WriteCommittedTxn::Delete(ColumnFamilyHandle* column_family,
                                  const Slice& key, const bool assume_tracked) {
+  DBUG_TRACE;
   const bool do_validate = !assume_tracked;
   return Operate(column_family, key, do_validate, assume_tracked,
                  [column_family, &key, this]() {
@@ -375,6 +391,7 @@ Status WriteCommittedTxn::Delete(ColumnFamilyHandle* column_family,
 Status WriteCommittedTxn::Delete(ColumnFamilyHandle* column_family,
                                  const SliceParts& key,
                                  const bool assume_tracked) {
+  DBUG_TRACE;
   const bool do_validate = !assume_tracked;
   return Operate(column_family, key, do_validate, assume_tracked,
                  [column_family, &key, this]() {
@@ -388,6 +405,7 @@ Status WriteCommittedTxn::Delete(ColumnFamilyHandle* column_family,
 
 Status WriteCommittedTxn::DeleteUntracked(ColumnFamilyHandle* column_family,
                                           const Slice& key) {
+  DBUG_TRACE;
   return Operate(column_family, key, /*do_validate=*/false,
                  /*assume_tracked=*/false, [column_family, &key, this]() {
                    Status s = GetBatchForWrite()->Delete(column_family, key);
@@ -400,6 +418,7 @@ Status WriteCommittedTxn::DeleteUntracked(ColumnFamilyHandle* column_family,
 
 Status WriteCommittedTxn::DeleteUntracked(ColumnFamilyHandle* column_family,
                                           const SliceParts& key) {
+  DBUG_TRACE;
   return Operate(column_family, key, /*do_validate=*/false,
                  /*assume_tracked=*/false, [column_family, &key, this]() {
                    Status s = GetBatchForWrite()->Delete(column_family, key);
@@ -413,6 +432,7 @@ Status WriteCommittedTxn::DeleteUntracked(ColumnFamilyHandle* column_family,
 Status WriteCommittedTxn::SingleDelete(ColumnFamilyHandle* column_family,
                                        const Slice& key,
                                        const bool assume_tracked) {
+  DBUG_TRACE;
   const bool do_validate = !assume_tracked;
   return Operate(column_family, key, do_validate, assume_tracked,
                  [column_family, &key, this]() {
@@ -428,6 +448,7 @@ Status WriteCommittedTxn::SingleDelete(ColumnFamilyHandle* column_family,
 Status WriteCommittedTxn::SingleDelete(ColumnFamilyHandle* column_family,
                                        const SliceParts& key,
                                        const bool assume_tracked) {
+  DBUG_TRACE;
   const bool do_validate = !assume_tracked;
   return Operate(column_family, key, do_validate, assume_tracked,
                  [column_family, &key, this]() {
@@ -442,6 +463,7 @@ Status WriteCommittedTxn::SingleDelete(ColumnFamilyHandle* column_family,
 
 Status WriteCommittedTxn::SingleDeleteUntracked(
     ColumnFamilyHandle* column_family, const Slice& key) {
+  DBUG_TRACE;
   return Operate(column_family, key, /*do_validate=*/false,
                  /*assume_tracked=*/false, [column_family, &key, this]() {
                    Status s =
@@ -456,6 +478,7 @@ Status WriteCommittedTxn::SingleDeleteUntracked(
 Status WriteCommittedTxn::Merge(ColumnFamilyHandle* column_family,
                                 const Slice& key, const Slice& value,
                                 const bool assume_tracked) {
+  DBUG_TRACE;
   const bool do_validate = !assume_tracked;
   return Operate(column_family, key, do_validate, assume_tracked,
                  [column_family, &key, &value, this]() {
@@ -503,6 +526,7 @@ Status WriteCommittedTxn::Operate(ColumnFamilyHandle* column_family,
 }
 
 Status WriteCommittedTxn::SetReadTimestampForValidation(TxnTimestamp ts) {
+  DBUG_TRACE;
   if (read_timestamp_ < kMaxTxnTimestamp && ts < read_timestamp_) {
     return Status::InvalidArgument(
         "Cannot decrease read timestamp for validation");
@@ -512,6 +536,7 @@ Status WriteCommittedTxn::SetReadTimestampForValidation(TxnTimestamp ts) {
 }
 
 Status WriteCommittedTxn::SetCommitTimestamp(TxnTimestamp ts) {
+  DBUG_TRACE;
   if (txn_db_impl_->GetTxnDBOptions().enable_udt_validation &&
       read_timestamp_ < kMaxTxnTimestamp && ts <= read_timestamp_) {
     return Status::InvalidArgument(
@@ -522,6 +547,7 @@ Status WriteCommittedTxn::SetCommitTimestamp(TxnTimestamp ts) {
 }
 
 Status PessimisticTransaction::CommitBatch(WriteBatch* batch) {
+  DBUG_TRACE;
   if (batch && WriteBatchInternal::HasKeyWithTimestamp(*batch)) {
     // CommitBatch() needs to lock the keys in the batch.
     // However, the application also needs to specify the timestamp for the
@@ -571,6 +597,7 @@ Status PessimisticTransaction::CommitBatch(WriteBatch* batch) {
 }
 
 Status PessimisticTransaction::Prepare() {
+  DBUG_TRACE;
   if (name_.empty()) {
     return Status::InvalidArgument(
         "Cannot prepare a transaction that has not been named.");
@@ -621,6 +648,7 @@ Status PessimisticTransaction::Prepare() {
 }
 
 Status WriteCommittedTxn::PrepareInternal() {
+  DBUG_TRACE;
   WriteOptions write_options = write_options_;
   write_options.disableWAL = false;
   auto s = WriteBatchInternal::MarkEndPrepare(GetWriteBatch()->GetWriteBatch(),
@@ -634,6 +662,7 @@ Status WriteCommittedTxn::PrepareInternal() {
     }
     Status Callback(SequenceNumber, bool is_mem_disabled, uint64_t log_number,
                     size_t /*index*/, size_t /*total*/) override {
+DBUG_TRACE;
 #ifdef NDEBUG
       (void)is_mem_disabled;
 #endif
@@ -662,6 +691,7 @@ Status WriteCommittedTxn::PrepareInternal() {
 }
 
 Status PessimisticTransaction::Commit() {
+  DBUG_TRACE;
   bool commit_without_prepare = false;
   bool commit_prepared = false;
 
@@ -747,6 +777,7 @@ Status PessimisticTransaction::Commit() {
 }
 
 Status WriteCommittedTxn::CommitWithoutPrepareInternal() {
+  DBUG_TRACE;
   WriteBatchWithIndex* wbwi = GetWriteBatch();
   assert(wbwi);
   WriteBatch* wb = wbwi->GetWriteBatch();
@@ -803,6 +834,7 @@ Status WriteCommittedTxn::CommitWithoutPrepareInternal() {
 }
 
 Status WriteCommittedTxn::CommitBatchInternal(WriteBatch* batch, size_t) {
+  DBUG_TRACE;
   uint64_t seq_used = kMaxSequenceNumber;
   auto s = db_impl_->WriteImpl(write_options_, batch, /*callback*/ nullptr,
                                /*user_write_cb=*/nullptr,
@@ -816,6 +848,7 @@ Status WriteCommittedTxn::CommitBatchInternal(WriteBatch* batch, size_t) {
 }
 
 Status WriteCommittedTxn::CommitInternal() {
+  DBUG_TRACE;
   WriteBatchWithIndex* wbwi = GetWriteBatch();
   assert(wbwi);
   WriteBatch* wb = wbwi->GetWriteBatch();
@@ -892,6 +925,7 @@ Status WriteCommittedTxn::CommitInternal() {
 }
 
 Status PessimisticTransaction::Rollback() {
+  DBUG_TRACE;
   Status s;
   if (txn_state_ == PREPARED) {
     txn_state_.store(AWAITING_ROLLBACK);
@@ -930,6 +964,7 @@ Status PessimisticTransaction::Rollback() {
 }
 
 Status WriteCommittedTxn::RollbackInternal() {
+  DBUG_TRACE;
   WriteBatch rollback_marker;
   auto s = WriteBatchInternal::MarkRollback(&rollback_marker, name_);
   assert(s.ok());
@@ -938,6 +973,7 @@ Status WriteCommittedTxn::RollbackInternal() {
 }
 
 Status PessimisticTransaction::RollbackToSavePoint() {
+  DBUG_TRACE;
   if (txn_state_ != STARTED) {
     return Status::InvalidArgument("Transaction is beyond state for rollback.");
   }
@@ -959,6 +995,7 @@ Status PessimisticTransaction::RollbackToSavePoint() {
 // On success, caller should unlock keys_to_unlock
 Status PessimisticTransaction::LockBatch(WriteBatch* batch,
                                          LockTracker* keys_to_unlock) {
+  DBUG_TRACE;
   if (!batch) {
     return Status::InvalidArgument("batch is nullptr");
   }
@@ -974,26 +1011,31 @@ Status PessimisticTransaction::LockBatch(WriteBatch* batch,
     Handler() = default;
 
     void RecordKey(uint32_t column_family_id, const Slice& key) {
+      DBUG_TRACE;
       auto& cfh_keys = keys_[column_family_id];
       cfh_keys.insert(key.ToString());
     }
 
     Status PutCF(uint32_t column_family_id, const Slice& key,
                  const Slice& /* unused */) override {
+      DBUG_TRACE;
       RecordKey(column_family_id, key);
       return Status::OK();
     }
     Status PutEntityCF(uint32_t column_family_id, const Slice& key,
                        const Slice& /* unused */) override {
+      DBUG_TRACE;
       RecordKey(column_family_id, key);
       return Status::OK();
     }
     Status MergeCF(uint32_t column_family_id, const Slice& key,
                    const Slice& /* unused */) override {
+      DBUG_TRACE;
       RecordKey(column_family_id, key);
       return Status::OK();
     }
     Status DeleteCF(uint32_t column_family_id, const Slice& key) override {
+      DBUG_TRACE;
       RecordKey(column_family_id, key);
       return Status::OK();
     }
@@ -1048,6 +1090,7 @@ Status PessimisticTransaction::TryLock(ColumnFamilyHandle* column_family,
                                        const Slice& key, bool read_only,
                                        bool exclusive, const bool do_validate,
                                        const bool assume_tracked) {
+  DBUG_TRACE;
   assert(!assume_tracked || !do_validate);
   Status s;
   if (UNLIKELY(skip_concurrency_control_)) {
@@ -1166,6 +1209,7 @@ Status PessimisticTransaction::TryLock(ColumnFamilyHandle* column_family,
 Status PessimisticTransaction::GetRangeLock(ColumnFamilyHandle* column_family,
                                             const Endpoint& start_endp,
                                             const Endpoint& end_endp) {
+  DBUG_TRACE;
   ColumnFamilyHandle* cfh =
       column_family ? column_family : db_impl_->DefaultColumnFamily();
   uint32_t cfh_id = GetColumnFamilyID(cfh);
@@ -1186,6 +1230,7 @@ Status PessimisticTransaction::GetRangeLock(ColumnFamilyHandle* column_family,
 Status PessimisticTransaction::ValidateSnapshot(
     ColumnFamilyHandle* column_family, const Slice& key,
     SequenceNumber* tracked_at_seq) {
+  DBUG_TRACE;
   assert(snapshot_ || read_timestamp_ < kMaxTxnTimestamp);
 
   SequenceNumber snap_seq = 0;
@@ -1231,6 +1276,7 @@ Status PessimisticTransaction::ValidateSnapshot(
 }
 
 bool PessimisticTransaction::TryStealingLocks() {
+  DBUG_TRACE;
   assert(IsExpired());
   TransactionState expected = STARTED;
   return std::atomic_compare_exchange_strong(&txn_state_, &expected,
@@ -1239,10 +1285,12 @@ bool PessimisticTransaction::TryStealingLocks() {
 
 void PessimisticTransaction::UnlockGetForUpdate(
     ColumnFamilyHandle* column_family, const Slice& key) {
+  DBUG_TRACE;
   txn_db_impl_->UnLock(this, GetColumnFamilyID(column_family), key.ToString());
 }
 
 Status PessimisticTransaction::SetName(const TransactionName& name) {
+  DBUG_TRACE;
   Status s;
   if (txn_state_ == STARTED) {
     if (name_.length()) {
@@ -1266,6 +1314,7 @@ Status PessimisticTransaction::SetName(const TransactionName& name) {
 Status PessimisticTransaction::CollapseKey(const ReadOptions& options,
                                            const Slice& key,
                                            ColumnFamilyHandle* column_family) {
+  DBUG_TRACE;
   auto* cfh = column_family ? column_family : db_impl_->DefaultColumnFamily();
   std::string value;
   const auto status = GetForUpdate(options, cfh, key, &value, true, true);

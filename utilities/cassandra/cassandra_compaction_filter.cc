@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "utilities/cassandra/cassandra_compaction_filter.h"
 
 #include <string>
@@ -36,6 +37,7 @@ CompactionFilter::Decision CassandraCompactionFilter::FilterV2(
     int /*level*/, const Slice& /*key*/, ValueType value_type,
     const Slice& existing_value, std::string* new_value,
     std::string* /*skip_until*/) const {
+  DBUG_TRACE;
   bool value_changed = false;
   RowValue row_value =
       RowValue::Deserialize(existing_value.data(), existing_value.size());
@@ -69,6 +71,7 @@ CassandraCompactionFilterFactory::CassandraCompactionFilterFactory(
 std::unique_ptr<CompactionFilter>
 CassandraCompactionFilterFactory::CreateCompactionFilter(
     const CompactionFilter::Context&) {
+  DBUG_TRACE;
   std::unique_ptr<CompactionFilter> result(new CassandraCompactionFilter(
       options_.purge_ttl_on_expiration, options_.gc_grace_period_in_seconds));
   return result;
@@ -76,6 +79,7 @@ CassandraCompactionFilterFactory::CreateCompactionFilter(
 
 int RegisterCassandraObjects(ObjectLibrary& library,
                              const std::string& /*arg*/) {
+  DBUG_TRACE;
   library.AddFactory<MergeOperator>(
       CassandraValueMergeOperator::kClassName(),
       [](const std::string& /*uri*/, std::unique_ptr<MergeOperator>* guard,

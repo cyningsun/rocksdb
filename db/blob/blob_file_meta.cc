@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "db/blob/blob_file_meta.h"
 
 #include <ostream>
@@ -13,10 +14,12 @@
 
 namespace ROCKSDB_NAMESPACE {
 uint64_t SharedBlobFileMetaData::GetBlobFileSize() const {
+  DBUG_TRACE;
   return BlobLogHeader::kSize + total_blob_bytes_ + BlobLogFooter::kSize;
 }
 
 std::string SharedBlobFileMetaData::DebugString() const {
+  DBUG_TRACE;
   std::ostringstream oss;
   oss << (*this);
 
@@ -25,6 +28,7 @@ std::string SharedBlobFileMetaData::DebugString() const {
 
 std::ostream& operator<<(std::ostream& os,
                          const SharedBlobFileMetaData& shared_meta) {
+  DBUG_TRACE;
   os << "blob_file_number: " << shared_meta.GetBlobFileNumber()
      << " total_blob_count: " << shared_meta.GetTotalBlobCount()
      << " total_blob_bytes: " << shared_meta.GetTotalBlobBytes()
@@ -36,6 +40,7 @@ std::ostream& operator<<(std::ostream& os,
 }
 
 std::string BlobFileMetaData::DebugString() const {
+  DBUG_TRACE;
   std::ostringstream oss;
   oss << (*this);
 
@@ -43,6 +48,7 @@ std::string BlobFileMetaData::DebugString() const {
 }
 
 std::ostream& operator<<(std::ostream& os, const BlobFileMetaData& meta) {
+  DBUG_TRACE;
   const auto& shared_meta = meta.GetSharedMeta();
   assert(shared_meta);
   os << (*shared_meta);

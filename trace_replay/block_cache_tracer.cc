@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "trace_replay/block_cache_tracer.h"
 
 #include <cinttypes>
@@ -23,6 +24,7 @@ namespace ROCKSDB_NAMESPACE {
 namespace {
 bool ShouldTrace(const Slice& block_key,
                  const BlockCacheTraceOptions& trace_options) {
+  DBUG_TRACE;
   if (trace_options.sampling_frequency == 0 ||
       trace_options.sampling_frequency == 1) {
     return true;
@@ -43,16 +45,19 @@ const uint64_t BlockCacheTraceHelper::kReservedGetId = 0;
 
 bool BlockCacheTraceHelper::IsGetOrMultiGetOnDataBlock(
     TraceType block_type, TableReaderCaller caller) {
+  DBUG_TRACE;
   return (block_type == TraceType::kBlockTraceDataBlock) &&
          IsGetOrMultiGet(caller);
 }
 
 bool BlockCacheTraceHelper::IsGetOrMultiGet(TableReaderCaller caller) {
+  DBUG_TRACE;
   return caller == TableReaderCaller::kUserGet ||
          caller == TableReaderCaller::kUserMultiGet;
 }
 
 bool BlockCacheTraceHelper::IsUserAccess(TableReaderCaller caller) {
+  DBUG_TRACE;
   return caller == TableReaderCaller::kUserGet ||
          caller == TableReaderCaller::kUserMultiGet ||
          caller == TableReaderCaller::kUserIterator ||
@@ -62,6 +67,7 @@ bool BlockCacheTraceHelper::IsUserAccess(TableReaderCaller caller) {
 
 std::string BlockCacheTraceHelper::ComputeRowKey(
     const BlockCacheTraceRecord& access) {
+  DBUG_TRACE;
   if (!IsGetOrMultiGet(access.caller)) {
     return "";
   }
@@ -71,6 +77,7 @@ std::string BlockCacheTraceHelper::ComputeRowKey(
 
 uint64_t BlockCacheTraceHelper::GetTableId(
     const BlockCacheTraceRecord& access) {
+  DBUG_TRACE;
   if (!IsGetOrMultiGet(access.caller) || access.referenced_key.size() < 4) {
     return 0;
   }
@@ -79,6 +86,7 @@ uint64_t BlockCacheTraceHelper::GetTableId(
 
 uint64_t BlockCacheTraceHelper::GetSequenceNumber(
     const BlockCacheTraceRecord& access) {
+  DBUG_TRACE;
   if (!IsGetOrMultiGet(access.caller)) {
     return 0;
   }
@@ -93,6 +101,7 @@ uint64_t BlockCacheTraceHelper::GetSequenceNumber(
 
 uint64_t BlockCacheTraceHelper::GetBlockOffsetInFile(
     const BlockCacheTraceRecord& access) {
+  DBUG_TRACE;
   Slice input(access.block_key);
   uint64_t offset = 0;
   while (true) {
@@ -116,6 +125,7 @@ BlockCacheTraceWriterImpl::BlockCacheTraceWriterImpl(
 Status BlockCacheTraceWriterImpl::WriteBlockAccess(
     const BlockCacheTraceRecord& record, const Slice& block_key,
     const Slice& cf_name, const Slice& referenced_key) {
+  DBUG_TRACE;
   uint64_t trace_file_size = trace_writer_->GetFileSize();
   if (trace_file_size > trace_options_.max_trace_file_size) {
     return Status::OK();
@@ -149,6 +159,7 @@ Status BlockCacheTraceWriterImpl::WriteBlockAccess(
 }
 
 Status BlockCacheTraceWriterImpl::WriteHeader() {
+  DBUG_TRACE;
   Trace trace;
   trace.ts = clock_->NowMicros();
   trace.type = TraceType::kTraceBegin;
@@ -165,6 +176,7 @@ BlockCacheTraceReader::BlockCacheTraceReader(
     : trace_reader_(std::move(reader)) {}
 
 Status BlockCacheTraceReader::ReadHeader(BlockCacheTraceHeader* header) {
+  DBUG_TRACE;
   assert(header != nullptr);
   std::string encoded_trace;
   Status s = trace_reader_->Read(&encoded_trace);
@@ -207,6 +219,7 @@ Status BlockCacheTraceReader::ReadHeader(BlockCacheTraceHeader* header) {
 }
 
 Status BlockCacheTraceReader::ReadAccess(BlockCacheTraceRecord* record) {
+  DBUG_TRACE;
   assert(record);
   std::string encoded_trace;
   Status s = trace_reader_->Read(&encoded_trace);
@@ -320,6 +333,7 @@ BlockCacheHumanReadableTraceWriter::~BlockCacheHumanReadableTraceWriter() {
 Status BlockCacheHumanReadableTraceWriter::NewWritableFile(
     const std::string& human_readable_trace_file_path,
     ROCKSDB_NAMESPACE::Env* env) {
+  DBUG_TRACE;
   if (human_readable_trace_file_path.empty()) {
     return Status::InvalidArgument(
         "The provided human_readable_trace_file_path is null.");
@@ -331,6 +345,7 @@ Status BlockCacheHumanReadableTraceWriter::NewWritableFile(
 Status BlockCacheHumanReadableTraceWriter::WriteHumanReadableTraceRecord(
     const BlockCacheTraceRecord& access, uint64_t block_id,
     uint64_t get_key_id) {
+  DBUG_TRACE;
   if (!human_readable_trace_file_writer_) {
     return Status::OK();
   }
@@ -368,11 +383,13 @@ BlockCacheHumanReadableTraceReader::~BlockCacheHumanReadableTraceReader() {
 
 Status BlockCacheHumanReadableTraceReader::ReadHeader(
     BlockCacheTraceHeader* /*header*/) {
+  DBUG_TRACE;
   return Status::OK();
 }
 
 Status BlockCacheHumanReadableTraceReader::ReadAccess(
     BlockCacheTraceRecord* record) {
+  DBUG_TRACE;
   std::string line;
   if (!std::getline(human_readable_trace_reader_, line)) {
     return Status::Incomplete("No more records to read.");
@@ -453,6 +470,7 @@ BlockCacheTracer::~BlockCacheTracer() { EndTrace(); }
 Status BlockCacheTracer::StartTrace(
     const BlockCacheTraceOptions& trace_options,
     std::unique_ptr<BlockCacheTraceWriter>&& trace_writer) {
+  DBUG_TRACE;
   InstrumentedMutexLock lock_guard(&trace_writer_mutex_);
   if (writer_.load()) {
     return Status::Busy();
@@ -464,6 +482,7 @@ Status BlockCacheTracer::StartTrace(
 }
 
 void BlockCacheTracer::EndTrace() {
+  DBUG_TRACE;
   InstrumentedMutexLock lock_guard(&trace_writer_mutex_);
   if (!writer_.load()) {
     return;
@@ -476,6 +495,7 @@ Status BlockCacheTracer::WriteBlockAccess(const BlockCacheTraceRecord& record,
                                           const Slice& block_key,
                                           const Slice& cf_name,
                                           const Slice& referenced_key) {
+  DBUG_TRACE;
   if (!writer_.load() || !ShouldTrace(block_key, trace_options_)) {
     return Status::OK();
   }
@@ -488,6 +508,7 @@ Status BlockCacheTracer::WriteBlockAccess(const BlockCacheTraceRecord& record,
 }
 
 uint64_t BlockCacheTracer::NextGetId() {
+  DBUG_TRACE;
   if (!writer_.load(std::memory_order_relaxed)) {
     return BlockCacheTraceHelper::kReservedGetId;
   }
@@ -502,6 +523,7 @@ uint64_t BlockCacheTracer::NextGetId() {
 std::unique_ptr<BlockCacheTraceWriter> NewBlockCacheTraceWriter(
     SystemClock* clock, const BlockCacheTraceWriterOptions& trace_options,
     std::unique_ptr<TraceWriter>&& trace_writer) {
+  DBUG_TRACE;
   return std::unique_ptr<BlockCacheTraceWriter>(new BlockCacheTraceWriterImpl(
       clock, trace_options, std::move(trace_writer)));
 }

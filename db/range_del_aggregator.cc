@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "db/range_del_aggregator.h"
 
 #include "db/compaction/compaction_iteration_stats.h"
@@ -80,6 +81,7 @@ TruncatedRangeDelIterator::TruncatedRangeDelIterator(
 }
 
 bool TruncatedRangeDelIterator::Valid() const {
+  DBUG_TRACE;
   assert(iter_ != nullptr);
   return iter_->Valid() &&
          (smallest_ == nullptr ||
@@ -90,6 +92,7 @@ bool TruncatedRangeDelIterator::Valid() const {
 
 // NOTE: target is a user key, with timestamp if enabled.
 void TruncatedRangeDelIterator::Seek(const Slice& target) {
+  DBUG_TRACE;
   if (largest_ != nullptr &&
       icmp_->Compare(*largest_, ParsedInternalKey(target, kMaxSequenceNumber,
                                                   kTypeRangeDeletion)) <= 0) {
@@ -105,6 +108,7 @@ void TruncatedRangeDelIterator::Seek(const Slice& target) {
 }
 
 void TruncatedRangeDelIterator::SeekInternalKey(const Slice& target) {
+  DBUG_TRACE;
   if (largest_ && icmp_->Compare(*largest_, target) <= 0) {
     iter_->Invalidate();
     return;
@@ -124,6 +128,7 @@ void TruncatedRangeDelIterator::SeekInternalKey(const Slice& target) {
 
 // NOTE: target is a user key, with timestamp if enabled.
 void TruncatedRangeDelIterator::SeekForPrev(const Slice& target) {
+  DBUG_TRACE;
   if (smallest_ != nullptr &&
       icmp_->Compare(ParsedInternalKey(target, 0, kTypeRangeDeletion),
                      *smallest_) < 0) {
@@ -139,6 +144,7 @@ void TruncatedRangeDelIterator::SeekForPrev(const Slice& target) {
 }
 
 void TruncatedRangeDelIterator::SeekToFirst() {
+  DBUG_TRACE;
   if (smallest_ != nullptr) {
     iter_->Seek(smallest_->user_key);
     return;
@@ -147,6 +153,7 @@ void TruncatedRangeDelIterator::SeekToFirst() {
 }
 
 void TruncatedRangeDelIterator::SeekToLast() {
+  DBUG_TRACE;
   if (largest_ != nullptr) {
     iter_->SeekForPrev(largest_->user_key);
     return;
@@ -157,6 +164,7 @@ void TruncatedRangeDelIterator::SeekToLast() {
 std::map<SequenceNumber, std::unique_ptr<TruncatedRangeDelIterator>>
 TruncatedRangeDelIterator::SplitBySnapshot(
     const std::vector<SequenceNumber>& snapshots) {
+  DBUG_TRACE;
   using FragmentedIterPair =
       std::pair<const SequenceNumber,
                 std::unique_ptr<FragmentedRangeTombstoneIterator>>;
@@ -184,6 +192,7 @@ ForwardRangeDelIterator::ForwardRangeDelIterator(
       inactive_iters_(StartKeyMinComparator(icmp)) {}
 
 bool ForwardRangeDelIterator::ShouldDelete(const ParsedInternalKey& parsed) {
+  DBUG_TRACE;
   // Move active iterators that end before parsed.
   while (!active_iters_.empty() &&
          icmp_->Compare((*active_iters_.top())->end_key(), parsed) <= 0) {
@@ -212,6 +221,7 @@ bool ForwardRangeDelIterator::ShouldDelete(const ParsedInternalKey& parsed) {
 }
 
 void ForwardRangeDelIterator::Invalidate() {
+  DBUG_TRACE;
   unused_idx_ = 0;
   active_iters_.clear();
   active_seqnums_.clear();
@@ -227,6 +237,7 @@ ReverseRangeDelIterator::ReverseRangeDelIterator(
       inactive_iters_(EndKeyMaxComparator(icmp)) {}
 
 bool ReverseRangeDelIterator::ShouldDelete(const ParsedInternalKey& parsed) {
+  DBUG_TRACE;
   // Move active iterators that start after parsed.
   while (!active_iters_.empty() &&
          icmp_->Compare(parsed, (*active_iters_.top())->start_key()) < 0) {
@@ -255,6 +266,7 @@ bool ReverseRangeDelIterator::ShouldDelete(const ParsedInternalKey& parsed) {
 }
 
 void ReverseRangeDelIterator::Invalidate() {
+  DBUG_TRACE;
   unused_idx_ = 0;
   active_iters_.clear();
   active_seqnums_.clear();
@@ -263,6 +275,7 @@ void ReverseRangeDelIterator::Invalidate() {
 
 bool RangeDelAggregator::StripeRep::ShouldDelete(
     const ParsedInternalKey& parsed, RangeDelPositioningMode mode) {
+  DBUG_TRACE;
   if (!InStripe(parsed.sequence) || IsEmpty()) {
     return false;
   }
@@ -297,6 +310,7 @@ bool RangeDelAggregator::StripeRep::ShouldDelete(
 
 bool RangeDelAggregator::StripeRep::IsRangeOverlapped(const Slice& start,
                                                       const Slice& end) {
+  DBUG_TRACE;
   Invalidate();
 
   // Set the internal start/end keys so that:
@@ -336,6 +350,7 @@ bool RangeDelAggregator::StripeRep::IsRangeOverlapped(const Slice& start,
 void ReadRangeDelAggregator::AddTombstones(
     std::unique_ptr<FragmentedRangeTombstoneIterator> input_iter,
     const InternalKey* smallest, const InternalKey* largest) {
+  DBUG_TRACE;
   if (input_iter == nullptr || input_iter->empty()) {
     return;
   }
@@ -345,11 +360,13 @@ void ReadRangeDelAggregator::AddTombstones(
 
 bool ReadRangeDelAggregator::ShouldDeleteImpl(const ParsedInternalKey& parsed,
                                               RangeDelPositioningMode mode) {
+  DBUG_TRACE;
   return rep_.ShouldDelete(parsed, mode);
 }
 
 bool ReadRangeDelAggregator::IsRangeOverlapped(const Slice& start,
                                                const Slice& end) {
+  DBUG_TRACE;
   InvalidateRangeDelMapPositions();
   return rep_.IsRangeOverlapped(start, end);
 }
@@ -357,6 +374,7 @@ bool ReadRangeDelAggregator::IsRangeOverlapped(const Slice& start,
 void CompactionRangeDelAggregator::AddTombstones(
     std::unique_ptr<FragmentedRangeTombstoneIterator> input_iter,
     const InternalKey* smallest, const InternalKey* largest) {
+  DBUG_TRACE;
   if (input_iter == nullptr || input_iter->empty()) {
     return;
   }
@@ -404,6 +422,7 @@ void CompactionRangeDelAggregator::AddTombstones(
 
 bool CompactionRangeDelAggregator::ShouldDelete(const ParsedInternalKey& parsed,
                                                 RangeDelPositioningMode mode) {
+  DBUG_TRACE;
   auto it = reps_.lower_bound(parsed.sequence);
   if (it == reps_.end()) {
     return false;
@@ -440,11 +459,13 @@ class TruncatedRangeDelMergingIter : public InternalIterator {
   }
 
   bool Valid() const override {
+    DBUG_TRACE;
     return !heap_.empty() && !AfterEndKey(heap_.top());
   }
-  Status status() const override { return Status::OK(); }
+  Status status() const override { DBUG_TRACE; return Status::OK(); }
 
   void SeekToFirst() override {
+    DBUG_TRACE;
     heap_.clear();
     for (auto& child : children_) {
       if (lower_bound_ != nullptr) {
@@ -465,6 +486,7 @@ class TruncatedRangeDelMergingIter : public InternalIterator {
   }
 
   void Next() override {
+    DBUG_TRACE;
     auto* top = heap_.top();
     top->InternalNext();
     if (top->Valid()) {
@@ -475,6 +497,7 @@ class TruncatedRangeDelMergingIter : public InternalIterator {
   }
 
   Slice key() const override {
+    DBUG_TRACE;
     auto* top = heap_.top();
     if (ts_sz_) {
       cur_start_key_.Set(top->start_key().user_key, top->seq(),
@@ -488,6 +511,7 @@ class TruncatedRangeDelMergingIter : public InternalIterator {
   }
 
   Slice value() const override {
+    DBUG_TRACE;
     auto* top = heap_.top();
     if (!ts_sz_) {
       return top->end_key().user_key;
@@ -501,13 +525,14 @@ class TruncatedRangeDelMergingIter : public InternalIterator {
   }
 
   // Unused InternalIterator methods
-  void Prev() override { assert(false); }
-  void Seek(const Slice& /* target */) override { assert(false); }
-  void SeekForPrev(const Slice& /* target */) override { assert(false); }
-  void SeekToLast() override { assert(false); }
+  void Prev() override { DBUG_TRACE; assert(false); }
+  void Seek(const Slice& /* target */) override { DBUG_TRACE; assert(false); }
+  void SeekForPrev(const Slice& /* target */) override { DBUG_TRACE; assert(false); }
+  void SeekToLast() override { DBUG_TRACE; assert(false); }
 
  private:
   bool BeforeStartKey(const TruncatedRangeDelIterator* iter) const {
+    DBUG_TRACE;
     if (lower_bound_ == nullptr) {
       return false;
     }
@@ -515,6 +540,7 @@ class TruncatedRangeDelMergingIter : public InternalIterator {
   }
 
   bool AfterEndKey(const TruncatedRangeDelIterator* iter) const {
+    DBUG_TRACE;
     if (upper_bound_ == nullptr) {
       return false;
     }
@@ -537,6 +563,7 @@ class TruncatedRangeDelMergingIter : public InternalIterator {
 std::unique_ptr<FragmentedRangeTombstoneIterator>
 CompactionRangeDelAggregator::NewIterator(const Slice* lower_bound,
                                           const Slice* upper_bound) {
+  DBUG_TRACE;
   InvalidateRangeDelMapPositions();
   auto merging_iter = std::make_unique<TruncatedRangeDelMergingIter>(
       icmp_, lower_bound, upper_bound, parent_iters_);

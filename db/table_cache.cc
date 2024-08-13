@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "db/table_cache.h"
 
 #include "db/dbformat.h"
@@ -49,12 +50,14 @@ namespace ROCKSDB_NAMESPACE {
 namespace {
 
 static Slice GetSliceForFileNumber(const uint64_t* file_number) {
+  DBUG_TRACE;
   return Slice(reinterpret_cast<const char*>(file_number),
                sizeof(*file_number));
 }
 
 
 void AppendVarint64(IterKey* key, uint64_t v) {
+  DBUG_TRACE;
   char buf[10];
   auto ptr = EncodeVarint64(buf, v);
   key->TrimAppend(key->Size(), buf, ptr - buf);
@@ -96,6 +99,7 @@ Status TableCache::GetTableReader(
     const std::shared_ptr<const SliceTransform>& prefix_extractor,
     bool skip_filters, int level, bool prefetch_index_and_filter_in_cache,
     size_t max_file_size_for_l0_meta_pin, Temperature file_temperature) {
+  DBUG_TRACE;
   std::string fname = TableFileName(
       ioptions_.cf_paths, file_meta.fd.GetNumber(), file_meta.fd.GetPathId());
   std::unique_ptr<FSRandomAccessFile> file;
@@ -164,6 +168,7 @@ Status TableCache::GetTableReader(
 }
 
 Cache::Handle* TableCache::Lookup(Cache* cache, uint64_t file_number) {
+  DBUG_TRACE;
   Slice key = GetSliceForFileNumber(&file_number);
   return cache->Lookup(key);
 }
@@ -177,6 +182,7 @@ Status TableCache::FindTable(
     const bool no_io, HistogramImpl* file_read_hist, bool skip_filters,
     int level, bool prefetch_index_and_filter_in_cache,
     size_t max_file_size_for_l0_meta_pin, Temperature file_temperature) {
+  DBUG_TRACE;
   PERF_TIMER_GUARD_WITH_CLOCK(find_table_nanos, ioptions_.clock);
   uint64_t number = file_meta.fd.GetNumber();
   Slice key = GetSliceForFileNumber(&number);
@@ -231,6 +237,7 @@ InternalIterator* TableCache::NewIterator(
     const InternalKey* largest_compaction_key, bool allow_unprepared_value,
     uint8_t block_protection_bytes_per_key, const SequenceNumber* read_seqno,
     std::unique_ptr<TruncatedRangeDelIterator>* range_del_iter) {
+  DBUG_TRACE;
   PERF_TIMER_GUARD(new_table_iterator_nanos);
 
   Status s;
@@ -330,6 +337,7 @@ Status TableCache::GetRangeTombstoneIterator(
     const InternalKeyComparator& internal_comparator,
     const FileMetaData& file_meta, uint8_t block_protection_bytes_per_key,
     std::unique_ptr<FragmentedRangeTombstoneIterator>* out_iter) {
+  DBUG_TRACE;
   assert(out_iter);
   const FileDescriptor& fd = file_meta.fd;
   Status s;
@@ -361,6 +369,7 @@ uint64_t TableCache::CreateRowCacheKeyPrefix(const ReadOptions& options,
                                              const Slice& internal_key,
                                              GetContext* get_context,
                                              IterKey& row_cache_key) {
+  DBUG_TRACE;
   uint64_t fd_number = fd.GetNumber();
   // We use the user key as cache key instead of the internal key,
   // otherwise the whole cache would be invalidated every time the
@@ -401,6 +410,7 @@ uint64_t TableCache::CreateRowCacheKeyPrefix(const ReadOptions& options,
 bool TableCache::GetFromRowCache(const Slice& user_key, IterKey& row_cache_key,
                                  size_t prefix_size, GetContext* get_context,
                                  Status* read_status, SequenceNumber seq_no) {
+  DBUG_TRACE;
   bool found = false;
 
   row_cache_key.TrimAppend(prefix_size, user_key.data(), user_key.size());
@@ -437,6 +447,7 @@ Status TableCache::Get(
     const std::shared_ptr<const SliceTransform>& prefix_extractor,
     HistogramImpl* file_read_hist, bool skip_filters, int level,
     size_t max_file_size_for_l0_meta_pin) {
+  DBUG_TRACE;
   auto& fd = file_meta.fd;
   std::string* row_cache_entry = nullptr;
   bool done = false;
@@ -521,6 +532,7 @@ Status TableCache::Get(
 void TableCache::UpdateRangeTombstoneSeqnums(
     const ReadOptions& options, TableReader* t,
     MultiGetContext::Range& table_range) {
+  DBUG_TRACE;
   std::unique_ptr<FragmentedRangeTombstoneIterator> range_del_iter(
       t->NewRangeTombstoneIterator(options));
   if (range_del_iter != nullptr) {
@@ -548,6 +560,7 @@ Status TableCache::MultiGetFilter(
     HistogramImpl* file_read_hist, int level,
     MultiGetContext::Range* mget_range, TypedHandle** table_handle,
     uint8_t block_protection_bytes_per_key) {
+  DBUG_TRACE;
   auto& fd = file_meta.fd;
   IterKey row_cache_key;
   std::string row_cache_entry_buffer;
@@ -601,6 +614,7 @@ Status TableCache::GetTableProperties(
     std::shared_ptr<const TableProperties>* properties,
     uint8_t block_protection_bytes_per_key,
     const std::shared_ptr<const SliceTransform>& prefix_extractor, bool no_io) {
+  DBUG_TRACE;
   auto table_reader = file_meta.fd.table_reader;
   // table already been pre-loaded?
   if (table_reader) {
@@ -627,6 +641,7 @@ Status TableCache::ApproximateKeyAnchors(
     const ReadOptions& ro, const InternalKeyComparator& internal_comparator,
     const FileMetaData& file_meta, uint8_t block_protection_bytes_per_key,
     std::vector<TableReader::Anchor>& anchors) {
+  DBUG_TRACE;
   Status s;
   TableReader* t = file_meta.fd.table_reader;
   TypedHandle* handle = nullptr;
@@ -651,6 +666,7 @@ size_t TableCache::GetMemoryUsageByTableReader(
     const InternalKeyComparator& internal_comparator,
     const FileMetaData& file_meta, uint8_t block_protection_bytes_per_key,
     const std::shared_ptr<const SliceTransform>& prefix_extractor) {
+  DBUG_TRACE;
   auto table_reader = file_meta.fd.table_reader;
   // table already been pre-loaded?
   if (table_reader) {
@@ -672,6 +688,7 @@ size_t TableCache::GetMemoryUsageByTableReader(
 }
 
 void TableCache::Evict(Cache* cache, uint64_t file_number) {
+  DBUG_TRACE;
   cache->Erase(GetSliceForFileNumber(&file_number));
 }
 
@@ -681,6 +698,7 @@ uint64_t TableCache::ApproximateOffsetOf(
     const InternalKeyComparator& internal_comparator,
     uint8_t block_protection_bytes_per_key,
     const std::shared_ptr<const SliceTransform>& prefix_extractor) {
+  DBUG_TRACE;
   uint64_t result = 0;
   TableReader* table_reader = file_meta.fd.table_reader;
   TypedHandle* table_handle = nullptr;
@@ -710,6 +728,7 @@ uint64_t TableCache::ApproximateSize(
     const InternalKeyComparator& internal_comparator,
     uint8_t block_protection_bytes_per_key,
     const std::shared_ptr<const SliceTransform>& prefix_extractor) {
+  DBUG_TRACE;
   uint64_t result = 0;
   TableReader* table_reader = file_meta.fd.table_reader;
   TypedHandle* table_handle = nullptr;
@@ -735,6 +754,7 @@ uint64_t TableCache::ApproximateSize(
 
 void TableCache::ReleaseObsolete(Cache* cache, Cache::Handle* h,
                                  uint32_t uncache_aggressiveness) {
+  DBUG_TRACE;
   CacheInterface typed_cache(cache);
   TypedHandle* table_handle = reinterpret_cast<TypedHandle*>(h);
   TableReader* table_reader = typed_cache.Value(table_handle);

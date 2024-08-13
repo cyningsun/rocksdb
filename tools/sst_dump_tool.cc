@@ -4,6 +4,7 @@
 //  (found in the LICENSE.Apache file in the root directory).
 //
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/sst_dump_tool.h"
 
 #include <cinttypes>
@@ -31,6 +32,7 @@ static const std::vector<std::pair<CompressionType, const char*>>
 namespace {
 
 void print_help(bool to_stderr) {
+  DBUG_TRACE;
   std::string supported_compressions;
   for (CompressionType ct : GetSupportedCompressions()) {
     if (!supported_compressions.empty()) {
@@ -136,6 +138,7 @@ void print_help(bool to_stderr) {
 // Woud exit after printing errmsg if cannot be parsed.
 bool ParseIntArg(const char* arg, const std::string arg_name,
                  const std::string err_msg, int64_t* arg_val) {
+  DBUG_TRACE;
   if (strncmp(arg, arg_name.c_str(), arg_name.size()) == 0) {
     std::string input_str = arg + arg_name.size();
     std::istringstream iss(input_str);
@@ -151,6 +154,7 @@ bool ParseIntArg(const char* arg, const std::string arg_name,
 }  // namespace
 
 int SSTDumpTool::Run(int argc, char const* const* argv, Options options) {
+  DBUG_TRACE;
   std::string env_uri, fs_uri;
   const char* dir_or_file = nullptr;
   uint64_t read_num = std::numeric_limits<uint64_t>::max();
@@ -585,4 +589,3 @@ int SSTDumpTool::Run(int argc, char const* const* argv, Options options) {
   }
 }
 }  // namespace ROCKSDB_NAMESPACE
-

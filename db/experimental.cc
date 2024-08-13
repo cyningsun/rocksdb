@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/experimental.h"
 
 #include <cstddef>
@@ -21,6 +22,7 @@ namespace ROCKSDB_NAMESPACE::experimental {
 
 Status SuggestCompactRange(DB* db, ColumnFamilyHandle* column_family,
                            const Slice* begin, const Slice* end) {
+  DBUG_TRACE;
   if (db == nullptr) {
     return Status::InvalidArgument("DB is empty");
   }
@@ -29,6 +31,7 @@ Status SuggestCompactRange(DB* db, ColumnFamilyHandle* column_family,
 }
 
 Status PromoteL0(DB* db, ColumnFamilyHandle* column_family, int target_level) {
+  DBUG_TRACE;
   if (db == nullptr) {
     return Status::InvalidArgument("Didn't recognize DB object");
   }
@@ -37,6 +40,7 @@ Status PromoteL0(DB* db, ColumnFamilyHandle* column_family, int target_level) {
 
 
 Status SuggestCompactRange(DB* db, const Slice* begin, const Slice* end) {
+  DBUG_TRACE;
   return SuggestCompactRange(db, db->DefaultColumnFamily(), begin, end);
 }
 
@@ -44,6 +48,7 @@ Status UpdateManifestForFilesState(
     const DBOptions& db_opts, const std::string& db_name,
     const std::vector<ColumnFamilyDescriptor>& column_families,
     const UpdateManifestForFilesStateOptions& opts) {
+  DBUG_TRACE;
   // TODO: plumb Env::IOActivity, Env::IOPriority
   const ReadOptions read_options;
   const WriteOptions write_options;
@@ -155,6 +160,7 @@ namespace {
 void GetFilterInput(FilterInput select, const Slice& key,
                     const KeySegmentsExtractor::Result& extracted,
                     Slice* out_input, Slice* out_leadup) {
+  DBUG_TRACE;
   struct FilterInputGetter {
     explicit FilterInputGetter(const Slice& _key,
                                const KeySegmentsExtractor::Result& _extracted)
@@ -163,6 +169,7 @@ void GetFilterInput(FilterInput select, const Slice& key,
     const KeySegmentsExtractor::Result& extracted;
 
     Slice operator()(SelectKeySegment select) {
+      DBUG_TRACE;
       size_t count = extracted.segment_ends.size();
       if (count <= select.segment_index) {
         return Slice();
@@ -178,6 +185,7 @@ void GetFilterInput(FilterInput select, const Slice& key,
     }
 
     Slice operator()(SelectKeySegmentRange select) {
+      DBUG_TRACE;
       assert(select.from_segment_index <= select.to_segment_index);
       size_t count = extracted.segment_ends.size();
       if (count <= select.from_segment_index) {
@@ -192,27 +200,31 @@ void GetFilterInput(FilterInput select, const Slice& key,
       return Slice(key.data() + start, end - start);
     }
 
-    Slice operator()(SelectWholeKey) { return key; }
+    Slice operator()(SelectWholeKey) { DBUG_TRACE; return key; }
 
     Slice operator()(SelectLegacyKeyPrefix) {
+      DBUG_TRACE;
       // TODO
       assert(false);
       return Slice();
     }
 
     Slice operator()(SelectUserTimestamp) {
+      DBUG_TRACE;
       // TODO
       assert(false);
       return Slice();
     }
 
     Slice operator()(SelectColumnName) {
+      DBUG_TRACE;
       // TODO
       assert(false);
       return Slice();
     }
 
     Slice operator()(SelectValue) {
+      DBUG_TRACE;
       // TODO
       assert(false);
       return Slice();
@@ -231,6 +243,7 @@ void GetFilterInput(FilterInput select, const Slice& key,
 
 const char* DeserializeFilterInput(const char* p, const char* limit,
                                    FilterInput* out) {
+  DBUG_TRACE;
   if (p >= limit) {
     return nullptr;
   }
@@ -309,19 +322,22 @@ const char* DeserializeFilterInput(const char* p, const char* limit,
 }
 
 void SerializeFilterInput(std::string* out, const FilterInput& select) {
+  DBUG_TRACE;
   struct FilterInputSerializer {
     std::string* out;
-    void operator()(SelectWholeKey) { out->push_back(0); }
-    void operator()(SelectLegacyKeyPrefix) { out->push_back(1); }
-    void operator()(SelectUserTimestamp) { out->push_back(2); }
-    void operator()(SelectColumnName) { out->push_back(3); }
-    void operator()(SelectValue) { out->push_back(4); }
+    void operator()(SelectWholeKey) { DBUG_TRACE; out->push_back(0); }
+    void operator()(SelectLegacyKeyPrefix) { DBUG_TRACE; out->push_back(1); }
+    void operator()(SelectUserTimestamp) { DBUG_TRACE; out->push_back(2); }
+    void operator()(SelectColumnName) { DBUG_TRACE; out->push_back(3); }
+    void operator()(SelectValue) { DBUG_TRACE; out->push_back(4); }
     void operator()(SelectKeySegment select) {
+      DBUG_TRACE;
       // TODO: expand supported cases
       assert(select.segment_index < 16);
       out->push_back(static_cast<char>((1 << 4) | select.segment_index));
     }
     void operator()(SelectKeySegmentRange select) {
+      DBUG_TRACE;
       auto from = select.from_segment_index;
       auto to = select.to_segment_index;
       // TODO: expand supported cases
@@ -337,17 +353,20 @@ void SerializeFilterInput(std::string* out, const FilterInput& select) {
 }
 
 size_t GetFilterInputSerializedLength(const FilterInput& /*select*/) {
+  DBUG_TRACE;
   // TODO: expand supported cases
   return 1;
 }
 
 uint64_t CategorySetToUint(const KeySegmentsExtractor::KeyCategorySet& s) {
+  DBUG_TRACE;
   static_assert(sizeof(KeySegmentsExtractor::KeyCategorySet) ==
                 sizeof(uint64_t));
   return *reinterpret_cast<const uint64_t*>(&s);
 }
 
 KeySegmentsExtractor::KeyCategorySet UintToCategorySet(uint64_t s) {
+  DBUG_TRACE;
   static_assert(sizeof(KeySegmentsExtractor::KeyCategorySet) ==
                 sizeof(uint64_t));
   return *reinterpret_cast<const KeySegmentsExtractor::KeyCategorySet*>(&s);
@@ -413,6 +432,7 @@ class CategoryScopeFilterWrapperBuilder : public SstQueryFilterBuilder {
   void Add(const Slice& key, const KeySegmentsExtractor::Result& extracted,
            const Slice* prev_key,
            const KeySegmentsExtractor::Result* prev_extracted) override {
+    DBUG_TRACE;
     if (!categories_.Contains(extracted.category)) {
       // Category not in scope of the contituent filters
       return;
@@ -420,9 +440,10 @@ class CategoryScopeFilterWrapperBuilder : public SstQueryFilterBuilder {
     wrapped_->Add(key, extracted, prev_key, prev_extracted);
   }
 
-  Status GetStatus() const override { return wrapped_->GetStatus(); }
+  Status GetStatus() const override { DBUG_TRACE; return wrapped_->GetStatus(); }
 
   size_t GetEncodedLength() const override {
+    DBUG_TRACE;
     size_t wrapped_length = wrapped_->GetEncodedLength();
     if (wrapped_length == 0) {
       // Use empty filter
@@ -436,6 +457,7 @@ class CategoryScopeFilterWrapperBuilder : public SstQueryFilterBuilder {
   }
 
   void Finish(std::string& append_to) override {
+    DBUG_TRACE;
     size_t encoded_length = GetEncodedLength();
     if (encoded_length == 0) {
       // Nothing to do
@@ -463,6 +485,7 @@ class BytewiseMinMaxSstQueryFilterConfig : public SstQueryFilterConfigImpl {
 
   std::unique_ptr<SstQueryFilterBuilder> NewBuilder(
       bool sanity_checks) const override {
+    DBUG_TRACE;
     auto b = std::make_unique<MyBuilder>(*this, sanity_checks);
     if (categories_ != KeySegmentsExtractor::KeyCategorySet::All()) {
       return std::make_unique<CategoryScopeFilterWrapperBuilder>(categories_,
@@ -477,6 +500,7 @@ class BytewiseMinMaxSstQueryFilterConfig : public SstQueryFilterConfigImpl {
       const KeySegmentsExtractor::Result& lower_bound_extracted,
       const Slice& upper_bound_excl,
       const KeySegmentsExtractor::Result& upper_bound_extracted) {
+    DBUG_TRACE;
     assert(!filter.empty() && filter[0] == kBytewiseMinMaxFilter);
     if (filter.size() <= 4) {
       // Missing some data
@@ -541,6 +565,7 @@ class BytewiseMinMaxSstQueryFilterConfig : public SstQueryFilterConfigImpl {
     void Add(const Slice& key, const KeySegmentsExtractor::Result& extracted,
              const Slice* prev_key,
              const KeySegmentsExtractor::Result* prev_extracted) override {
+      DBUG_TRACE;
       Slice input, leadup;
       GetFilterInput(parent.input_, key, extracted, &input, &leadup);
 
@@ -589,9 +614,10 @@ class BytewiseMinMaxSstQueryFilterConfig : public SstQueryFilterConfigImpl {
       }
     }
 
-    Status GetStatus() const override { return status; }
+    Status GetStatus() const override { DBUG_TRACE; return status; }
 
     size_t GetEncodedLength() const override {
+      DBUG_TRACE;
       if (largest.empty()) {
         // Not an interesting filter -> 0 to indicate no filter
         // FIXME: needs unit test
@@ -602,6 +628,7 @@ class BytewiseMinMaxSstQueryFilterConfig : public SstQueryFilterConfigImpl {
     }
 
     void Finish(std::string& append_to) override {
+      DBUG_TRACE;
       assert(status.ok());
       size_t encoded_length = GetEncodedLength();
       if (encoded_length == 0) {
@@ -646,6 +673,7 @@ class SstQueryFilterConfigsManagerImpl : public SstQueryFilterConfigsManager {
   using ConfigVersionMap = std::map<FilteringVersion, SstQueryFilterConfigs>;
 
   Status Populate(const Data& data) {
+    DBUG_TRACE;
     if (data.empty()) {
       return Status::OK();
     }
@@ -709,6 +737,7 @@ class SstQueryFilterConfigsManagerImpl : public SstQueryFilterConfigsManager {
     Status AddUserKey(const Slice& key, const Slice& /*value*/,
                       EntryType /*type*/, SequenceNumber /*seq*/,
                       uint64_t /*file_size*/) override {
+      DBUG_TRACE;
       // FIXME later: `key` might contain user timestamp. That should be
       // exposed properly in a future update to TablePropertiesCollector
       extracted.Reset();
@@ -755,6 +784,7 @@ class SstQueryFilterConfigsManagerImpl : public SstQueryFilterConfigsManager {
       return Status::OK();
     }
     Status Finish(UserCollectedProperties* properties) override {
+      DBUG_TRACE;
       assert(properties != nullptr);
 
       if (!overall_status.ok()) {
@@ -844,10 +874,12 @@ class SstQueryFilterConfigsManagerImpl : public SstQueryFilterConfigsManager {
       return Status::OK();
     }
     UserCollectedProperties GetReadableProperties() const override {
+      DBUG_TRACE;
       // TODO?
       return {};
     }
     const char* Name() const override {
+      DBUG_TRACE;
       // placeholder
       return "SstQueryFilterConfigsImpl::MyCollector";
     }
@@ -879,6 +911,7 @@ class SstQueryFilterConfigsManagerImpl : public SstQueryFilterConfigsManager {
 
     bool MayMatch_CategoryScopeFilterWrapper(Slice wrapper,
                                              State& state) const {
+      DBUG_TRACE;
       assert(!wrapper.empty() && wrapper[0] == kCategoryScopeFilterWrapper);
 
       // Regardless of the filter values (which we assume is not all
@@ -913,6 +946,7 @@ class SstQueryFilterConfigsManagerImpl : public SstQueryFilterConfigsManager {
     }
 
     bool MayMatch_ExtrAndCatFilterWrapper(Slice wrapper) const {
+      DBUG_TRACE;
       assert(!wrapper.empty() && wrapper[0] == kExtrAndCatFilterWrapper);
       if (wrapper.size() <= 4) {
         // Missing some data
@@ -995,6 +1029,7 @@ class SstQueryFilterConfigsManagerImpl : public SstQueryFilterConfigsManager {
     }
 
     bool MayMatch(Slice filters, State* state = nullptr) const {
+      DBUG_TRACE;
       const char* p = filters.data();
       const char* limit = p + filters.size();
       uint64_t filter_count;
@@ -1071,6 +1106,7 @@ class SstQueryFilterConfigsManagerImpl : public SstQueryFilterConfigsManager {
 
     TablePropertiesCollector* CreateTablePropertiesCollector(
         TablePropertiesCollectorFactory::Context /*context*/) override {
+      DBUG_TRACE;
       auto& configs = GetConfigs();
       if (configs.IsEmptyNotFound()) {
         return nullptr;
@@ -1078,11 +1114,13 @@ class SstQueryFilterConfigsManagerImpl : public SstQueryFilterConfigsManager {
       return new MyCollector(configs, *parent);
     }
     const char* Name() const override {
+      DBUG_TRACE;
       // placeholder
       return "SstQueryFilterConfigsManagerImpl::MyFactory";
     }
 
     Status SetFilteringVersion(FilteringVersion ver) override {
+      DBUG_TRACE;
       if (ver > 0 && ver < parent->min_ver_) {
         return Status::InvalidArgument(
             "Filtering version is before earliest known configuration: " +
@@ -1097,10 +1135,12 @@ class SstQueryFilterConfigsManagerImpl : public SstQueryFilterConfigsManager {
       return Status::OK();
     }
     FilteringVersion GetFilteringVersion() const override {
+      DBUG_TRACE;
       return version.LoadRelaxed();
     }
-    const std::string& GetConfigsName() const override { return configs_name; }
+    const std::string& GetConfigsName() const override { DBUG_TRACE; return configs_name; }
     const SstQueryFilterConfigs& GetConfigs() const override {
+      DBUG_TRACE;
       FilteringVersion ver = version.LoadRelaxed();
       if (ver == 0) {
         // Special case
@@ -1121,6 +1161,7 @@ class SstQueryFilterConfigsManagerImpl : public SstQueryFilterConfigsManager {
     // operations using this table filter function.
     std::function<bool(const TableProperties&)> GetTableFilterForRangeQuery(
         Slice lower_bound_incl, Slice upper_bound_excl) const override {
+      DBUG_TRACE;
       // TODO: cache extractor results between SST files, assuming most will
       // use the same version
       return
@@ -1152,6 +1193,7 @@ class SstQueryFilterConfigsManagerImpl : public SstQueryFilterConfigsManager {
   Status MakeSharedFactory(const std::string& configs_name,
                            FilteringVersion ver,
                            std::shared_ptr<Factory>* out) const override {
+    DBUG_TRACE;
     auto obj = std::make_shared<MyFactory>(
         static_cast_with_check<const SstQueryFilterConfigsManagerImpl>(
             shared_from_this()),
@@ -1164,6 +1206,7 @@ class SstQueryFilterConfigsManagerImpl : public SstQueryFilterConfigsManager {
   }
 
   const ConfigVersionMap& GetVerMap(const std::string& configs_name) const {
+    DBUG_TRACE;
     static const ConfigVersionMap kEmptyMap;
     auto it = name_map_.find(configs_name);
     if (it == name_map_.end()) {
@@ -1190,17 +1233,20 @@ const std::string SstQueryFilterConfigsManagerImpl::kTablePropertyName =
 }  // namespace
 
 bool SstQueryFilterConfigs::IsEmptyNotFound() const {
+  DBUG_TRACE;
   return this == &kEmptyNotFoundSQFC;
 }
 
 std::shared_ptr<SstQueryFilterConfig> MakeSharedBytewiseMinMaxSQFC(
     FilterInput input, KeySegmentsExtractor::KeyCategorySet categories) {
+  DBUG_TRACE;
   return std::make_shared<BytewiseMinMaxSstQueryFilterConfig>(input,
                                                               categories);
 }
 
 Status SstQueryFilterConfigsManager::MakeShared(
     const Data& data, std::shared_ptr<SstQueryFilterConfigsManager>* out) {
+  DBUG_TRACE;
   auto obj = std::make_shared<SstQueryFilterConfigsManagerImpl>();
   Status s = obj->Populate(data);
   if (s.ok()) {

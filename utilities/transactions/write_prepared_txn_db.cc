@@ -4,6 +4,7 @@
 //  (found in the LICENSE.Apache file in the root directory).
 
 
+#include "rocksdb/util/dbug.h"
 #include "utilities/transactions/write_prepared_txn_db.h"
 
 #include <algorithm>
@@ -42,6 +43,7 @@ namespace ROCKSDB_NAMESPACE {
 Status WritePreparedTxnDB::Initialize(
     const std::vector<size_t>& compaction_enabled_cf_indices,
     const std::vector<ColumnFamilyHandle*>& handles) {
+  DBUG_TRACE;
   auto dbimpl = static_cast_with_check<DBImpl>(GetRootDB());
   assert(dbimpl != nullptr);
   auto rtxns = dbimpl->recovered_transactions();
@@ -83,6 +85,7 @@ Status WritePreparedTxnDB::Initialize(
     Status Callback(SequenceNumber commit_seq,
                     bool is_mem_disabled __attribute__((__unused__)), uint64_t,
                     size_t /*index*/, size_t /*total*/) override {
+      DBUG_TRACE;
       assert(!is_mem_disabled);
       db_->AddCommitted(commit_seq, commit_seq);
       return Status::OK();
@@ -101,6 +104,7 @@ Status WritePreparedTxnDB::Initialize(
 
 Status WritePreparedTxnDB::VerifyCFOptions(
     const ColumnFamilyOptions& cf_options) {
+  DBUG_TRACE;
   Status s = PessimisticTransactionDB::VerifyCFOptions(cf_options);
   if (!s.ok()) {
     return s;
@@ -116,6 +120,7 @@ Status WritePreparedTxnDB::VerifyCFOptions(
 Transaction* WritePreparedTxnDB::BeginTransaction(
     const WriteOptions& write_options, const TransactionOptions& txn_options,
     Transaction* old_txn) {
+  DBUG_TRACE;
   if (old_txn != nullptr) {
     ReinitializeTransaction(old_txn, write_options, txn_options);
     return old_txn;
@@ -126,6 +131,7 @@ Transaction* WritePreparedTxnDB::BeginTransaction(
 
 Status WritePreparedTxnDB::Write(const WriteOptions& opts,
                                  WriteBatch* updates) {
+  DBUG_TRACE;
   if (txn_db_options_.skip_concurrency_control) {
     // Skip locking the rows
     const size_t UNKNOWN_BATCH_CNT = 0;
@@ -139,6 +145,7 @@ Status WritePreparedTxnDB::Write(const WriteOptions& opts,
 Status WritePreparedTxnDB::Write(
     const WriteOptions& opts,
     const TransactionDBWriteOptimizations& optimizations, WriteBatch* updates) {
+  DBUG_TRACE;
   if (optimizations.skip_concurrency_control) {
     // Skip locking the rows
     const size_t UNKNOWN_BATCH_CNT = 0;
@@ -158,6 +165,7 @@ Status WritePreparedTxnDB::Write(
 Status WritePreparedTxnDB::WriteInternal(const WriteOptions& write_options_orig,
                                          WriteBatch* batch, size_t batch_cnt,
                                          WritePreparedTxn* txn) {
+  DBUG_TRACE;
   ROCKS_LOG_DETAILS(db_impl_->immutable_db_options().info_log,
                     "CommitBatchInternal");
   if (batch->Count() == 0) {
@@ -251,6 +259,7 @@ Status WritePreparedTxnDB::Get(const ReadOptions& _read_options,
                                ColumnFamilyHandle* column_family,
                                const Slice& key, PinnableSlice* value,
                                std::string* timestamp) {
+  DBUG_TRACE;
   if (_read_options.io_activity != Env::IOActivity::kUnknown &&
       _read_options.io_activity != Env::IOActivity::kGet) {
     return Status::InvalidArgument(
@@ -272,6 +281,7 @@ Status WritePreparedTxnDB::Get(const ReadOptions& _read_options,
 Status WritePreparedTxnDB::GetImpl(const ReadOptions& options,
                                    ColumnFamilyHandle* column_family,
                                    const Slice& key, PinnableSlice* value) {
+  DBUG_TRACE;
   SequenceNumber min_uncommitted, snap_seq;
   const SnapshotBackup backed_by_snapshot =
       AssignMinMaxSeqs(options.snapshot, &min_uncommitted, &snap_seq);
@@ -296,6 +306,7 @@ Status WritePreparedTxnDB::GetImpl(const ReadOptions& options,
 
 void WritePreparedTxnDB::UpdateCFComparatorMap(
     const std::vector<ColumnFamilyHandle*>& handles) {
+  DBUG_TRACE;
   auto cf_map = new std::map<uint32_t, const Comparator*>();
   auto handle_map = new std::map<uint32_t, ColumnFamilyHandle*>();
   for (auto h : handles) {
@@ -315,6 +326,7 @@ void WritePreparedTxnDB::UpdateCFComparatorMap(
 }
 
 void WritePreparedTxnDB::UpdateCFComparatorMap(ColumnFamilyHandle* h) {
+  DBUG_TRACE;
   auto old_cf_map_ptr = cf_map_.get();
   assert(old_cf_map_ptr);
   auto cf_map = new std::map<uint32_t, const Comparator*>(*old_cf_map_ptr);
@@ -336,6 +348,7 @@ void WritePreparedTxnDB::MultiGet(const ReadOptions& _read_options,
                                   const Slice* keys, PinnableSlice* values,
                                   std::string* timestamps, Status* statuses,
                                   const bool /*sorted_input*/) {
+  DBUG_TRACE;
   assert(values);
 
   Status s;
@@ -385,6 +398,7 @@ struct WritePreparedTxnDB::IteratorState {
 
 namespace {
 static void CleanupWritePreparedTxnDBIterator(void* arg1, void* /*arg2*/) {
+  DBUG_TRACE;
   delete static_cast<WritePreparedTxnDB::IteratorState*>(arg1);
 }
 }  // anonymous namespace
@@ -485,6 +499,7 @@ Status WritePreparedTxnDB::NewIterators(
 }
 
 void WritePreparedTxnDB::Init(const TransactionDBOptions& txn_db_opts) {
+  DBUG_TRACE;
   // Adcance max_evicted_seq_ no more than 100 times before the cache wraps
   // around.
   INC_STEP_FOR_MAX_EVICTED =
@@ -500,6 +515,7 @@ void WritePreparedTxnDB::Init(const TransactionDBOptions& txn_db_opts) {
 
 void WritePreparedTxnDB::CheckPreparedAgainstMax(SequenceNumber new_max,
                                                  bool locked) {
+  DBUG_TRACE;
   // When max_evicted_seq_ advances, move older entries from prepared_txns_
   // to delayed_prepared_. This guarantees that if a seq is lower than max,
   // then it is not in prepared_txns_ and save an expensive, synchronized
@@ -542,6 +558,7 @@ void WritePreparedTxnDB::CheckPreparedAgainstMax(SequenceNumber new_max,
 }
 
 void WritePreparedTxnDB::AddPrepared(uint64_t seq, bool locked) {
+  DBUG_TRACE;
   ROCKS_LOG_DETAILS(info_log_, "Txn %" PRIu64 " Preparing with max %" PRIu64,
                     seq, max_evicted_seq_.load());
   TEST_SYNC_POINT("AddPrepared::begin:pause");
@@ -569,6 +586,7 @@ void WritePreparedTxnDB::AddPrepared(uint64_t seq, bool locked) {
 
 void WritePreparedTxnDB::AddCommitted(uint64_t prepare_seq, uint64_t commit_seq,
                                       uint8_t loop_cnt) {
+  DBUG_TRACE;
   ROCKS_LOG_DETAILS(info_log_, "Txn %" PRIu64 " Committing with %" PRIu64,
                     prepare_seq, commit_seq);
   TEST_SYNC_POINT("WritePreparedTxnDB::AddCommitted:start");
@@ -646,6 +664,7 @@ void WritePreparedTxnDB::AddCommitted(uint64_t prepare_seq, uint64_t commit_seq,
 
 void WritePreparedTxnDB::RemovePrepared(const uint64_t prepare_seq,
                                         const size_t batch_cnt) {
+  DBUG_TRACE;
   TEST_SYNC_POINT_CALLBACK(
       "RemovePrepared:Start",
       const_cast<void*>(static_cast<const void*>(&prepare_seq)));
@@ -677,6 +696,7 @@ void WritePreparedTxnDB::RemovePrepared(const uint64_t prepare_seq,
 bool WritePreparedTxnDB::GetCommitEntry(const uint64_t indexed_seq,
                                         CommitEntry64b* entry_64b,
                                         CommitEntry* entry) const {
+  DBUG_TRACE;
   *entry_64b = commit_cache_[static_cast<size_t>(indexed_seq)].load(
       std::memory_order_acquire);
   bool valid = entry_64b->Parse(indexed_seq, entry, FORMAT);
@@ -686,6 +706,7 @@ bool WritePreparedTxnDB::GetCommitEntry(const uint64_t indexed_seq,
 bool WritePreparedTxnDB::AddCommitEntry(const uint64_t indexed_seq,
                                         const CommitEntry& new_entry,
                                         CommitEntry* evicted_entry) {
+  DBUG_TRACE;
   CommitEntry64b new_entry_64b(new_entry, FORMAT);
   CommitEntry64b evicted_entry_64b =
       commit_cache_[static_cast<size_t>(indexed_seq)].exchange(
@@ -697,6 +718,7 @@ bool WritePreparedTxnDB::AddCommitEntry(const uint64_t indexed_seq,
 bool WritePreparedTxnDB::ExchangeCommitEntry(const uint64_t indexed_seq,
                                              CommitEntry64b& expected_entry_64b,
                                              const CommitEntry& new_entry) {
+  DBUG_TRACE;
   auto& atomic_entry = commit_cache_[static_cast<size_t>(indexed_seq)];
   CommitEntry64b new_entry_64b(new_entry, FORMAT);
   bool succ = atomic_entry.compare_exchange_strong(
@@ -707,6 +729,7 @@ bool WritePreparedTxnDB::ExchangeCommitEntry(const uint64_t indexed_seq,
 
 void WritePreparedTxnDB::AdvanceMaxEvictedSeq(const SequenceNumber& prev_max,
                                               const SequenceNumber& new_max) {
+  DBUG_TRACE;
   ROCKS_LOG_DETAILS(info_log_,
                     "AdvanceMaxEvictedSeq overhead %" PRIu64 " => %" PRIu64,
                     prev_max, new_max);
@@ -760,12 +783,14 @@ void WritePreparedTxnDB::AdvanceMaxEvictedSeq(const SequenceNumber& prev_max,
 }
 
 const Snapshot* WritePreparedTxnDB::GetSnapshot() {
+  DBUG_TRACE;
   const bool kForWWConflictCheck = true;
   return GetSnapshotInternal(!kForWWConflictCheck);
 }
 
 SnapshotImpl* WritePreparedTxnDB::GetSnapshotInternal(
     bool for_ww_conflict_check) {
+  DBUG_TRACE;
   // Note: for this optimization setting the last sequence number and obtaining
   // the smallest uncommitted seq should be done atomically. However to avoid
   // the mutex overhead, we call SmallestUnCommittedSeq BEFORE taking the
@@ -822,6 +847,7 @@ SnapshotImpl* WritePreparedTxnDB::GetSnapshotInternal(
 }
 
 void WritePreparedTxnDB::AdvanceSeqByOne() {
+  DBUG_TRACE;
   // Inserting an empty value will i) let the max evicted entry to be
   // published, i.e., max == last_published, increase the last published to
   // be one beyond max, i.e., max < last_published.
@@ -849,6 +875,7 @@ void WritePreparedTxnDB::AdvanceSeqByOne() {
 
 const std::vector<SequenceNumber> WritePreparedTxnDB::GetSnapshotListFromDB(
     SequenceNumber max) {
+  DBUG_TRACE;
   ROCKS_LOG_DETAILS(info_log_, "GetSnapshotListFromDB with max %" PRIu64, max);
   InstrumentedMutexLock dblock(db_impl_->mutex());
   db_impl_->mutex()->AssertHeld();
@@ -857,6 +884,7 @@ const std::vector<SequenceNumber> WritePreparedTxnDB::GetSnapshotListFromDB(
 
 void WritePreparedTxnDB::ReleaseSnapshotInternal(
     const SequenceNumber snap_seq) {
+  DBUG_TRACE;
   // TODO(myabandeh): relax should enough since the synchronizatin is already
   // done by snapshots_mutex_ under which this function is called.
   if (snap_seq <= max_evicted_seq_.load(std::memory_order_acquire)) {
@@ -888,6 +916,7 @@ void WritePreparedTxnDB::ReleaseSnapshotInternal(
 void WritePreparedTxnDB::CleanupReleasedSnapshots(
     const std::vector<SequenceNumber>& new_snapshots,
     const std::vector<SequenceNumber>& old_snapshots) {
+  DBUG_TRACE;
   auto newi = new_snapshots.begin();
   auto oldi = old_snapshots.begin();
   for (; newi != new_snapshots.end() && oldi != old_snapshots.end();) {
@@ -915,6 +944,7 @@ void WritePreparedTxnDB::CleanupReleasedSnapshots(
 void WritePreparedTxnDB::UpdateSnapshots(
     const std::vector<SequenceNumber>& snapshots,
     const SequenceNumber& version) {
+  DBUG_TRACE;
   ROCKS_LOG_DETAILS(info_log_, "UpdateSnapshots with version %" PRIu64,
                     version);
   TEST_SYNC_POINT("WritePreparedTxnDB::UpdateSnapshots:p:start");
@@ -971,6 +1001,7 @@ void WritePreparedTxnDB::UpdateSnapshots(
 }
 
 void WritePreparedTxnDB::CheckAgainstSnapshots(const CommitEntry& evicted) {
+  DBUG_TRACE;
   TEST_SYNC_POINT("WritePreparedTxnDB::CheckAgainstSnapshots:p:start");
   TEST_SYNC_POINT("WritePreparedTxnDB::CheckAgainstSnapshots:s:start");
 #ifndef NDEBUG
@@ -1043,6 +1074,7 @@ void WritePreparedTxnDB::CheckAgainstSnapshots(const CommitEntry& evicted) {
 bool WritePreparedTxnDB::MaybeUpdateOldCommitMap(
     const uint64_t& prep_seq, const uint64_t& commit_seq,
     const uint64_t& snapshot_seq, const bool next_is_larger = true) {
+  DBUG_TRACE;
   // If we do not store an entry in old_commit_map_ we assume it is committed in
   // all snapshots. If commit_seq <= snapshot_seq, it is considered already in
   // the snapshot so we need not to keep the entry around for this snapshot.
@@ -1079,11 +1111,13 @@ WritePreparedTxnDB::~WritePreparedTxnDB() {
 }
 
 void SubBatchCounter::InitWithComp(const uint32_t cf) {
+  DBUG_TRACE;
   auto cmp = comparators_[cf];
   keys_[cf] = CFKeys(SetComparator(cmp));
 }
 
 void SubBatchCounter::AddKey(const uint32_t cf, const Slice& key) {
+  DBUG_TRACE;
   CFKeys& cf_keys = keys_[cf];
   if (cf_keys.size() == 0) {  // just inserted
     InitWithComp(cf);

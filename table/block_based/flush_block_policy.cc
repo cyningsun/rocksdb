@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/flush_block_policy.h"
 
 #include <cassert>
@@ -35,6 +36,7 @@ class FlushBlockBySizePolicy : public FlushBlockPolicy {
         data_block_builder_(data_block_builder) {}
 
   bool Update(const Slice& key, const Slice& value) override {
+    DBUG_TRACE;
     // it makes no sense to flush when the data block is empty
     if (data_block_builder_.empty()) {
       return false;
@@ -52,6 +54,7 @@ class FlushBlockBySizePolicy : public FlushBlockPolicy {
 
  private:
   bool BlockAlmostFull(const Slice& key, const Slice& value) const {
+    DBUG_TRACE;
     if (block_size_deviation_limit_ == 0) {
       return false;
     }
@@ -78,6 +81,7 @@ class FlushBlockBySizePolicy : public FlushBlockPolicy {
 FlushBlockPolicy* FlushBlockBySizePolicyFactory::NewFlushBlockPolicy(
     const BlockBasedTableOptions& table_options,
     const BlockBuilder& data_block_builder) const {
+  DBUG_TRACE;
   return new FlushBlockBySizePolicy(
       table_options.block_size, table_options.block_size_deviation,
       table_options.block_align, data_block_builder);
@@ -86,11 +90,13 @@ FlushBlockPolicy* FlushBlockBySizePolicyFactory::NewFlushBlockPolicy(
 FlushBlockPolicy* FlushBlockBySizePolicyFactory::NewFlushBlockPolicy(
     const uint64_t size, const int deviation,
     const BlockBuilder& data_block_builder) {
+  DBUG_TRACE;
   return new FlushBlockBySizePolicy(size, deviation, false, data_block_builder);
 }
 
 static int RegisterFlushBlockPolicyFactories(ObjectLibrary& library,
                                              const std::string& /*arg*/) {
+  DBUG_TRACE;
   library.AddFactory<FlushBlockPolicyFactory>(
       FlushBlockBySizePolicyFactory::kClassName(),
       [](const std::string& /*uri*/,
@@ -116,6 +122,7 @@ FlushBlockBySizePolicyFactory::FlushBlockBySizePolicyFactory()
 Status FlushBlockPolicyFactory::CreateFromString(
     const ConfigOptions& config_options, const std::string& value,
     std::shared_ptr<FlushBlockPolicyFactory>* factory) {
+  DBUG_TRACE;
   static std::once_flag once;
   std::call_once(once, [&]() {
     RegisterFlushBlockPolicyFactories(*(ObjectLibrary::Default().get()), "");

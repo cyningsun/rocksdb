@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 //
+#include "rocksdb/util/dbug.h"
 #include "db/output_validator.h"
 
 #include "test_util/sync_point.h"
@@ -10,6 +11,7 @@
 
 namespace ROCKSDB_NAMESPACE {
 Status OutputValidator::Add(const Slice& key, const Slice& value) {
+  DBUG_TRACE;
   if (enable_hash_) {
     // Generate a rolling 64-bit hash of the key and values
     paranoid_hash_ = NPHash64(key.data(), key.size(), paranoid_hash_);

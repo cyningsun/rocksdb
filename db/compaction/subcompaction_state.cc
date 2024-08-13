@@ -8,6 +8,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "db/compaction/subcompaction_state.h"
 
 #include "rocksdb/sst_partitioner.h"
@@ -15,6 +16,7 @@
 namespace ROCKSDB_NAMESPACE {
 void SubcompactionState::AggregateCompactionStats(
     InternalStats::CompactionStatsFull& compaction_stats) const {
+  DBUG_TRACE;
   compaction_stats.stats.Add(compaction_outputs_.stats_);
   if (HasPenultimateLevelOutputs()) {
     compaction_stats.has_penultimate_level_output = true;
@@ -24,11 +26,13 @@ void SubcompactionState::AggregateCompactionStats(
 }
 
 OutputIterator SubcompactionState::GetOutputs() const {
+  DBUG_TRACE;
   return OutputIterator(penultimate_level_outputs_.outputs_,
                         compaction_outputs_.outputs_);
 }
 
 void SubcompactionState::Cleanup(Cache* cache) {
+  DBUG_TRACE;
   penultimate_level_outputs_.Cleanup();
   compaction_outputs_.Cleanup();
 
@@ -45,6 +49,7 @@ void SubcompactionState::Cleanup(Cache* cache) {
 }
 
 Slice SubcompactionState::SmallestUserKey() const {
+  DBUG_TRACE;
   if (has_penultimate_level_outputs_) {
     Slice a = compaction_outputs_.SmallestUserKey();
     Slice b = penultimate_level_outputs_.SmallestUserKey();
@@ -67,6 +72,7 @@ Slice SubcompactionState::SmallestUserKey() const {
 }
 
 Slice SubcompactionState::LargestUserKey() const {
+  DBUG_TRACE;
   if (has_penultimate_level_outputs_) {
     Slice a = compaction_outputs_.LargestUserKey();
     Slice b = penultimate_level_outputs_.LargestUserKey();
@@ -92,6 +98,7 @@ Status SubcompactionState::AddToOutput(
     const CompactionIterator& iter,
     const CompactionFileOpenFunc& open_file_func,
     const CompactionFileCloseFunc& close_file_func) {
+  DBUG_TRACE;
   // update target output first
   is_current_penultimate_level_ = iter.output_to_penultimate_level();
   current_outputs_ = is_current_penultimate_level_ ? &penultimate_level_outputs_

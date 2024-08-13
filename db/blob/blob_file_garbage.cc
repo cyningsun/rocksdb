@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "db/blob/blob_file_garbage.h"
 
 #include <ostream>
@@ -31,6 +32,7 @@ enum BlobFileGarbage::CustomFieldTags : uint32_t {
 };
 
 void BlobFileGarbage::EncodeTo(std::string* output) const {
+  DBUG_TRACE;
   PutVarint64(output, blob_file_number_);
   PutVarint64(output, garbage_blob_count_);
   PutVarint64(output, garbage_blob_bytes_);
@@ -86,6 +88,7 @@ Status BlobFileGarbage::DecodeFrom(Slice* input) {
 }
 
 std::string BlobFileGarbage::DebugString() const {
+  DBUG_TRACE;
   std::ostringstream oss;
 
   oss << *this;
@@ -94,6 +97,7 @@ std::string BlobFileGarbage::DebugString() const {
 }
 
 std::string BlobFileGarbage::DebugJSON() const {
+  DBUG_TRACE;
   JSONWriter jw;
 
   jw << *this;
@@ -104,17 +108,20 @@ std::string BlobFileGarbage::DebugJSON() const {
 }
 
 bool operator==(const BlobFileGarbage& lhs, const BlobFileGarbage& rhs) {
+  DBUG_TRACE;
   return lhs.GetBlobFileNumber() == rhs.GetBlobFileNumber() &&
          lhs.GetGarbageBlobCount() == rhs.GetGarbageBlobCount() &&
          lhs.GetGarbageBlobBytes() == rhs.GetGarbageBlobBytes();
 }
 
 bool operator!=(const BlobFileGarbage& lhs, const BlobFileGarbage& rhs) {
+  DBUG_TRACE;
   return !(lhs == rhs);
 }
 
 std::ostream& operator<<(std::ostream& os,
                          const BlobFileGarbage& blob_file_garbage) {
+  DBUG_TRACE;
   os << "blob_file_number: " << blob_file_garbage.GetBlobFileNumber()
      << " garbage_blob_count: " << blob_file_garbage.GetGarbageBlobCount()
      << " garbage_blob_bytes: " << blob_file_garbage.GetGarbageBlobBytes();
@@ -124,6 +131,7 @@ std::ostream& operator<<(std::ostream& os,
 
 JSONWriter& operator<<(JSONWriter& jw,
                        const BlobFileGarbage& blob_file_garbage) {
+  DBUG_TRACE;
   jw << "BlobFileNumber" << blob_file_garbage.GetBlobFileNumber()
      << "GarbageBlobCount" << blob_file_garbage.GetGarbageBlobCount()
      << "GarbageBlobBytes" << blob_file_garbage.GetGarbageBlobBytes();

@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/utilities/leveldb_options.h"
 
 #include "rocksdb/advanced_cache.h"
@@ -34,6 +35,7 @@ LevelDBOptions::LevelDBOptions()
       filter_policy(nullptr) {}
 
 Options ConvertOptions(const LevelDBOptions& leveldb_options) {
+  DBUG_TRACE;
   Options options = Options();
   options.create_if_missing = leveldb_options.create_if_missing;
   options.error_if_exists = leveldb_options.error_if_exists;

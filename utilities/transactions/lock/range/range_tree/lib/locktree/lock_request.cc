@@ -1,5 +1,6 @@
 /* -*- mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 // vim: ft=cpp:expandtab:ts=8:sw=2:softtabstop=2:
+#include "rocksdb/util/dbug.h"
 #ifndef OS_WIN
 #ident "$Id$"
 /*======
@@ -63,6 +64,7 @@ namespace toku {
 
 // initialize a lock request's internals
 void lock_request::create(toku_external_mutex_factory_t mutex_factory) {
+  DBUG_TRACE;
   m_txnid = TXNID_NONE;
   m_conflicting_txnid = TXNID_NONE;
   m_start_time = 0;
@@ -89,6 +91,7 @@ void lock_request::create(toku_external_mutex_factory_t mutex_factory) {
 
 // destroy a lock request.
 void lock_request::destroy(void) {
+  DBUG_TRACE;
   invariant(m_state != state::PENDING);
   invariant(m_state != state::DESTROYED);
   m_state = state::DESTROYED;
@@ -101,6 +104,7 @@ void lock_request::destroy(void) {
 void lock_request::set(locktree *lt, TXNID txnid, const DBT *left_key,
                        const DBT *right_key, lock_request::type lock_type,
                        bool big_txn, void *extra) {
+  DBUG_TRACE;
   invariant(m_state != state::PENDING);
   m_lt = lt;
 
@@ -119,6 +123,7 @@ void lock_request::set(locktree *lt, TXNID txnid, const DBT *left_key,
 // get rid of any stored left and right key copies and
 // replace them with copies of the given left and right key
 void lock_request::copy_keys() {
+  DBUG_TRACE;
   if (!toku_dbt_is_infinite(m_left_key)) {
     toku_clone_dbt(&m_left_key_copy, *m_left_key);
     m_left_key = &m_left_key_copy;
@@ -131,6 +136,7 @@ void lock_request::copy_keys() {
 
 // what are the conflicts for this pending lock request?
 void lock_request::get_conflicts(txnid_set *conflicts) {
+  DBUG_TRACE;
   invariant(m_state == state::PENDING);
   const bool is_write_request = m_type == type::WRITE;
   m_lt->get_conflicts(is_write_request, m_txnid, m_left_key, m_right_key,
@@ -143,6 +149,7 @@ void lock_request::get_conflicts(txnid_set *conflicts) {
 //         add (A,T) to the WFG and if B is new, fill in the WFG from B
 void lock_request::build_wait_graph(wfg *wait_graph,
                                     const txnid_set &conflicts) {
+  DBUG_TRACE;
   uint32_t num_conflicts = conflicts.size();
   for (uint32_t i = 0; i < num_conflicts; i++) {
     TXNID conflicting_txnid = conflicts.get(i);
@@ -168,6 +175,7 @@ void lock_request::build_wait_graph(wfg *wait_graph,
 // returns: true if the current set of lock requests contains
 //          a deadlock, false otherwise.
 bool lock_request::deadlock_exists(const txnid_set &conflicts) {
+  DBUG_TRACE;
   wfg wait_graph;
   wait_graph.create();
 
@@ -191,6 +199,7 @@ bool lock_request::deadlock_exists(const txnid_set &conflicts) {
 
 // try to acquire a lock described by this lock request.
 int lock_request::start(void) {
+  DBUG_TRACE;
   int r;
 
   txnid_set conflicts;
@@ -234,6 +243,7 @@ int lock_request::start(void) {
 // sleep on the lock request until it becomes resolved or the wait time has
 // elapsed.
 int lock_request::wait(uint64_t wait_time_ms) {
+  DBUG_TRACE;
   return wait(wait_time_ms, 0, nullptr);
 }
 
@@ -241,6 +251,7 @@ int lock_request::wait(uint64_t wait_time_ms, uint64_t killed_time_ms,
                        int (*killed_callback)(void),
                        void (*lock_wait_callback)(void *, lock_wait_infos *),
                        void *callback_arg) {
+  DBUG_TRACE;
   uint64_t t_now = toku_current_time_microsec();
   uint64_t t_start = t_now;
   uint64_t t_end = t_start + wait_time_ms * 1000;
@@ -306,23 +317,26 @@ int lock_request::wait(uint64_t wait_time_ms, uint64_t killed_time_ms,
 
 // complete this lock request with the given return value
 void lock_request::complete(int complete_r) {
+  DBUG_TRACE;
   m_complete_r = complete_r;
   m_state = state::COMPLETE;
 }
 
-const DBT *lock_request::get_left_key(void) const { return m_left_key; }
+const DBT *lock_request::get_left_key(void) const { DBUG_TRACE; return m_left_key; }
 
-const DBT *lock_request::get_right_key(void) const { return m_right_key; }
+const DBT *lock_request::get_right_key(void) const { DBUG_TRACE; return m_right_key; }
 
-TXNID lock_request::get_txnid(void) const { return m_txnid; }
+TXNID lock_request::get_txnid(void) const { DBUG_TRACE; return m_txnid; }
 
-uint64_t lock_request::get_start_time(void) const { return m_start_time; }
+uint64_t lock_request::get_start_time(void) const { DBUG_TRACE; return m_start_time; }
 
 TXNID lock_request::get_conflicting_txnid(void) const {
+  DBUG_TRACE;
   return m_conflicting_txnid;
 }
 
 int lock_request::retry(lock_wait_infos *conflicts_collector) {
+  DBUG_TRACE;
   invariant(m_state == state::PENDING);
   int r;
   txnid_set conflicts;
@@ -355,6 +369,7 @@ int lock_request::retry(lock_wait_infos *conflicts_collector) {
 void lock_request::retry_all_lock_requests(
     locktree *lt, void (*lock_wait_callback)(void *, lock_wait_infos *),
     void *callback_arg, void (*after_retry_all_test_callback)(void)) {
+  DBUG_TRACE;
   lt_lock_request_info *info = lt->get_lock_request_info();
 
   // if there are no pending lock requests than there is nothing to do
@@ -395,6 +410,7 @@ void lock_request::retry_all_lock_requests(
 void lock_request::retry_all_lock_requests_info(
     lt_lock_request_info *info,
     void (*lock_wait_callback)(void *, lock_wait_infos *), void *callback_arg) {
+  DBUG_TRACE;
   toku_external_mutex_lock(&info->mutex);
   // retry all of the pending lock requests.
   lock_wait_infos conflicts_collector;
@@ -424,6 +440,7 @@ void lock_request::retry_all_lock_requests_info(
 
 void lock_request::add_conflicts_to_waits(txnid_set *conflicts,
                                           lock_wait_infos *wait_conflicts) {
+  DBUG_TRACE;
   wait_conflicts->push_back({m_lt, get_txnid(), m_extra, {}});
   uint32_t num_conflicts = conflicts->size();
   for (uint32_t i = 0; i < num_conflicts; i++) {
@@ -435,18 +452,21 @@ void lock_request::report_waits(lock_wait_infos *wait_conflicts,
                                 void (*lock_wait_callback)(void *,
                                                            lock_wait_infos *),
                                 void *callback_arg) {
+  DBUG_TRACE;
   if (lock_wait_callback) (*lock_wait_callback)(callback_arg, wait_conflicts);
 }
 
-void *lock_request::get_extra(void) const { return m_extra; }
+void *lock_request::get_extra(void) const { DBUG_TRACE; return m_extra; }
 
 void lock_request::kill_waiter(void) {
+  DBUG_TRACE;
   remove_from_lock_requests();
   complete(DB_LOCK_NOTGRANTED);
   toku_external_cond_broadcast(&m_wait_cond);
 }
 
 void lock_request::kill_waiter(locktree *lt, void *extra) {
+  DBUG_TRACE;
   lt_lock_request_info *info = lt->get_lock_request_info();
   toku_external_mutex_lock(&info->mutex);
   for (uint32_t i = 0; i < info->pending_lock_requests.size(); i++) {
@@ -462,6 +482,7 @@ void lock_request::kill_waiter(locktree *lt, void *extra) {
 
 // find another lock request by txnid. must hold the mutex.
 lock_request *lock_request::find_lock_request(const TXNID &txnid) {
+  DBUG_TRACE;
   lock_request *request;
   int r = m_info->pending_lock_requests.find_zero<TXNID, find_by_txnid>(
       txnid, &request, nullptr);
@@ -473,6 +494,7 @@ lock_request *lock_request::find_lock_request(const TXNID &txnid) {
 
 // insert this lock request into the locktree's set. must hold the mutex.
 void lock_request::insert_into_lock_requests(void) {
+  DBUG_TRACE;
   uint32_t idx;
   lock_request *request;
   int r = m_info->pending_lock_requests.find_zero<TXNID, find_by_txnid>(
@@ -485,6 +507,7 @@ void lock_request::insert_into_lock_requests(void) {
 
 // remove this lock request from the locktree's set. must hold the mutex.
 void lock_request::remove_from_lock_requests(void) {
+  DBUG_TRACE;
   uint32_t idx;
   lock_request *request;
   int r = m_info->pending_lock_requests.find_zero<TXNID, find_by_txnid>(
@@ -499,6 +522,7 @@ void lock_request::remove_from_lock_requests(void) {
 
 int lock_request::find_by_txnid(lock_request *const &request,
                                 const TXNID &txnid) {
+  DBUG_TRACE;
   TXNID request_txnid = request->m_txnid;
   if (request_txnid < txnid) {
     return -1;
@@ -510,14 +534,17 @@ int lock_request::find_by_txnid(lock_request *const &request,
 }
 
 void lock_request::set_start_test_callback(void (*f)(void)) {
+  DBUG_TRACE;
   m_start_test_callback = f;
 }
 
 void lock_request::set_start_before_pending_test_callback(void (*f)(void)) {
+  DBUG_TRACE;
   m_start_before_pending_test_callback = f;
 }
 
 void lock_request::set_retry_test_callback(void (*f)(void)) {
+  DBUG_TRACE;
   m_retry_test_callback = f;
 }
 

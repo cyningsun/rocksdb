@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "utilities/trace/file_trace_reader_writer.h"
 
 #include "env/composite_env_wrapper.h"
@@ -27,11 +28,13 @@ FileTraceReader::~FileTraceReader() {
 }
 
 Status FileTraceReader::Close() {
+  DBUG_TRACE;
   file_reader_.reset();
   return Status::OK();
 }
 
 Status FileTraceReader::Reset() {
+  DBUG_TRACE;
   if (file_reader_ == nullptr) {
     return Status::IOError("TraceReader is closed.");
   }
@@ -40,6 +43,7 @@ Status FileTraceReader::Reset() {
 }
 
 Status FileTraceReader::Read(std::string* data) {
+  DBUG_TRACE;
   assert(file_reader_ != nullptr);
   Status s = file_reader_->Read(IOOptions(), offset_, kTraceMetadataSize,
                                 &result_, buffer_, nullptr);
@@ -91,19 +95,22 @@ FileTraceWriter::FileTraceWriter(
 FileTraceWriter::~FileTraceWriter() { Close().PermitUncheckedError(); }
 
 Status FileTraceWriter::Close() {
+  DBUG_TRACE;
   file_writer_.reset();
   return Status::OK();
 }
 
 Status FileTraceWriter::Write(const Slice& data) {
+  DBUG_TRACE;
   return file_writer_->Append(IOOptions(), data);
 }
 
-uint64_t FileTraceWriter::GetFileSize() { return file_writer_->GetFileSize(); }
+uint64_t FileTraceWriter::GetFileSize() { DBUG_TRACE; return file_writer_->GetFileSize(); }
 
 Status NewFileTraceReader(Env* env, const EnvOptions& env_options,
                           const std::string& trace_filename,
                           std::unique_ptr<TraceReader>* trace_reader) {
+  DBUG_TRACE;
   std::unique_ptr<RandomAccessFileReader> file_reader;
   Status s = RandomAccessFileReader::Create(
       env->GetFileSystem(), trace_filename, FileOptions(env_options),
@@ -118,6 +125,7 @@ Status NewFileTraceReader(Env* env, const EnvOptions& env_options,
 Status NewFileTraceWriter(Env* env, const EnvOptions& env_options,
                           const std::string& trace_filename,
                           std::unique_ptr<TraceWriter>* trace_writer) {
+  DBUG_TRACE;
   std::unique_ptr<WritableFileWriter> file_writer;
   Status s = WritableFileWriter::Create(env->GetFileSystem(), trace_filename,
                                         FileOptions(env_options), &file_writer,

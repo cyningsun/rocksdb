@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "db/compaction/compaction_picker_fifo.h"
 
 #include <cinttypes>
@@ -25,6 +26,7 @@
 namespace ROCKSDB_NAMESPACE {
 namespace {
 uint64_t GetTotalFilesSize(const std::vector<FileMetaData*>& files) {
+  DBUG_TRACE;
   uint64_t total_size = 0;
   for (const auto& f : files) {
     total_size += f->fd.file_size;
@@ -35,6 +37,7 @@ uint64_t GetTotalFilesSize(const std::vector<FileMetaData*>& files) {
 
 bool FIFOCompactionPicker::NeedsCompaction(
     const VersionStorageInfo* vstorage) const {
+  DBUG_TRACE;
   const int kLevel0 = 0;
   return vstorage->CompactionScore(kLevel0) >= 1;
 }
@@ -43,6 +46,7 @@ Compaction* FIFOCompactionPicker::PickTTLCompaction(
     const std::string& cf_name, const MutableCFOptions& mutable_cf_options,
     const MutableDBOptions& mutable_db_options, VersionStorageInfo* vstorage,
     LogBuffer* log_buffer) {
+  DBUG_TRACE;
   assert(mutable_cf_options.ttl > 0);
 
   const int kLevel0 = 0;
@@ -144,6 +148,7 @@ Compaction* FIFOCompactionPicker::PickSizeCompaction(
     const std::string& cf_name, const MutableCFOptions& mutable_cf_options,
     const MutableDBOptions& mutable_db_options, VersionStorageInfo* vstorage,
     LogBuffer* log_buffer) {
+  DBUG_TRACE;
   // compute the total size and identify the last non-empty level
   int last_level = 0;
   uint64_t total_size = 0;
@@ -295,6 +300,7 @@ Compaction* FIFOCompactionPicker::PickTemperatureChangeCompaction(
     const std::string& cf_name, const MutableCFOptions& mutable_cf_options,
     const MutableDBOptions& mutable_db_options, VersionStorageInfo* vstorage,
     LogBuffer* log_buffer) {
+  DBUG_TRACE;
   const std::vector<FileTemperatureAge>& ages =
       mutable_cf_options.compaction_options_fifo
           .file_temperature_age_thresholds;
@@ -436,6 +442,7 @@ Compaction* FIFOCompactionPicker::PickCompaction(
     const std::string& cf_name, const MutableCFOptions& mutable_cf_options,
     const MutableDBOptions& mutable_db_options, VersionStorageInfo* vstorage,
     LogBuffer* log_buffer) {
+  DBUG_TRACE;
   Compaction* c = nullptr;
   if (mutable_cf_options.ttl > 0) {
     c = PickTTLCompaction(cf_name, mutable_cf_options, mutable_db_options,
@@ -461,6 +468,7 @@ Compaction* FIFOCompactionPicker::CompactRange(
     const InternalKey* /*begin*/, const InternalKey* /*end*/,
     InternalKey** compaction_end, bool* /*manual_conflict*/,
     uint64_t /*max_file_num_to_ignore*/, const std::string& /*trim_ts*/) {
+DBUG_TRACE;
 #ifdef NDEBUG
   (void)input_level;
   (void)output_level;

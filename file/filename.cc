@@ -6,6 +6,7 @@
 // Copyright (c) 2011 The LevelDB Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
+#include "rocksdb/util/dbug.h"
 #include "file/filename.h"
 
 #include <cctype>
@@ -36,6 +37,7 @@ static const std::string kArchivalDirName = "archive";
 // {[0-9,a-z,A-Z,-,_,.]} with _. And append '_LOG\0' at the end.
 // Return the number of chars stored in dest not including the trailing '\0'.
 static size_t GetInfoLogPrefix(const std::string& path, char* dest, int len) {
+  DBUG_TRACE;
   const char suffix[] = "_LOG";
 
   size_t write_idx = 0;
@@ -63,6 +65,7 @@ static size_t GetInfoLogPrefix(const std::string& path, char* dest, int len) {
 }
 
 static std::string MakeFileName(uint64_t number, const char* suffix) {
+  DBUG_TRACE;
   char buf[100];
   snprintf(buf, sizeof(buf), "%06llu.%s",
            static_cast<unsigned long long>(number), suffix);
@@ -71,53 +74,64 @@ static std::string MakeFileName(uint64_t number, const char* suffix) {
 
 static std::string MakeFileName(const std::string& name, uint64_t number,
                                 const char* suffix) {
+  DBUG_TRACE;
   return name + "/" + MakeFileName(number, suffix);
 }
 
 std::string LogFileName(const std::string& name, uint64_t number) {
+  DBUG_TRACE;
   assert(number > 0);
   return MakeFileName(name, number, "log");
 }
 
 std::string LogFileName(uint64_t number) {
+  DBUG_TRACE;
   assert(number > 0);
   return MakeFileName(number, "log");
 }
 
 std::string BlobFileName(uint64_t number) {
+  DBUG_TRACE;
   assert(number > 0);
   return MakeFileName(number, kRocksDBBlobFileExt.c_str());
 }
 
 std::string BlobFileName(const std::string& blobdirname, uint64_t number) {
+  DBUG_TRACE;
   assert(number > 0);
   return MakeFileName(blobdirname, number, kRocksDBBlobFileExt.c_str());
 }
 
 std::string BlobFileName(const std::string& dbname, const std::string& blob_dir,
                          uint64_t number) {
+  DBUG_TRACE;
   assert(number > 0);
   return MakeFileName(dbname + "/" + blob_dir, number,
                       kRocksDBBlobFileExt.c_str());
 }
 
 std::string ArchivalDirectory(const std::string& dir) {
+  DBUG_TRACE;
   return dir + "/" + kArchivalDirName;
 }
 std::string ArchivedLogFileName(const std::string& name, uint64_t number) {
+  DBUG_TRACE;
   assert(number > 0);
   return MakeFileName(name + "/" + kArchivalDirName, number, "log");
 }
 
 std::string MakeTableFileName(const std::string& path, uint64_t number) {
+  DBUG_TRACE;
   return MakeFileName(path, number, kRocksDbTFileExt.c_str());
 }
 
 std::string MakeTableFileName(uint64_t number) {
+  DBUG_TRACE;
   return MakeFileName(number, kRocksDbTFileExt.c_str());
 }
 
 std::string Rocks2LevelTableFileName(const std::string& fullname) {
+  DBUG_TRACE;
   assert(fullname.size() > kRocksDbTFileExt.size() + 1);
   if (fullname.size() <= kRocksDbTFileExt.size() + 1) {
     return "";
@@ -127,6 +141,7 @@ std::string Rocks2LevelTableFileName(const std::string& fullname) {
 }
 
 uint64_t TableFileNameToNumber(const std::string& name) {
+  DBUG_TRACE;
   uint64_t number = 0;
   uint64_t base = 1;
   int pos = static_cast<int>(name.find_last_of('.'));
@@ -139,6 +154,7 @@ uint64_t TableFileNameToNumber(const std::string& name) {
 
 std::string TableFileName(const std::vector<DbPath>& db_paths, uint64_t number,
                           uint32_t path_id) {
+  DBUG_TRACE;
   assert(number > 0);
   std::string path;
   if (path_id >= db_paths.size()) {
@@ -151,6 +167,7 @@ std::string TableFileName(const std::vector<DbPath>& db_paths, uint64_t number,
 
 void FormatFileNumber(uint64_t number, uint32_t path_id, char* out_buf,
                       size_t out_buf_size) {
+  DBUG_TRACE;
   if (path_id == 0) {
     snprintf(out_buf, out_buf_size, "%" PRIu64, number);
   } else {
@@ -163,6 +180,7 @@ void FormatFileNumber(uint64_t number, uint32_t path_id, char* out_buf,
 }
 
 std::string DescriptorFileName(uint64_t number) {
+  DBUG_TRACE;
   assert(number > 0);
   char buf[100];
   snprintf(buf, sizeof(buf), "MANIFEST-%06llu",
@@ -171,16 +189,19 @@ std::string DescriptorFileName(uint64_t number) {
 }
 
 std::string DescriptorFileName(const std::string& dbname, uint64_t number) {
+  DBUG_TRACE;
   return dbname + "/" + DescriptorFileName(number);
 }
 
 std::string CurrentFileName(const std::string& dbname) {
+  DBUG_TRACE;
   return dbname + "/" + kCurrentFileName;
 }
 
-std::string LockFileName(const std::string& dbname) { return dbname + "/LOCK"; }
+std::string LockFileName(const std::string& dbname) { DBUG_TRACE; return dbname + "/LOCK"; }
 
 std::string TempFileName(const std::string& dbname, uint64_t number) {
+  DBUG_TRACE;
   return MakeFileName(dbname, number, kTempFileNameSuffix.c_str());
 }
 
@@ -201,6 +222,7 @@ InfoLogPrefix::InfoLogPrefix(bool has_log_dir,
 std::string InfoLogFileName(const std::string& dbname,
                             const std::string& db_path,
                             const std::string& log_dir) {
+  DBUG_TRACE;
   if (log_dir.empty()) {
     return dbname + "/LOG";
   }
@@ -213,6 +235,7 @@ std::string InfoLogFileName(const std::string& dbname,
 std::string OldInfoLogFileName(const std::string& dbname, uint64_t ts,
                                const std::string& db_path,
                                const std::string& log_dir) {
+  DBUG_TRACE;
   char buf[50];
   snprintf(buf, sizeof(buf), "%llu", static_cast<unsigned long long>(ts));
 
@@ -225,16 +248,19 @@ std::string OldInfoLogFileName(const std::string& dbname, uint64_t ts,
 }
 
 std::string OptionsFileName(uint64_t file_num) {
+  DBUG_TRACE;
   char buffer[256];
   snprintf(buffer, sizeof(buffer), "%s%06" PRIu64,
            kOptionsFileNamePrefix.c_str(), file_num);
   return buffer;
 }
 std::string OptionsFileName(const std::string& dbname, uint64_t file_num) {
+  DBUG_TRACE;
   return dbname + "/" + OptionsFileName(file_num);
 }
 
 std::string TempOptionsFileName(const std::string& dbname, uint64_t file_num) {
+  DBUG_TRACE;
   char buffer[256];
   snprintf(buffer, sizeof(buffer), "%s%06" PRIu64 ".%s",
            kOptionsFileNamePrefix.c_str(), file_num,
@@ -243,6 +269,7 @@ std::string TempOptionsFileName(const std::string& dbname, uint64_t file_num) {
 }
 
 std::string MetaDatabaseName(const std::string& dbname, uint64_t number) {
+  DBUG_TRACE;
   char buf[100];
   snprintf(buf, sizeof(buf), "/METADB-%llu",
            static_cast<unsigned long long>(number));
@@ -250,6 +277,7 @@ std::string MetaDatabaseName(const std::string& dbname, uint64_t number) {
 }
 
 std::string IdentityFileName(const std::string& dbname) {
+  DBUG_TRACE;
   return dbname + "/IDENTITY";
 }
 
@@ -389,6 +417,7 @@ bool ParseFileName(const std::string& fname, uint64_t* number,
 IOStatus SetCurrentFile(const WriteOptions& write_options, FileSystem* fs,
                         const std::string& dbname, uint64_t descriptor_number,
                         FSDirectory* dir_contains_current_file) {
+  DBUG_TRACE;
   // Remove leading "dbname/" and add newline to manifest file name
   std::string manifest = DescriptorFileName(dbname, descriptor_number);
   Slice contents = manifest;
@@ -424,6 +453,7 @@ IOStatus SetCurrentFile(const WriteOptions& write_options, FileSystem* fs,
 
 Status SetIdentityFile(const WriteOptions& write_options, Env* env,
                        const std::string& dbname, const std::string& db_id) {
+  DBUG_TRACE;
   std::string id;
   if (db_id.empty()) {
     id = env->GenerateUniqueId();
@@ -474,6 +504,7 @@ Status SetIdentityFile(const WriteOptions& write_options, Env* env,
 IOStatus SyncManifest(const ImmutableDBOptions* db_options,
                       const WriteOptions& write_options,
                       WritableFileWriter* file) {
+  DBUG_TRACE;
   TEST_KILL_RANDOM_WITH_WEIGHT("SyncManifest:0", REDUCE_ODDS2);
   StopWatch sw(db_options->clock, db_options->stats, MANIFEST_FILE_SYNC_MICROS);
   IOOptions io_options;
@@ -488,6 +519,7 @@ Status GetInfoLogFiles(const std::shared_ptr<FileSystem>& fs,
                        const std::string& db_log_dir, const std::string& dbname,
                        std::string* parent_dir,
                        std::vector<std::string>* info_log_list) {
+  DBUG_TRACE;
   assert(parent_dir != nullptr);
   assert(info_log_list != nullptr);
   uint64_t number = 0;
@@ -518,6 +550,7 @@ Status GetInfoLogFiles(const std::shared_ptr<FileSystem>& fs,
 }
 
 std::string NormalizePath(const std::string& path) {
+  DBUG_TRACE;
   std::string dst;
 
   if (path.length() > 2 && path[0] == kFilePathSeparator &&

@@ -5,6 +5,7 @@
 //
 
 
+#include "rocksdb/util/dbug.h"
 #include <algorithm>
 #include <atomic>
 
@@ -35,15 +36,18 @@ struct BucketHeader {
       : next(n), num_entries(count) {}
 
   bool IsSkipListBucket() {
+    DBUG_TRACE;
     return next.load(std::memory_order_relaxed) == this;
   }
 
   uint32_t GetNumEntries() const {
+    DBUG_TRACE;
     return num_entries.load(std::memory_order_relaxed);
   }
 
   // REQUIRES: called from single-threaded Insert()
   void IncNumEntries() {
+    DBUG_TRACE;
     // Only one thread can do write at one time. No need to do atomic
     // incremental. Update it with relaxed load and store.
     num_entries.store(GetNumEntries() + 1, std::memory_order_relaxed);
@@ -66,19 +70,21 @@ struct Node {
   // Accessors/mutators for links.  Wrapped in methods so we can
   // add the appropriate barriers as necessary.
   Node* Next() {
+    DBUG_TRACE;
     // Use an 'acquire load' so that we observe a fully initialized
     // version of the returned Node.
     return next_.load(std::memory_order_acquire);
   }
   void SetNext(Node* x) {
+    DBUG_TRACE;
     // Use a 'release store' so that anybody who reads through this
     // pointer observes a fully initialized version of the inserted node.
     next_.store(x, std::memory_order_release);
   }
   // No-barrier variants that can be safely used in a few locations.
-  Node* NoBarrier_Next() { return next_.load(std::memory_order_relaxed); }
+  Node* NoBarrier_Next() { DBUG_TRACE; return next_.load(std::memory_order_relaxed); }
 
-  void NoBarrier_SetNext(Node* x) { next_.store(x, std::memory_order_relaxed); }
+  void NoBarrier_SetNext(Node* x) { DBUG_TRACE; next_.store(x, std::memory_order_relaxed); }
 
   // Needed for placement new below which is fine
   Node() = default;
@@ -207,6 +213,7 @@ class HashLinkListRep : public MemTableRep {
   bool LinkListContains(Node* head, const Slice& key) const;
 
   bool IsEmptyBucket(Pointer& bucket_pointer) const {
+    DBUG_TRACE;
     return bucket_pointer.load(std::memory_order_acquire) == nullptr;
   }
 
@@ -218,41 +225,49 @@ class HashLinkListRep : public MemTableRep {
   Node* GetLinkListFirstNode(Pointer& bucket_pointer) const;
 
   Slice GetPrefix(const Slice& internal_key) const {
+    DBUG_TRACE;
     return transform_->Transform(ExtractUserKey(internal_key));
   }
 
   size_t GetHash(const Slice& slice) const {
+    DBUG_TRACE;
     return GetSliceRangedNPHash(slice, bucket_size_);
   }
 
-  Pointer& GetBucket(size_t i) const { return buckets_[i]; }
+  Pointer& GetBucket(size_t i) const { DBUG_TRACE; return buckets_[i]; }
 
   Pointer& GetBucket(const Slice& slice) const {
+    DBUG_TRACE;
     return GetBucket(GetHash(slice));
   }
 
   bool Equal(const Slice& a, const Key& b) const {
+    DBUG_TRACE;
     return (compare_(b, a) == 0);
   }
 
-  bool Equal(const Key& a, const Key& b) const { return (compare_(a, b) == 0); }
+  bool Equal(const Key& a, const Key& b) const { DBUG_TRACE; return (compare_(a, b) == 0); }
 
   bool KeyIsAfterNode(const Slice& internal_key, const Node* n) const {
+    DBUG_TRACE;
     // nullptr n is considered infinite
     return (n != nullptr) && (compare_(n->key, internal_key) < 0);
   }
 
   bool KeyIsAfterNode(const Key& key, const Node* n) const {
+    DBUG_TRACE;
     // nullptr n is considered infinite
     return (n != nullptr) && (compare_(n->key, key) < 0);
   }
 
   bool KeyIsAfterOrAtNode(const Slice& internal_key, const Node* n) const {
+    DBUG_TRACE;
     // nullptr n is considered infinite
     return (n != nullptr) && (compare_(n->key, internal_key) <= 0);
   }
 
   bool KeyIsAfterOrAtNode(const Key& key, const Node* n) const {
+    DBUG_TRACE;
     // nullptr n is considered infinite
     return (n != nullptr) && (compare_(n->key, key) <= 0);
   }
@@ -268,11 +283,12 @@ class HashLinkListRep : public MemTableRep {
     ~FullListIterator() override = default;
 
     // Returns true iff the iterator is positioned at a valid node.
-    bool Valid() const override { return iter_.Valid(); }
+    bool Valid() const override { DBUG_TRACE; return iter_.Valid(); }
 
     // Returns the key at the current position.
     // REQUIRES: Valid()
     const char* key() const override {
+      DBUG_TRACE;
       assert(Valid());
       return iter_.key();
     }
@@ -280,6 +296,7 @@ class HashLinkListRep : public MemTableRep {
     // Advances to the next position.
     // REQUIRES: Valid()
     void Next() override {
+      DBUG_TRACE;
       assert(Valid());
       iter_.Next();
     }
@@ -287,12 +304,14 @@ class HashLinkListRep : public MemTableRep {
     // Advances to the previous position.
     // REQUIRES: Valid()
     void Prev() override {
+      DBUG_TRACE;
       assert(Valid());
       iter_.Prev();
     }
 
     // Advance to the first entry with a key >= target
     void Seek(const Slice& internal_key, const char* memtable_key) override {
+      DBUG_TRACE;
       const char* encoded_key = (memtable_key != nullptr)
                                     ? memtable_key
                                     : EncodeKey(&tmp_, internal_key);
@@ -302,6 +321,7 @@ class HashLinkListRep : public MemTableRep {
     // Retreat to the last entry with a key <= target
     void SeekForPrev(const Slice& internal_key,
                      const char* memtable_key) override {
+      DBUG_TRACE;
       const char* encoded_key = (memtable_key != nullptr)
                                     ? memtable_key
                                     : EncodeKey(&tmp_, internal_key);
@@ -310,11 +330,11 @@ class HashLinkListRep : public MemTableRep {
 
     // Position at the first entry in collection.
     // Final state of iterator is Valid() iff collection is not empty.
-    void SeekToFirst() override { iter_.SeekToFirst(); }
+    void SeekToFirst() override { DBUG_TRACE; iter_.SeekToFirst(); }
 
     // Position at the last entry in collection.
     // Final state of iterator is Valid() iff collection is not empty.
-    void SeekToLast() override { iter_.SeekToLast(); }
+    void SeekToLast() override { DBUG_TRACE; iter_.SeekToLast(); }
 
    private:
     MemtableSkipList::Iterator iter_;
@@ -335,11 +355,12 @@ class HashLinkListRep : public MemTableRep {
     ~LinkListIterator() override = default;
 
     // Returns true iff the iterator is positioned at a valid node.
-    bool Valid() const override { return node_ != nullptr; }
+    bool Valid() const override { DBUG_TRACE; return node_ != nullptr; }
 
     // Returns the key at the current position.
     // REQUIRES: Valid()
     const char* key() const override {
+      DBUG_TRACE;
       assert(Valid());
       return node_->key;
     }
@@ -347,6 +368,7 @@ class HashLinkListRep : public MemTableRep {
     // Advances to the next position.
     // REQUIRES: Valid()
     void Next() override {
+      DBUG_TRACE;
       assert(Valid());
       node_ = node_->Next();
     }
@@ -354,6 +376,7 @@ class HashLinkListRep : public MemTableRep {
     // Advances to the previous position.
     // REQUIRES: Valid()
     void Prev() override {
+      DBUG_TRACE;
       // Prefix iterator does not support total order.
       // We simply set the iterator to invalid state
       Reset(nullptr);
@@ -362,6 +385,7 @@ class HashLinkListRep : public MemTableRep {
     // Advance to the first entry with a key >= target
     void Seek(const Slice& internal_key,
               const char* /*memtable_key*/) override {
+      DBUG_TRACE;
       node_ =
           hash_link_list_rep_->FindGreaterOrEqualInBucket(head_, internal_key);
     }
@@ -369,6 +393,7 @@ class HashLinkListRep : public MemTableRep {
     // Retreat to the last entry with a key <= target
     void SeekForPrev(const Slice& /*internal_key*/,
                      const char* /*memtable_key*/) override {
+      DBUG_TRACE;
       // Since we do not support Prev()
       // We simply do not support SeekForPrev
       Reset(nullptr);
@@ -377,6 +402,7 @@ class HashLinkListRep : public MemTableRep {
     // Position at the first entry in collection.
     // Final state of iterator is Valid() iff collection is not empty.
     void SeekToFirst() override {
+      DBUG_TRACE;
       // Prefix iterator does not support total order.
       // We simply set the iterator to invalid state
       Reset(nullptr);
@@ -385,6 +411,7 @@ class HashLinkListRep : public MemTableRep {
     // Position at the last entry in collection.
     // Final state of iterator is Valid() iff collection is not empty.
     void SeekToLast() override {
+      DBUG_TRACE;
       // Prefix iterator does not support total order.
       // We simply set the iterator to invalid state
       Reset(nullptr);
@@ -392,6 +419,7 @@ class HashLinkListRep : public MemTableRep {
 
    protected:
     void Reset(Node* head) {
+      DBUG_TRACE;
       head_ = head;
       node_ = nullptr;
     }
@@ -402,7 +430,7 @@ class HashLinkListRep : public MemTableRep {
     Node* head_;
     Node* node_;
 
-    virtual void SeekToHead() { node_ = head_; }
+    virtual void SeekToHead() { DBUG_TRACE; node_ = head_; }
   };
 
   class DynamicIterator : public HashLinkListRep::LinkListIterator {
@@ -413,6 +441,7 @@ class HashLinkListRep : public MemTableRep {
 
     // Advance to the first entry with a key >= target
     void Seek(const Slice& k, const char* memtable_key) override {
+      DBUG_TRACE;
       auto transformed = memtable_rep_.GetPrefix(k);
       Pointer& bucket = memtable_rep_.GetBucket(transformed);
 
@@ -451,6 +480,7 @@ class HashLinkListRep : public MemTableRep {
     }
 
     bool Valid() const override {
+      DBUG_TRACE;
       if (skip_list_iter_) {
         return skip_list_iter_->Valid();
       }
@@ -458,6 +488,7 @@ class HashLinkListRep : public MemTableRep {
     }
 
     const char* key() const override {
+      DBUG_TRACE;
       if (skip_list_iter_) {
         return skip_list_iter_->key();
       }
@@ -465,6 +496,7 @@ class HashLinkListRep : public MemTableRep {
     }
 
     void Next() override {
+      DBUG_TRACE;
       if (skip_list_iter_) {
         skip_list_iter_->Next();
       } else {
@@ -483,19 +515,20 @@ class HashLinkListRep : public MemTableRep {
     // instantiating an empty bucket over which to iterate.
    public:
     EmptyIterator() = default;
-    bool Valid() const override { return false; }
+    bool Valid() const override { DBUG_TRACE; return false; }
     const char* key() const override {
+      DBUG_TRACE;
       assert(false);
       return nullptr;
     }
-    void Next() override {}
-    void Prev() override {}
+    void Next() override {DBUG_TRACE;}
+    void Prev() override {DBUG_TRACE;}
     void Seek(const Slice& /*user_key*/,
-              const char* /*memtable_key*/) override {}
+              const char* /*memtable_key*/) override {DBUG_TRACE;}
     void SeekForPrev(const Slice& /*user_key*/,
-                     const char* /*memtable_key*/) override {}
-    void SeekToFirst() override {}
-    void SeekToLast() override {}
+                     const char* /*memtable_key*/) override {DBUG_TRACE;}
+    void SeekToFirst() override {DBUG_TRACE;}
+    void SeekToLast() override {DBUG_TRACE;}
 
    private:
   };
@@ -529,6 +562,7 @@ HashLinkListRep::HashLinkListRep(
 HashLinkListRep::~HashLinkListRep() = default;
 
 KeyHandle HashLinkListRep::Allocate(const size_t len, char** buf) {
+  DBUG_TRACE;
   char* mem = allocator_->AllocateAligned(sizeof(Node) + len);
   Node* x = new (mem) Node();
   *buf = x->key;
@@ -537,6 +571,7 @@ KeyHandle HashLinkListRep::Allocate(const size_t len, char** buf) {
 
 SkipListBucketHeader* HashLinkListRep::GetSkipListBucketHeader(
     Pointer& bucket_pointer) const {
+  DBUG_TRACE;
   Pointer* first_next_pointer =
       static_cast<Pointer*>(bucket_pointer.load(std::memory_order_acquire));
   assert(first_next_pointer != nullptr);
@@ -554,6 +589,7 @@ SkipListBucketHeader* HashLinkListRep::GetSkipListBucketHeader(
 }
 
 Node* HashLinkListRep::GetLinkListFirstNode(Pointer& bucket_pointer) const {
+  DBUG_TRACE;
   Pointer* first_next_pointer =
       static_cast<Pointer*>(bucket_pointer.load(std::memory_order_acquire));
   assert(first_next_pointer != nullptr);
@@ -580,6 +616,7 @@ Node* HashLinkListRep::GetLinkListFirstNode(Pointer& bucket_pointer) const {
 }
 
 void HashLinkListRep::Insert(KeyHandle handle) {
+  DBUG_TRACE;
   Node* x = static_cast<Node*>(handle);
   assert(!Contains(x->key));
   Slice internal_key = GetLengthPrefixedSlice(x->key);
@@ -703,6 +740,7 @@ void HashLinkListRep::Insert(KeyHandle handle) {
 }
 
 bool HashLinkListRep::Contains(const char* key) const {
+  DBUG_TRACE;
   Slice internal_key = GetLengthPrefixedSlice(key);
 
   auto transformed = GetPrefix(internal_key);
@@ -724,12 +762,14 @@ bool HashLinkListRep::Contains(const char* key) const {
 }
 
 size_t HashLinkListRep::ApproximateMemoryUsage() {
+  DBUG_TRACE;
   // Memory is always allocated from the allocator.
   return 0;
 }
 
 void HashLinkListRep::Get(const LookupKey& k, void* callback_args,
                           bool (*callback_func)(void* arg, const char* entry)) {
+  DBUG_TRACE;
   auto transformed = transform_->Transform(k.user_key());
   Pointer& bucket = GetBucket(transformed);
 
@@ -758,6 +798,7 @@ void HashLinkListRep::Get(const LookupKey& k, void* callback_args,
 }
 
 MemTableRep::Iterator* HashLinkListRep::GetIterator(Arena* alloc_arena) {
+  DBUG_TRACE;
   // allocate a new arena of similar size to the one currently in use
   Arena* new_arena = new Arena(allocator_->BlockSize());
   auto list = new MemtableSkipList(compare_, new_arena);
@@ -804,6 +845,7 @@ MemTableRep::Iterator* HashLinkListRep::GetIterator(Arena* alloc_arena) {
 
 MemTableRep::Iterator* HashLinkListRep::GetDynamicPrefixIterator(
     Arena* alloc_arena) {
+  DBUG_TRACE;
   if (alloc_arena == nullptr) {
     return new DynamicIterator(*this);
   } else {
@@ -814,12 +856,14 @@ MemTableRep::Iterator* HashLinkListRep::GetDynamicPrefixIterator(
 
 bool HashLinkListRep::LinkListContains(Node* head,
                                        const Slice& user_key) const {
+  DBUG_TRACE;
   Node* x = FindGreaterOrEqualInBucket(head, user_key);
   return (x != nullptr && Equal(user_key, x->key));
 }
 
 Node* HashLinkListRep::FindGreaterOrEqualInBucket(Node* head,
                                                   const Slice& key) const {
+  DBUG_TRACE;
   Node* x = head;
   while (true) {
     if (x == nullptr) {
@@ -840,7 +884,7 @@ Node* HashLinkListRep::FindGreaterOrEqualInBucket(Node* head,
 }
 
 struct HashLinkListRepOptions {
-  static const char* kName() { return "HashLinkListRepFactoryOptions"; }
+  static const char* kName() { DBUG_TRACE; return "HashLinkListRepFactoryOptions"; }
   size_t bucket_count;
   uint32_t threshold_use_skiplist;
   size_t huge_page_tlb_size;
@@ -892,10 +936,10 @@ class HashLinkListRepFactory : public MemTableRepFactory {
                                  const SliceTransform* transform,
                                  Logger* logger) override;
 
-  static const char* kClassName() { return "HashLinkListRepFactory"; }
-  static const char* kNickName() { return "hash_linkedlist"; }
-  const char* Name() const override { return kClassName(); }
-  const char* NickName() const override { return kNickName(); }
+  static const char* kClassName() { DBUG_TRACE; return "HashLinkListRepFactory"; }
+  static const char* kNickName() { DBUG_TRACE; return "hash_linkedlist"; }
+  const char* Name() const override { DBUG_TRACE; return kClassName(); }
+  const char* NickName() const override { DBUG_TRACE; return kNickName(); }
 
  private:
   HashLinkListRepOptions options_;
@@ -906,6 +950,7 @@ class HashLinkListRepFactory : public MemTableRepFactory {
 MemTableRep* HashLinkListRepFactory::CreateMemTableRep(
     const MemTableRep::KeyComparator& compare, Allocator* allocator,
     const SliceTransform* transform, Logger* logger) {
+  DBUG_TRACE;
   return new HashLinkListRep(
       compare, allocator, transform, options_.bucket_count,
       options_.threshold_use_skiplist, options_.huge_page_tlb_size, logger,
@@ -917,6 +962,7 @@ MemTableRepFactory* NewHashLinkListRepFactory(
     size_t bucket_count, size_t huge_page_tlb_size,
     int bucket_entries_logging_threshold, bool if_log_bucket_dist_when_flash,
     uint32_t threshold_use_skiplist) {
+  DBUG_TRACE;
   return new HashLinkListRepFactory(
       bucket_count, threshold_use_skiplist, huge_page_tlb_size,
       bucket_entries_logging_threshold, if_log_bucket_dist_when_flash);

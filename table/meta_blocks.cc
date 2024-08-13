@@ -2,6 +2,7 @@
 //  This source code is licensed under both the GPLv2 (found in the
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
+#include "rocksdb/util/dbug.h"
 #include "table/meta_blocks.h"
 
 #include <map>
@@ -38,12 +39,14 @@ MetaIndexBuilder::MetaIndexBuilder()
     : meta_index_block_(new BlockBuilder(1 /* restart interval */)) {}
 
 void MetaIndexBuilder::Add(const std::string& key, const BlockHandle& handle) {
+  DBUG_TRACE;
   std::string handle_encoding;
   handle.EncodeTo(&handle_encoding);
   meta_block_handles_.insert({key, handle_encoding});
 }
 
 Slice MetaIndexBuilder::Finish() {
+  DBUG_TRACE;
   for (const auto& metablock : meta_block_handles_) {
     meta_index_block_->Add(metablock.first, metablock.second);
   }
@@ -59,11 +62,13 @@ PropertyBlockBuilder::PropertyBlockBuilder()
 
 void PropertyBlockBuilder::Add(const std::string& name,
                                const std::string& val) {
+  DBUG_TRACE;
   assert(props_.find(name) == props_.end());
   props_.insert({name, val});
 }
 
 void PropertyBlockBuilder::Add(const std::string& name, uint64_t val) {
+  DBUG_TRACE;
   std::string dst;
   PutVarint64(&dst, val);
 
@@ -72,12 +77,14 @@ void PropertyBlockBuilder::Add(const std::string& name, uint64_t val) {
 
 void PropertyBlockBuilder::Add(
     const UserCollectedProperties& user_collected_properties) {
+  DBUG_TRACE;
   for (const auto& prop : user_collected_properties) {
     Add(prop.first, prop.second);
   }
 }
 
 void PropertyBlockBuilder::AddTableProperty(const TableProperties& props) {
+  DBUG_TRACE;
   TEST_SYNC_POINT_CALLBACK("PropertyBlockBuilder::AddTableProperty:Start",
                            const_cast<TableProperties*>(&props));
 
@@ -166,6 +173,7 @@ void PropertyBlockBuilder::AddTableProperty(const TableProperties& props) {
 }
 
 Slice PropertyBlockBuilder::Finish() {
+  DBUG_TRACE;
   for (const auto& prop : props_) {
     assert(last_prop_added_to_block_.empty() ||
            comparator_->Compare(prop.first, last_prop_added_to_block_) > 0);
@@ -180,6 +188,7 @@ Slice PropertyBlockBuilder::Finish() {
 
 void LogPropertiesCollectionError(Logger* info_log, const std::string& method,
                                   const std::string& name) {
+  DBUG_TRACE;
   assert(method == "Add" || method == "Finish");
 
   std::string msg =
@@ -192,6 +201,7 @@ bool NotifyCollectTableCollectorsOnAdd(
     const Slice& key, const Slice& value, uint64_t file_size,
     const std::vector<std::unique_ptr<InternalTblPropColl>>& collectors,
     Logger* info_log) {
+  DBUG_TRACE;
   bool all_succeeded = true;
   for (auto& collector : collectors) {
     Status s = collector->InternalAdd(key, value, file_size);
@@ -209,6 +219,7 @@ void NotifyCollectTableCollectorsOnBlockAdd(
     const uint64_t block_uncomp_bytes,
     const uint64_t block_compressed_bytes_fast,
     const uint64_t block_compressed_bytes_slow) {
+  DBUG_TRACE;
   for (auto& collector : collectors) {
     collector->BlockAdd(block_uncomp_bytes, block_compressed_bytes_fast,
                         block_compressed_bytes_slow);
@@ -220,6 +231,7 @@ bool NotifyCollectTableCollectorsOnFinish(
     Logger* info_log, PropertyBlockBuilder* builder,
     UserCollectedProperties& user_collected_properties,
     UserCollectedProperties& readable_properties) {
+  DBUG_TRACE;
   bool all_succeeded = true;
   for (auto& collector : collectors) {
     UserCollectedProperties user_properties;
@@ -257,6 +269,7 @@ Status ReadTablePropertiesHelper(
     const Footer& footer, const ImmutableOptions& ioptions,
     std::unique_ptr<TableProperties>* table_properties,
     MemoryAllocator* memory_allocator) {
+  DBUG_TRACE;
   assert(table_properties);
 
   // If this is an external SST file ingested with write_global_seqno set to
@@ -445,6 +458,7 @@ Status ReadTableProperties(RandomAccessFileReader* file, uint64_t file_size,
                            std::unique_ptr<TableProperties>* properties,
                            MemoryAllocator* memory_allocator,
                            FilePrefetchBuffer* prefetch_buffer) {
+  DBUG_TRACE;
   BlockHandle block_handle;
   Footer footer;
   Status s =
@@ -468,6 +482,7 @@ Status ReadTableProperties(RandomAccessFileReader* file, uint64_t file_size,
 Status FindOptionalMetaBlock(InternalIterator* meta_index_iter,
                              const std::string& meta_block_name,
                              BlockHandle* block_handle) {
+  DBUG_TRACE;
   assert(block_handle != nullptr);
   meta_index_iter->Seek(meta_block_name);
   if (meta_index_iter->status().ok()) {
@@ -492,6 +507,7 @@ Status FindOptionalMetaBlock(InternalIterator* meta_index_iter,
 Status FindMetaBlock(InternalIterator* meta_index_iter,
                      const std::string& meta_block_name,
                      BlockHandle* block_handle) {
+  DBUG_TRACE;
   Status s =
       FindOptionalMetaBlock(meta_index_iter, meta_block_name, block_handle);
   if (s.ok() && block_handle->IsNull()) {
@@ -509,6 +525,7 @@ Status ReadMetaIndexBlockInFile(RandomAccessFileReader* file,
                                 MemoryAllocator* memory_allocator,
                                 FilePrefetchBuffer* prefetch_buffer,
                                 Footer* footer_out) {
+  DBUG_TRACE;
   Footer footer;
   IOOptions opts;
   Status s;
@@ -540,6 +557,7 @@ Status FindMetaBlockInFile(
     const ReadOptions& read_options, const std::string& meta_block_name,
     BlockHandle* block_handle, MemoryAllocator* memory_allocator,
     FilePrefetchBuffer* prefetch_buffer, Footer* footer_out) {
+  DBUG_TRACE;
   BlockContents metaindex_contents;
   auto s = ReadMetaIndexBlockInFile(
       file, file_size, table_magic_number, ioptions, read_options,
@@ -565,6 +583,7 @@ Status ReadMetaBlock(RandomAccessFileReader* file,
                      const std::string& meta_block_name, BlockType block_type,
                      BlockContents* contents,
                      MemoryAllocator* memory_allocator) {
+  DBUG_TRACE;
   // TableProperties requires special handling because of checksum issues.
   // Call ReadTableProperties instead for that case.
   assert(block_type != BlockType::kProperties);

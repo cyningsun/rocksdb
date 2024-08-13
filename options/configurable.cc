@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/configurable.h"
 
 #include "logging/logging.h"
@@ -20,6 +21,7 @@ namespace ROCKSDB_NAMESPACE {
 void Configurable::RegisterOptions(
     const std::string& name, void* opt_ptr,
     const std::unordered_map<std::string, OptionTypeInfo>* type_map) {
+  DBUG_TRACE;
   RegisteredOptions opts;
   opts.name = name;
   opts.type_map = type_map;
@@ -34,6 +36,7 @@ void Configurable::RegisterOptions(
 //*************************************************************************
 
 Status Configurable::PrepareOptions(const ConfigOptions& opts) {
+  DBUG_TRACE;
   // We ignore the invoke_prepare_options here intentionally,
   // as if you are here, you must have called PrepareOptions explicitly.
   Status status = Status::OK();
@@ -55,6 +58,7 @@ Status Configurable::PrepareOptions(const ConfigOptions& opts) {
 
 Status Configurable::ValidateOptions(const DBOptions& db_opts,
                                      const ColumnFamilyOptions& cf_opts) const {
+  DBUG_TRACE;
   Status status;
   for (const auto& opt_iter : options_) {
     if (opt_iter.type_map != nullptr) {
@@ -80,6 +84,7 @@ Status Configurable::ValidateOptions(const DBOptions& db_opts,
 /*********************************************************************************/
 
 const void* Configurable::GetOptionsPtr(const std::string& name) const {
+  DBUG_TRACE;
   for (const auto& o : options_) {
     if (o.name == name) {
       return o.opt_ptr;
@@ -89,12 +94,14 @@ const void* Configurable::GetOptionsPtr(const std::string& name) const {
 }
 
 std::string Configurable::GetOptionName(const std::string& opt_name) const {
+  DBUG_TRACE;
   return opt_name;
 }
 
 const OptionTypeInfo* ConfigurableHelper::FindOption(
     const std::vector<Configurable::RegisteredOptions>& options,
     const std::string& short_name, std::string* opt_name, void** opt_ptr) {
+  DBUG_TRACE;
   for (const auto& iter : options) {
     if (iter.type_map != nullptr) {
       const auto opt_info =
@@ -117,6 +124,7 @@ const OptionTypeInfo* ConfigurableHelper::FindOption(
 Status Configurable::ConfigureFromMap(
     const ConfigOptions& config_options,
     const std::unordered_map<std::string, std::string>& opts_map) {
+  DBUG_TRACE;
   Status s = ConfigureFromMap(config_options, opts_map, nullptr);
   return s;
 }
@@ -125,6 +133,7 @@ Status Configurable::ConfigureFromMap(
     const ConfigOptions& config_options,
     const std::unordered_map<std::string, std::string>& opts_map,
     std::unordered_map<std::string, std::string>* unused) {
+  DBUG_TRACE;
   return ConfigureOptions(config_options, opts_map, unused);
 }
 
@@ -132,6 +141,7 @@ Status Configurable::ConfigureOptions(
     const ConfigOptions& config_options,
     const std::unordered_map<std::string, std::string>& opts_map,
     std::unordered_map<std::string, std::string>* unused) {
+  DBUG_TRACE;
   std::string curr_opts;
   Status s;
   if (!opts_map.empty()) {
@@ -167,11 +177,13 @@ Status Configurable::ConfigureOptions(
 
 Status Configurable::ParseStringOptions(const ConfigOptions& /*config_options*/,
                                         const std::string& /*opts_str*/) {
+  DBUG_TRACE;
   return Status::OK();
 }
 
 Status Configurable::ConfigureFromString(const ConfigOptions& config_options,
                                          const std::string& opts_str) {
+  DBUG_TRACE;
   Status s;
   if (!opts_str.empty()) {
     if (opts_str.find(';') != std::string::npos ||
@@ -202,6 +214,7 @@ Status Configurable::ConfigureFromString(const ConfigOptions& config_options,
 Status Configurable::ConfigureOption(const ConfigOptions& config_options,
                                      const std::string& name,
                                      const std::string& value) {
+  DBUG_TRACE;
   return ConfigurableHelper::ConfigureSingleOption(config_options, *this, name,
                                                    value);
 }
@@ -217,6 +230,7 @@ Status Configurable::ParseOption(const ConfigOptions& config_options,
                                  const OptionTypeInfo& opt_info,
                                  const std::string& opt_name,
                                  const std::string& opt_value, void* opt_ptr) {
+  DBUG_TRACE;
   if (opt_info.IsMutable()) {
     if (config_options.mutable_options_only) {
       // This option is mutable. Treat all of its children as mutable as well
@@ -238,6 +252,7 @@ Status ConfigurableHelper::ConfigureOptions(
     const ConfigOptions& config_options, Configurable& configurable,
     const std::unordered_map<std::string, std::string>& opts_map,
     std::unordered_map<std::string, std::string>* unused) {
+  DBUG_TRACE;
   std::unordered_map<std::string, std::string> remaining = opts_map;
   Status s = Status::OK();
   if (!opts_map.empty()) {
@@ -280,6 +295,7 @@ Status ConfigurableHelper::ConfigureSomeOptions(
     const ConfigOptions& config_options, Configurable& configurable,
     const std::unordered_map<std::string, OptionTypeInfo>& type_map,
     std::unordered_map<std::string, std::string>* options, void* opt_ptr) {
+  DBUG_TRACE;
   Status result = Status::OK();  // The last non-OK result (if any)
   Status notsup = Status::OK();  // The last NotSupported result (if any)
   std::string elem_name;
@@ -350,6 +366,7 @@ Status ConfigurableHelper::ConfigureSomeOptions(
 Status ConfigurableHelper::ConfigureSingleOption(
     const ConfigOptions& config_options, Configurable& configurable,
     const std::string& name, const std::string& value) {
+  DBUG_TRACE;
   const std::string& opt_name = configurable.GetOptionName(name);
   std::string elem_name;
   void* opt_ptr = nullptr;
@@ -366,6 +383,7 @@ Status ConfigurableHelper::ConfigureCustomizableOption(
     const ConfigOptions& config_options, Configurable& configurable,
     const OptionTypeInfo& opt_info, const std::string& opt_name,
     const std::string& name, const std::string& value, void* opt_ptr) {
+  DBUG_TRACE;
   Customizable* custom = opt_info.AsRawPointer<Customizable>(opt_ptr);
   ConfigOptions copy = config_options;
   if (opt_info.IsMutable()) {
@@ -442,6 +460,7 @@ Status ConfigurableHelper::ConfigureOption(
     const ConfigOptions& config_options, Configurable& configurable,
     const OptionTypeInfo& opt_info, const std::string& opt_name,
     const std::string& name, const std::string& value, void* opt_ptr) {
+  DBUG_TRACE;
   if (opt_info.IsCustomizable()) {
     return ConfigureCustomizableOption(config_options, configurable, opt_info,
                                        opt_name, name, value, opt_ptr);
@@ -464,6 +483,7 @@ Status ConfigurableHelper::ConfigureOption(
 
 Status Configurable::GetOptionString(const ConfigOptions& config_options,
                                      std::string* result) const {
+  DBUG_TRACE;
   assert(result);
   result->clear();
   return ConfigurableHelper::SerializeOptions(config_options, *this, "",
@@ -472,6 +492,7 @@ Status Configurable::GetOptionString(const ConfigOptions& config_options,
 
 std::string Configurable::ToString(const ConfigOptions& config_options,
                                    const std::string& prefix) const {
+  DBUG_TRACE;
   std::string result = SerializeOptions(config_options, prefix);
   if (result.empty() || result.find('=') == std::string::npos) {
     return result;
@@ -482,6 +503,7 @@ std::string Configurable::ToString(const ConfigOptions& config_options,
 
 std::string Configurable::SerializeOptions(const ConfigOptions& config_options,
                                            const std::string& header) const {
+  DBUG_TRACE;
   std::string result;
   Status s = ConfigurableHelper::SerializeOptions(config_options, *this, header,
                                                   &result);
@@ -492,6 +514,7 @@ std::string Configurable::SerializeOptions(const ConfigOptions& config_options,
 Status Configurable::GetOption(const ConfigOptions& config_options,
                                const std::string& name,
                                std::string* value) const {
+  DBUG_TRACE;
   return ConfigurableHelper::GetOption(config_options, *this,
                                        GetOptionName(name), value);
 }
@@ -500,6 +523,7 @@ Status ConfigurableHelper::GetOption(const ConfigOptions& config_options,
                                      const Configurable& configurable,
                                      const std::string& short_name,
                                      std::string* value) {
+  DBUG_TRACE;
   // Look for option directly
   assert(value);
   value->clear();
@@ -529,6 +553,7 @@ Status ConfigurableHelper::SerializeOptions(const ConfigOptions& config_options,
                                             const Configurable& configurable,
                                             const std::string& prefix,
                                             std::string* result) {
+  DBUG_TRACE;
   assert(result);
   for (auto const& opt_iter : configurable.options_) {
     if (opt_iter.type_map != nullptr) {
@@ -578,6 +603,7 @@ Status ConfigurableHelper::SerializeOptions(const ConfigOptions& config_options,
 Status Configurable::GetOptionNames(
     const ConfigOptions& config_options,
     std::unordered_set<std::string>* result) const {
+  DBUG_TRACE;
   assert(result);
   return ConfigurableHelper::ListOptions(config_options, *this, "", result);
 }
@@ -585,6 +611,7 @@ Status Configurable::GetOptionNames(
 Status ConfigurableHelper::ListOptions(
     const ConfigOptions& config_options, const Configurable& configurable,
     const std::string& prefix, std::unordered_set<std::string>* result) {
+  DBUG_TRACE;
   Status status;
   for (auto const& opt_iter : configurable.options_) {
     if (opt_iter.type_map != nullptr) {
@@ -615,6 +642,7 @@ Status ConfigurableHelper::ListOptions(
 bool Configurable::AreEquivalent(const ConfigOptions& config_options,
                                  const Configurable* other,
                                  std::string* name) const {
+  DBUG_TRACE;
   assert(name);
   name->clear();
   if (this == other || config_options.IsCheckDisabled()) {
@@ -633,6 +661,7 @@ bool Configurable::OptionsAreEqual(const ConfigOptions& config_options,
                                    const void* const this_ptr,
                                    const void* const that_ptr,
                                    std::string* mismatch) const {
+  DBUG_TRACE;
   if (opt_info.AreEqual(config_options, opt_name, this_ptr, that_ptr,
                         mismatch)) {
     return true;
@@ -649,6 +678,7 @@ bool ConfigurableHelper::AreEquivalent(const ConfigOptions& config_options,
                                        const Configurable& this_one,
                                        const Configurable& that_one,
                                        std::string* mismatch) {
+  DBUG_TRACE;
   assert(mismatch != nullptr);
   for (auto const& o : this_one.options_) {
     const auto this_offset = this_one.GetOptionsPtr(o.name);
@@ -686,6 +716,7 @@ bool ConfigurableHelper::AreEquivalent(const ConfigOptions& config_options,
 Status Configurable::GetOptionsMap(
     const std::string& value, const std::string& default_id, std::string* id,
     std::unordered_map<std::string, std::string>* props) {
+  DBUG_TRACE;
   assert(id);
   assert(props);
   Status status;

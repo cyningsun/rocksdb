@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "table/block_fetcher.h"
 
 #include <cassert>
@@ -30,6 +31,7 @@
 namespace ROCKSDB_NAMESPACE {
 
 inline void BlockFetcher::ProcessTrailerIfPresent() {
+  DBUG_TRACE;
   if (footer_.GetBlockTrailerSize() > 0) {
     assert(footer_.GetBlockTrailerSize() == BlockBasedTable::kBlockTrailerSize);
     if (read_options_.verify_checksums) {
@@ -51,6 +53,7 @@ inline void BlockFetcher::ProcessTrailerIfPresent() {
 }
 
 inline bool BlockFetcher::TryGetUncompressBlockFromPersistentCache() {
+  DBUG_TRACE;
   if (cache_options_.persistent_cache &&
       !cache_options_.persistent_cache->IsCompressed()) {
     Status status = PersistentCacheHelper::LookupUncompressed(
@@ -72,6 +75,7 @@ inline bool BlockFetcher::TryGetUncompressBlockFromPersistentCache() {
 }
 
 inline bool BlockFetcher::TryGetFromPrefetchBuffer() {
+  DBUG_TRACE;
   if (prefetch_buffer_ != nullptr) {
     IOOptions opts;
     IOStatus io_s = file_->PrepareIOOptions(read_options_, opts);
@@ -98,6 +102,7 @@ inline bool BlockFetcher::TryGetFromPrefetchBuffer() {
 }
 
 inline bool BlockFetcher::TryGetSerializedBlockFromPersistentCache() {
+  DBUG_TRACE;
   if (cache_options_.persistent_cache &&
       cache_options_.persistent_cache->IsCompressed()) {
     std::unique_ptr<char[]> buf;
@@ -120,6 +125,7 @@ inline bool BlockFetcher::TryGetSerializedBlockFromPersistentCache() {
 }
 
 inline void BlockFetcher::PrepareBufferForBlockFromFile() {
+  DBUG_TRACE;
   // cache miss read from device
   if ((do_uncompress_ || ioptions_.allow_mmap_reads) &&
       block_size_with_trailer_ < kDefaultStackBufferSize) {
@@ -155,6 +161,7 @@ inline void BlockFetcher::PrepareBufferForBlockFromFile() {
 }
 
 inline void BlockFetcher::InsertCompressedBlockToPersistentCacheIfNeeded() {
+  DBUG_TRACE;
   if (io_status_.ok() && read_options_.fill_cache &&
       cache_options_.persistent_cache &&
       cache_options_.persistent_cache->IsCompressed()) {
@@ -164,6 +171,7 @@ inline void BlockFetcher::InsertCompressedBlockToPersistentCacheIfNeeded() {
 }
 
 inline void BlockFetcher::InsertUncompressedBlockToPersistentCacheIfNeeded() {
+  DBUG_TRACE;
   if (io_status_.ok() && !got_from_prefetch_buffer_ &&
       read_options_.fill_cache && cache_options_.persistent_cache &&
       !cache_options_.persistent_cache->IsCompressed()) {
@@ -174,6 +182,7 @@ inline void BlockFetcher::InsertUncompressedBlockToPersistentCacheIfNeeded() {
 }
 
 inline void BlockFetcher::CopyBufferToHeapBuf() {
+  DBUG_TRACE;
   assert(used_buf_ != heap_buf_.get());
   heap_buf_ = AllocateBlock(block_size_with_trailer_, memory_allocator_);
   memcpy(heap_buf_.get(), used_buf_, block_size_with_trailer_);
@@ -183,6 +192,7 @@ inline void BlockFetcher::CopyBufferToHeapBuf() {
 }
 
 inline void BlockFetcher::CopyBufferToCompressedBuf() {
+  DBUG_TRACE;
   assert(used_buf_ != compressed_buf_.get());
   compressed_buf_ =
       AllocateBlock(block_size_with_trailer_, memory_allocator_compressed_);
@@ -208,6 +218,7 @@ inline void BlockFetcher::CopyBufferToCompressedBuf() {
 // compressed_buf_ and heap_buf_ points to compressed_buf_, otherwise should be
 // in heap_buf_.
 inline void BlockFetcher::GetBlockContents() {
+  DBUG_TRACE;
   if (slice_.data() != used_buf_) {
     // the slice content is not the buffer provided
     *contents_ = BlockContents(Slice(slice_.data(), block_size_));
@@ -242,6 +253,7 @@ inline void BlockFetcher::GetBlockContents() {
 // will be updated with the status of the read, and slice_ will be updated
 // with a pointer to the data.
 void BlockFetcher::ReadBlock(bool retry) {
+  DBUG_TRACE;
   FSReadRequest read_req;
   IOOptions opts;
   io_status_ = file_->PrepareIOOptions(read_options_, opts);
@@ -347,6 +359,7 @@ void BlockFetcher::ReadBlock(bool retry) {
 }
 
 IOStatus BlockFetcher::ReadBlockContents() {
+  DBUG_TRACE;
   if (TryGetUncompressBlockFromPersistentCache()) {
     compression_type_ = kNoCompression;
 #ifndef NDEBUG
@@ -396,6 +409,7 @@ IOStatus BlockFetcher::ReadBlockContents() {
 }
 
 IOStatus BlockFetcher::ReadAsyncBlockContents() {
+  DBUG_TRACE;
   if (TryGetUncompressBlockFromPersistentCache()) {
     compression_type_ = kNoCompression;
 #ifndef NDEBUG

@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "trace_replay/trace_replay.h"
 
 #include <chrono>
@@ -26,6 +27,7 @@ const std::string kTraceMagic = "feedcafedeadbeef";
 
 namespace {
 void DecodeCFAndKey(std::string& buffer, uint32_t* cf_id, Slice* key) {
+  DBUG_TRACE;
   Slice buf(buffer);
   GetFixed32(&buf, cf_id);
   GetLengthPrefixedSlice(&buf, key);
@@ -33,6 +35,7 @@ void DecodeCFAndKey(std::string& buffer, uint32_t* cf_id, Slice* key) {
 }  // namespace
 
 Status TracerHelper::ParseVersionStr(std::string& v_string, int* v_num) {
+  DBUG_TRACE;
   if (v_string.find_first_of('.') == std::string::npos ||
       v_string.find_first_of('.') != v_string.find_last_of('.')) {
     return Status::Corruption(
@@ -55,6 +58,7 @@ Status TracerHelper::ParseVersionStr(std::string& v_string, int* v_num) {
 
 Status TracerHelper::ParseTraceHeader(const Trace& header, int* trace_version,
                                       int* db_version) {
+  DBUG_TRACE;
   std::vector<std::string> s_vec;
   int begin = 0, end;
   for (int i = 0; i < 3; i++) {
@@ -81,6 +85,7 @@ Status TracerHelper::ParseTraceHeader(const Trace& header, int* trace_version,
 }
 
 void TracerHelper::EncodeTrace(const Trace& trace, std::string* encoded_trace) {
+  DBUG_TRACE;
   assert(encoded_trace);
   PutFixed64(encoded_trace, trace.ts);
   encoded_trace->push_back(trace.type);
@@ -90,6 +95,7 @@ void TracerHelper::EncodeTrace(const Trace& trace, std::string* encoded_trace) {
 
 Status TracerHelper::DecodeTrace(const std::string& encoded_trace,
                                  Trace* trace) {
+  DBUG_TRACE;
   assert(trace != nullptr);
   Slice enc_slice = Slice(encoded_trace);
   if (!GetFixed64(&enc_slice, &trace->ts)) {
@@ -106,6 +112,7 @@ Status TracerHelper::DecodeTrace(const std::string& encoded_trace,
 
 Status TracerHelper::DecodeHeader(const std::string& encoded_trace,
                                   Trace* header) {
+  DBUG_TRACE;
   Status s = TracerHelper::DecodeTrace(encoded_trace, header);
 
   if (header->type != kTraceBegin) {
@@ -120,6 +127,7 @@ Status TracerHelper::DecodeHeader(const std::string& encoded_trace,
 
 bool TracerHelper::SetPayloadMap(uint64_t& payload_map,
                                  const TracePayloadType payload_type) {
+  DBUG_TRACE;
   uint64_t old_state = payload_map;
   uint64_t tmp = 1;
   payload_map |= (tmp << payload_type);
@@ -128,6 +136,7 @@ bool TracerHelper::SetPayloadMap(uint64_t& payload_map,
 
 Status TracerHelper::DecodeTraceRecord(Trace* trace, int trace_file_version,
                                        std::unique_ptr<TraceRecord>* record) {
+  DBUG_TRACE;
   assert(trace != nullptr);
 
   if (record != nullptr) {
@@ -354,6 +363,7 @@ Tracer::Tracer(SystemClock* clock, const TraceOptions& trace_options,
 Tracer::~Tracer() { trace_writer_.reset(); }
 
 Status Tracer::Write(WriteBatch* write_batch) {
+  DBUG_TRACE;
   TraceType trace_type = kTraceWrite;
   if (ShouldSkipTrace(trace_type)) {
     return Status::OK();
@@ -369,6 +379,7 @@ Status Tracer::Write(WriteBatch* write_batch) {
 }
 
 Status Tracer::Get(ColumnFamilyHandle* column_family, const Slice& key) {
+  DBUG_TRACE;
   TraceType trace_type = kTraceGet;
   if (ShouldSkipTrace(trace_type)) {
     return Status::OK();
@@ -389,6 +400,7 @@ Status Tracer::Get(ColumnFamilyHandle* column_family, const Slice& key) {
 
 Status Tracer::IteratorSeek(const uint32_t& cf_id, const Slice& key,
                             const Slice& lower_bound, const Slice upper_bound) {
+  DBUG_TRACE;
   TraceType trace_type = kTraceIteratorSeek;
   if (ShouldSkipTrace(trace_type)) {
     return Status::OK();
@@ -425,6 +437,7 @@ Status Tracer::IteratorSeek(const uint32_t& cf_id, const Slice& key,
 Status Tracer::IteratorSeekForPrev(const uint32_t& cf_id, const Slice& key,
                                    const Slice& lower_bound,
                                    const Slice upper_bound) {
+  DBUG_TRACE;
   TraceType trace_type = kTraceIteratorSeekForPrev;
   if (ShouldSkipTrace(trace_type)) {
     return Status::OK();
@@ -461,6 +474,7 @@ Status Tracer::IteratorSeekForPrev(const uint32_t& cf_id, const Slice& key,
 Status Tracer::MultiGet(const size_t num_keys,
                         ColumnFamilyHandle** column_families,
                         const Slice* keys) {
+  DBUG_TRACE;
   if (num_keys == 0) {
     return Status::OK();
   }
@@ -477,6 +491,7 @@ Status Tracer::MultiGet(const size_t num_keys,
 
 Status Tracer::MultiGet(const size_t num_keys,
                         ColumnFamilyHandle* column_family, const Slice* keys) {
+  DBUG_TRACE;
   if (num_keys == 0) {
     return Status::OK();
   }
@@ -493,6 +508,7 @@ Status Tracer::MultiGet(const size_t num_keys,
 
 Status Tracer::MultiGet(const std::vector<ColumnFamilyHandle*>& column_families,
                         const std::vector<Slice>& keys) {
+  DBUG_TRACE;
   if (column_families.size() != keys.size()) {
     return Status::Corruption("the CFs size and keys size does not match!");
   }
@@ -530,6 +546,7 @@ Status Tracer::MultiGet(const std::vector<ColumnFamilyHandle*>& column_families,
 }
 
 bool Tracer::ShouldSkipTrace(const TraceType& trace_type) {
+  DBUG_TRACE;
   if (IsTraceFileOverMax()) {
     return true;
   }
@@ -582,11 +599,13 @@ bool Tracer::ShouldSkipTrace(const TraceType& trace_type) {
 }
 
 bool Tracer::IsTraceFileOverMax() {
+  DBUG_TRACE;
   uint64_t trace_file_size = trace_writer_->GetFileSize();
   return (trace_file_size > trace_options_.max_trace_file_size);
 }
 
 Status Tracer::WriteHeader() {
+  DBUG_TRACE;
   std::ostringstream s;
   s << kTraceMagic << "\t"
     << "Trace Version: " << kTraceFileMajorVersion << "."
@@ -603,6 +622,7 @@ Status Tracer::WriteHeader() {
 }
 
 Status Tracer::WriteFooter() {
+  DBUG_TRACE;
   Trace trace;
   trace.ts = clock_->NowMicros();
   trace.type = kTraceEnd;
@@ -613,6 +633,7 @@ Status Tracer::WriteFooter() {
 }
 
 Status Tracer::WriteTrace(const Trace& trace) {
+  DBUG_TRACE;
   if (!trace_write_status_.ok()) {
     return Status::Incomplete("Tracing has seen error: %s",
                               trace_write_status_.ToString());
@@ -627,6 +648,6 @@ Status Tracer::WriteTrace(const Trace& trace) {
   return s;
 }
 
-Status Tracer::Close() { return WriteFooter(); }
+Status Tracer::Close() { DBUG_TRACE; return WriteFooter(); }
 
 }  // namespace ROCKSDB_NAMESPACE

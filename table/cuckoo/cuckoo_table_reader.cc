@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "table/cuckoo/cuckoo_table_reader.h"
 
 #include <algorithm>
@@ -152,6 +153,7 @@ Status CuckooTableReader::Get(const ReadOptions& /*readOptions*/,
                               const Slice& key, GetContext* get_context,
                               const SliceTransform* /* prefix_extractor */,
                               bool /*skip_filters*/) {
+  DBUG_TRACE;
   assert(key.size() == key_length_ + (is_last_level_ ? 8 : 0));
   Slice user_key = ExtractUserKey(key);
   for (uint32_t hash_cnt = 0; hash_cnt < num_hash_func_; ++hash_cnt) {
@@ -200,6 +202,7 @@ Status CuckooTableReader::Get(const ReadOptions& /*readOptions*/,
 }
 
 void CuckooTableReader::Prepare(const Slice& key) {
+  DBUG_TRACE;
   // Prefetch the first Cuckoo Block.
   Slice user_key = ExtractUserKey(key);
   uint64_t addr =
@@ -228,7 +231,7 @@ class CuckooTableIterator : public InternalIterator {
   void Prev() override;
   Slice key() const override;
   Slice value() const override;
-  Status status() const override { return Status::OK(); }
+  Status status() const override { DBUG_TRACE; return Status::OK(); }
   void InitIfNeeded();
 
  private:
@@ -242,6 +245,7 @@ class CuckooTableIterator : public InternalIterator {
           user_key_len_(user_key_len),
           target_(target) {}
     bool operator()(const uint32_t first, const uint32_t second) const {
+      DBUG_TRACE;
       const char* first_bucket = (first == kInvalidIndex)
                                      ? target_.data()
                                      : &file_data_.data()[first * bucket_len_];
@@ -284,6 +288,7 @@ CuckooTableIterator::CuckooTableIterator(CuckooTableReader* reader)
 }
 
 void CuckooTableIterator::InitIfNeeded() {
+  DBUG_TRACE;
   if (initialized_) {
     return;
   }
@@ -307,18 +312,21 @@ void CuckooTableIterator::InitIfNeeded() {
 }
 
 void CuckooTableIterator::SeekToFirst() {
+  DBUG_TRACE;
   InitIfNeeded();
   curr_key_idx_ = 0;
   PrepareKVAtCurrIdx();
 }
 
 void CuckooTableIterator::SeekToLast() {
+  DBUG_TRACE;
   InitIfNeeded();
   curr_key_idx_ = static_cast<uint32_t>(sorted_bucket_ids_.size()) - 1;
   PrepareKVAtCurrIdx();
 }
 
 void CuckooTableIterator::Seek(const Slice& target) {
+  DBUG_TRACE;
   InitIfNeeded();
   const BucketComparator seek_comparator(
       reader_->file_data_, reader_->ucomp_, reader_->bucket_length_,
@@ -332,15 +340,18 @@ void CuckooTableIterator::Seek(const Slice& target) {
 }
 
 void CuckooTableIterator::SeekForPrev(const Slice& /*target*/) {
+  DBUG_TRACE;
   // Not supported
   assert(false);
 }
 
 bool CuckooTableIterator::Valid() const {
+  DBUG_TRACE;
   return curr_key_idx_ < sorted_bucket_ids_.size();
 }
 
 void CuckooTableIterator::PrepareKVAtCurrIdx() {
+  DBUG_TRACE;
   if (!Valid()) {
     curr_value_.clear();
     curr_key_.Clear();
@@ -360,6 +371,7 @@ void CuckooTableIterator::PrepareKVAtCurrIdx() {
 }
 
 void CuckooTableIterator::Next() {
+  DBUG_TRACE;
   if (!Valid()) {
     curr_value_.clear();
     curr_key_.Clear();
@@ -370,6 +382,7 @@ void CuckooTableIterator::Next() {
 }
 
 void CuckooTableIterator::Prev() {
+  DBUG_TRACE;
   if (curr_key_idx_ == 0) {
     curr_key_idx_ = static_cast<uint32_t>(sorted_bucket_ids_.size());
   }
@@ -383,11 +396,13 @@ void CuckooTableIterator::Prev() {
 }
 
 Slice CuckooTableIterator::key() const {
+  DBUG_TRACE;
   assert(Valid());
   return curr_key_.GetInternalKey();
 }
 
 Slice CuckooTableIterator::value() const {
+  DBUG_TRACE;
   assert(Valid());
   return curr_value_;
 }
@@ -397,6 +412,7 @@ InternalIterator* CuckooTableReader::NewIterator(
     const SliceTransform* /* prefix_extractor */, Arena* arena,
     bool /*skip_filters*/, TableReaderCaller /*caller*/,
     size_t /*compaction_readahead_size*/, bool /* allow_unprepared_value */) {
+  DBUG_TRACE;
   if (!status().ok()) {
     return NewErrorInternalIterator<Slice>(
         Status::Corruption("CuckooTableReader status is not okay."), arena);
@@ -411,6 +427,6 @@ InternalIterator* CuckooTableReader::NewIterator(
   return iter;
 }
 
-size_t CuckooTableReader::ApproximateMemoryUsage() const { return 0; }
+size_t CuckooTableReader::ApproximateMemoryUsage() const { DBUG_TRACE; return 0; }
 
 }  // namespace ROCKSDB_NAMESPACE

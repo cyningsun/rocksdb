@@ -3,6 +3,7 @@
 // COPYING file in the root directory) and Apache 2.0 License
 // (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "db/wal_edit.h"
 
 #include "rocksdb/slice.h"
@@ -12,6 +13,7 @@
 namespace ROCKSDB_NAMESPACE {
 
 void WalAddition::EncodeTo(std::string* dst) const {
+  DBUG_TRACE;
   PutVarint64(dst, number_);
 
   if (metadata_.HasSyncedSize()) {
@@ -57,24 +59,28 @@ Status WalAddition::DecodeFrom(Slice* src) {
 }
 
 JSONWriter& operator<<(JSONWriter& jw, const WalAddition& wal) {
+  DBUG_TRACE;
   jw << "LogNumber" << wal.GetLogNumber() << "SyncedSizeInBytes"
      << wal.GetMetadata().GetSyncedSizeInBytes();
   return jw;
 }
 
 std::ostream& operator<<(std::ostream& os, const WalAddition& wal) {
+  DBUG_TRACE;
   os << "log_number: " << wal.GetLogNumber()
      << " synced_size_in_bytes: " << wal.GetMetadata().GetSyncedSizeInBytes();
   return os;
 }
 
 std::string WalAddition::DebugString() const {
+  DBUG_TRACE;
   std::ostringstream oss;
   oss << *this;
   return oss.str();
 }
 
 void WalDeletion::EncodeTo(std::string* dst) const {
+  DBUG_TRACE;
   PutVarint64(dst, number_);
 }
 
@@ -89,22 +95,26 @@ Status WalDeletion::DecodeFrom(Slice* src) {
 }
 
 JSONWriter& operator<<(JSONWriter& jw, const WalDeletion& wal) {
+  DBUG_TRACE;
   jw << "LogNumber" << wal.GetLogNumber();
   return jw;
 }
 
 std::ostream& operator<<(std::ostream& os, const WalDeletion& wal) {
+  DBUG_TRACE;
   os << "log_number: " << wal.GetLogNumber();
   return os;
 }
 
 std::string WalDeletion::DebugString() const {
+  DBUG_TRACE;
   std::ostringstream oss;
   oss << *this;
   return oss.str();
 }
 
 Status WalSet::AddWal(const WalAddition& wal) {
+  DBUG_TRACE;
   if (wal.GetLogNumber() < min_wal_number_to_keep_) {
     // The WAL has been obsolete, ignore it.
     return Status::OK();
@@ -143,6 +153,7 @@ Status WalSet::AddWal(const WalAddition& wal) {
 }
 
 Status WalSet::AddWals(const WalAdditions& wals) {
+  DBUG_TRACE;
   Status s;
   for (const WalAddition& wal : wals) {
     s = AddWal(wal);
@@ -154,6 +165,7 @@ Status WalSet::AddWals(const WalAdditions& wals) {
 }
 
 Status WalSet::DeleteWalsBefore(WalNumber wal) {
+  DBUG_TRACE;
   if (wal > min_wal_number_to_keep_) {
     min_wal_number_to_keep_ = wal;
     wals_.erase(wals_.begin(), wals_.lower_bound(wal));
@@ -162,6 +174,7 @@ Status WalSet::DeleteWalsBefore(WalNumber wal) {
 }
 
 void WalSet::Reset() {
+  DBUG_TRACE;
   wals_.clear();
   min_wal_number_to_keep_ = 0;
 }
@@ -169,6 +182,7 @@ void WalSet::Reset() {
 Status WalSet::CheckWals(
     Env* env,
     const std::unordered_map<WalNumber, std::string>& logs_on_disk) const {
+  DBUG_TRACE;
   assert(env != nullptr);
 
   Status s;

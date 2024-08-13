@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "db/log_reader.h"
 
 #include <cstdio>
@@ -68,6 +69,7 @@ Reader::~Reader() {
 bool Reader::ReadRecord(Slice* record, std::string* scratch,
                         WALRecoveryMode wal_recovery_mode,
                         uint64_t* record_checksum) {
+  DBUG_TRACE;
   scratch->clear();
   record->clear();
   if (record_checksum != nullptr) {
@@ -327,13 +329,15 @@ bool Reader::ReadRecord(Slice* record, std::string* scratch,
   return false;
 }
 
-uint64_t Reader::LastRecordOffset() { return last_record_offset_; }
+uint64_t Reader::LastRecordOffset() { DBUG_TRACE; return last_record_offset_; }
 
 uint64_t Reader::LastRecordEnd() {
+  DBUG_TRACE;
   return end_of_buffer_offset_ - buffer_.size();
 }
 
 void Reader::UnmarkEOF() {
+  DBUG_TRACE;
   if (read_error_) {
     return;
   }
@@ -345,6 +349,7 @@ void Reader::UnmarkEOF() {
 }
 
 void Reader::UnmarkEOFInternal() {
+  DBUG_TRACE;
   // If the EOF was in the middle of a block (a partial block was read) we have
   // to read the rest of the block as ReadPhysicalRecord can only read full
   // blocks and expects the file position indicator to be aligned to the start
@@ -404,22 +409,26 @@ void Reader::UnmarkEOFInternal() {
 }
 
 void Reader::ReportCorruption(size_t bytes, const char* reason) {
+  DBUG_TRACE;
   ReportDrop(bytes, Status::Corruption(reason));
 }
 
 void Reader::ReportDrop(size_t bytes, const Status& reason) {
+  DBUG_TRACE;
   if (reporter_ != nullptr) {
     reporter_->Corruption(bytes, reason);
   }
 }
 
 void Reader::ReportOldLogRecord(size_t bytes) {
+  DBUG_TRACE;
   if (reporter_ != nullptr) {
     reporter_->OldLogRecord(bytes);
   }
 }
 
 bool Reader::ReadMore(size_t* drop_size, int* error) {
+  DBUG_TRACE;
   if (!eof_ && !read_error_) {
     // Last read was a full read, so this is a trailer to skip
     buffer_.clear();
@@ -462,6 +471,7 @@ bool Reader::ReadMore(size_t* drop_size, int* error) {
 
 unsigned int Reader::ReadPhysicalRecord(Slice* result, size_t* drop_size,
                                         uint64_t* fragment_checksum) {
+  DBUG_TRACE;
   while (true) {
     // We need at least the minimum header size
     if (buffer_.size() < static_cast<size_t>(kHeaderSize)) {
@@ -619,6 +629,7 @@ void Reader::InitCompression(const CompressionTypeRecord& compression_record) {
 
 Status Reader::UpdateRecordedTimestampSize(
     const std::vector<std::pair<uint32_t, size_t>>& cf_to_ts_sz) {
+  DBUG_TRACE;
   for (const auto& [cf, ts_sz] : cf_to_ts_sz) {
     // Zero user-defined timestamp size are not recorded.
     if (ts_sz == 0) {
@@ -640,6 +651,7 @@ Status Reader::UpdateRecordedTimestampSize(
 bool FragmentBufferedReader::ReadRecord(Slice* record, std::string* scratch,
                                         WALRecoveryMode /*unused*/,
                                         uint64_t* /* checksum */) {
+  DBUG_TRACE;
   assert(record != nullptr);
   assert(scratch != nullptr);
   record->clear();
@@ -797,6 +809,7 @@ bool FragmentBufferedReader::ReadRecord(Slice* record, std::string* scratch,
 }
 
 void FragmentBufferedReader::UnmarkEOF() {
+  DBUG_TRACE;
   if (read_error_) {
     return;
   }
@@ -805,6 +818,7 @@ void FragmentBufferedReader::UnmarkEOF() {
 }
 
 bool FragmentBufferedReader::TryReadMore(size_t* drop_size, int* error) {
+  DBUG_TRACE;
   if (!eof_ && !read_error_) {
     // Last read was a full read, so this is a trailer to skip
     buffer_.clear();
@@ -847,6 +861,7 @@ bool FragmentBufferedReader::TryReadMore(size_t* drop_size, int* error) {
 // return true if the caller should process the fragment_type_or_err.
 bool FragmentBufferedReader::TryReadFragment(
     Slice* fragment, size_t* drop_size, unsigned int* fragment_type_or_err) {
+  DBUG_TRACE;
   assert(fragment != nullptr);
   assert(drop_size != nullptr);
   assert(fragment_type_or_err != nullptr);

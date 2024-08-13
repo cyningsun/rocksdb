@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/write_buffer_manager.h"
 
 #include <memory>
@@ -46,6 +47,7 @@ WriteBufferManager::~WriteBufferManager() {
 }
 
 std::size_t WriteBufferManager::dummy_entries_in_cache_usage() const {
+  DBUG_TRACE;
   if (cache_res_mgr_ != nullptr) {
     return cache_res_mgr_->GetTotalReservedCacheSize();
   } else {
@@ -54,6 +56,7 @@ std::size_t WriteBufferManager::dummy_entries_in_cache_usage() const {
 }
 
 void WriteBufferManager::ReserveMem(size_t mem) {
+  DBUG_TRACE;
   if (cache_res_mgr_ != nullptr) {
     ReserveMemWithCache(mem);
   } else if (enabled()) {
@@ -66,6 +69,7 @@ void WriteBufferManager::ReserveMem(size_t mem) {
 
 // Should only be called from write thread
 void WriteBufferManager::ReserveMemWithCache(size_t mem) {
+  DBUG_TRACE;
   assert(cache_res_mgr_ != nullptr);
   // Use a mutex to protect various data structures. Can be optimized to a
   // lock-free solution if it ends up with a performance bottleneck.
@@ -84,12 +88,14 @@ void WriteBufferManager::ReserveMemWithCache(size_t mem) {
 }
 
 void WriteBufferManager::ScheduleFreeMem(size_t mem) {
+  DBUG_TRACE;
   if (enabled()) {
     memory_active_.fetch_sub(mem, std::memory_order_relaxed);
   }
 }
 
 void WriteBufferManager::FreeMem(size_t mem) {
+  DBUG_TRACE;
   if (cache_res_mgr_ != nullptr) {
     FreeMemWithCache(mem);
   } else if (enabled()) {
@@ -100,6 +106,7 @@ void WriteBufferManager::FreeMem(size_t mem) {
 }
 
 void WriteBufferManager::FreeMemWithCache(size_t mem) {
+  DBUG_TRACE;
   assert(cache_res_mgr_ != nullptr);
   // Use a mutex to protect various data structures. Can be optimized to a
   // lock-free solution if it ends up with a performance bottleneck.
@@ -116,6 +123,7 @@ void WriteBufferManager::FreeMemWithCache(size_t mem) {
 }
 
 void WriteBufferManager::BeginWriteStall(StallInterface* wbm_stall) {
+  DBUG_TRACE;
   assert(wbm_stall != nullptr);
 
   // Allocate outside of the lock.
@@ -139,6 +147,7 @@ void WriteBufferManager::BeginWriteStall(StallInterface* wbm_stall) {
 
 // Called when memory is freed in FreeMem or the buffer size has changed.
 void WriteBufferManager::MaybeEndWriteStall() {
+  DBUG_TRACE;
   // Stall conditions have not been resolved.
   if (allow_stall_.load(std::memory_order_relaxed) &&
       IsStallThresholdExceeded()) {
@@ -164,6 +173,7 @@ void WriteBufferManager::MaybeEndWriteStall() {
 }
 
 void WriteBufferManager::RemoveDBFromQueue(StallInterface* wbm_stall) {
+  DBUG_TRACE;
   assert(wbm_stall != nullptr);
 
   // Deallocate the removed nodes outside of the lock.

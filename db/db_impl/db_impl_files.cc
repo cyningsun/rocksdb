@@ -6,6 +6,7 @@
 // Copyright (c) 2011 The LevelDB Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
+#include "rocksdb/util/dbug.h"
 #include <cinttypes>
 #include <set>
 #include <unordered_set>
@@ -25,12 +26,14 @@
 namespace ROCKSDB_NAMESPACE {
 
 uint64_t DBImpl::MinLogNumberToKeep() {
+  DBUG_TRACE;
   return versions_->min_log_number_to_keep();
 }
 
-uint64_t DBImpl::MinLogNumberToRecycle() { return min_log_number_to_recycle_; }
+uint64_t DBImpl::MinLogNumberToRecycle() { DBUG_TRACE; return min_log_number_to_recycle_; }
 
 uint64_t DBImpl::MinObsoleteSstNumberToKeep() {
+  DBUG_TRACE;
   mutex_.AssertHeld();
   if (!pending_outputs_.empty()) {
     return *pending_outputs_.begin();
@@ -39,11 +42,13 @@ uint64_t DBImpl::MinObsoleteSstNumberToKeep() {
 }
 
 uint64_t DBImpl::GetObsoleteSstFilesSize() {
+  DBUG_TRACE;
   mutex_.AssertHeld();
   return versions_->GetObsoleteSstFilesSize();
 }
 
 Status DBImpl::DisableFileDeletions() {
+  DBUG_TRACE;
   Status s;
   int my_disable_delete_obsolete_files;
   {
@@ -64,12 +69,14 @@ Status DBImpl::DisableFileDeletions() {
 // FIXME: can be inconsistent with DisableFileDeletions in cases like
 // DBImplReadOnly
 Status DBImpl::DisableFileDeletionsWithLock() {
+  DBUG_TRACE;
   mutex_.AssertHeld();
   ++disable_delete_obsolete_files_;
   return Status::OK();
 }
 
 Status DBImpl::EnableFileDeletions() {
+  DBUG_TRACE;
   // Job id == 0 means that this is not our background process, but rather
   // user thread
   JobContext job_context(0);
@@ -101,6 +108,7 @@ Status DBImpl::EnableFileDeletions() {
 }
 
 bool DBImpl::IsFileDeletionsEnabled() const {
+  DBUG_TRACE;
   return 0 == disable_delete_obsolete_files_;
 }
 
@@ -115,6 +123,7 @@ bool DBImpl::IsFileDeletionsEnabled() const {
 // force = true -- force the full scan
 void DBImpl::FindObsoleteFiles(JobContext* job_context, bool force,
                                bool no_full_scan) {
+  DBUG_TRACE;
   mutex_.AssertHeld();
 
   // if deletion is disabled, do nothing
@@ -356,6 +365,7 @@ void DBImpl::FindObsoleteFiles(JobContext* job_context, bool force,
 void DBImpl::DeleteObsoleteFileImpl(int job_id, const std::string& fname,
                                     const std::string& path_to_sync,
                                     FileType type, uint64_t number) {
+  DBUG_TRACE;
   TEST_SYNC_POINT_CALLBACK("DBImpl::DeleteObsoleteFileImpl::BeforeDeletion",
                            const_cast<std::string*>(&fname));
 
@@ -406,6 +416,7 @@ void DBImpl::DeleteObsoleteFileImpl(int job_id, const std::string& fname,
 // files in sst_delete_files and log_delete_files.
 // It is not necessary to hold the mutex when invoking this method.
 void DBImpl::PurgeObsoleteFiles(JobContext& state, bool schedule_only) {
+  DBUG_TRACE;
   TEST_SYNC_POINT("DBImpl::PurgeObsoleteFiles:Begin");
   // we'd better have sth to delete
   assert(state.HaveSomethingToDelete());
@@ -709,6 +720,7 @@ void DBImpl::PurgeObsoleteFiles(JobContext& state, bool schedule_only) {
 }
 
 void DBImpl::DeleteObsoleteFiles() {
+  DBUG_TRACE;
   mutex_.AssertHeld();
   JobContext job_context(next_job_id_.fetch_add(1));
   FindObsoleteFiles(&job_context, true);
@@ -724,6 +736,7 @@ void DBImpl::DeleteObsoleteFiles() {
 
 uint64_t FindMinPrepLogReferencedByMemTable(
     VersionSet* vset, const autovector<MemTable*>& memtables_to_flush) {
+  DBUG_TRACE;
   uint64_t min_log = 0;
 
   // we must look through the memtables for two phase transactions
@@ -755,6 +768,7 @@ uint64_t FindMinPrepLogReferencedByMemTable(
 uint64_t FindMinPrepLogReferencedByMemTable(
     VersionSet* vset,
     const autovector<const autovector<MemTable*>*>& memtables_to_flush) {
+  DBUG_TRACE;
   uint64_t min_log = 0;
 
   std::unordered_set<MemTable*> memtables_to_flush_set;
@@ -784,6 +798,7 @@ uint64_t FindMinPrepLogReferencedByMemTable(
 uint64_t PrecomputeMinLogNumberToKeepNon2PC(
     VersionSet* vset, const ColumnFamilyData& cfd_to_flush,
     const autovector<VersionEdit*>& edit_list) {
+  DBUG_TRACE;
   assert(vset != nullptr);
 
   // Precompute the min log number containing unflushed data for the column
@@ -814,6 +829,7 @@ uint64_t PrecomputeMinLogNumberToKeepNon2PC(
 uint64_t PrecomputeMinLogNumberToKeepNon2PC(
     VersionSet* vset, const autovector<ColumnFamilyData*>& cfds_to_flush,
     const autovector<autovector<VersionEdit*>>& edit_lists) {
+  DBUG_TRACE;
   assert(vset != nullptr);
   assert(!cfds_to_flush.empty());
   assert(cfds_to_flush.size() == edit_lists.size());
@@ -852,6 +868,7 @@ uint64_t PrecomputeMinLogNumberToKeep2PC(
     const autovector<VersionEdit*>& edit_list,
     const autovector<MemTable*>& memtables_to_flush,
     LogsWithPrepTracker* prep_tracker) {
+  DBUG_TRACE;
   assert(vset != nullptr);
   assert(prep_tracker != nullptr);
   // Calculate updated min_log_number_to_keep
@@ -893,6 +910,7 @@ uint64_t PrecomputeMinLogNumberToKeep2PC(
     const autovector<autovector<VersionEdit*>>& edit_lists,
     const autovector<const autovector<MemTable*>*>& memtables_to_flush,
     LogsWithPrepTracker* prep_tracker) {
+  DBUG_TRACE;
   assert(vset != nullptr);
   assert(prep_tracker != nullptr);
   assert(cfds_to_flush.size() == edit_lists.size());
@@ -922,6 +940,7 @@ uint64_t PrecomputeMinLogNumberToKeep2PC(
 
 void DBImpl::SetDBId(std::string&& id, bool read_only,
                      RecoveryContext* recovery_ctx) {
+  DBUG_TRACE;
   assert(db_id_.empty());
   assert(!id.empty());
   db_id_ = std::move(id);
@@ -938,6 +957,7 @@ void DBImpl::SetDBId(std::string&& id, bool read_only,
 
 Status DBImpl::SetupDBId(const WriteOptions& write_options, bool read_only,
                          RecoveryContext* recovery_ctx) {
+  DBUG_TRACE;
   Status s;
   // Check for the IDENTITY file and create it if not there or
   // broken or not matching manifest
@@ -976,6 +996,7 @@ Status DBImpl::SetupDBId(const WriteOptions& write_options, bool read_only,
 }
 
 std::set<std::string> DBImpl::CollectAllDBPaths() {
+  DBUG_TRACE;
   std::set<std::string> all_db_paths;
   all_db_paths.insert(NormalizePath(dbname_));
   for (const auto& db_path : immutable_db_options_.db_paths) {
@@ -990,6 +1011,7 @@ std::set<std::string> DBImpl::CollectAllDBPaths() {
 }
 
 Status DBImpl::MaybeUpdateNextFileNumber(RecoveryContext* recovery_ctx) {
+  DBUG_TRACE;
   mutex_.AssertHeld();
   uint64_t next_file_number = versions_->current_next_file_number();
   uint64_t largest_file_number = next_file_number;

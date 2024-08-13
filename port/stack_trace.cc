@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 //
+#include "rocksdb/util/dbug.h"
 #include "port/stack_trace.h"
 
 #if !(defined(ROCKSDB_BACKTRACE) || defined(OS_MACOSX)) || defined(CYGWIN) || \
@@ -12,10 +13,11 @@
 
 namespace ROCKSDB_NAMESPACE {
 namespace port {
-void InstallStackTraceHandler() {}
-void PrintStack(int /*first_frames_to_skip*/) {}
-void PrintAndFreeStack(void* /*callstack*/, int /*num_frames*/) {}
+void InstallStackTraceHandler() {DBUG_TRACE;}
+void PrintStack(int /*first_frames_to_skip*/) {DBUG_TRACE;}
+void PrintAndFreeStack(void* /*callstack*/, int /*num_frames*/) {DBUG_TRACE;}
 void* SaveStack(int* /*num_frames*/, int /*first_frames_to_skip*/) {
+  DBUG_TRACE;
   return nullptr;
 }
 }  // namespace port

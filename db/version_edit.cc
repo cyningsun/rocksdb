@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "db/version_edit.h"
 
 #include "db/blob/blob_index.h"
@@ -23,6 +24,7 @@ namespace ROCKSDB_NAMESPACE {
 namespace {}  // anonymous namespace
 
 uint64_t PackFileNumberAndPathId(uint64_t number, uint64_t path_id) {
+  DBUG_TRACE;
   assert(number <= kFileNumberMask);
   return number | (path_id * (kFileNumberMask + 1));
 }
@@ -30,6 +32,7 @@ uint64_t PackFileNumberAndPathId(uint64_t number, uint64_t path_id) {
 Status FileMetaData::UpdateBoundaries(const Slice& key, const Slice& value,
                                       SequenceNumber seqno,
                                       ValueType value_type) {
+  DBUG_TRACE;
   if (value_type == kTypeBlobIndex) {
     BlobIndex blob_index;
     const Status s = blob_index.DecodeFrom(value);
@@ -60,6 +63,7 @@ Status FileMetaData::UpdateBoundaries(const Slice& key, const Slice& value,
 }
 
 void VersionEdit::Clear() {
+  DBUG_TRACE;
   max_level_ = 0;
   db_id_.clear();
   comparator_.clear();
@@ -95,6 +99,7 @@ void VersionEdit::Clear() {
 
 bool VersionEdit::EncodeTo(std::string* dst,
                            std::optional<size_t> ts_sz) const {
+  DBUG_TRACE;
   if (has_db_id_) {
     PutVarint32(dst, kDbId);
     PutLengthPrefixedSlice(dst, db_id_);
@@ -321,6 +326,7 @@ bool VersionEdit::EncodeTo(std::string* dst,
 }
 
 static bool GetInternalKey(Slice* input, InternalKey* dst) {
+  DBUG_TRACE;
   Slice str;
   if (GetLengthPrefixedSlice(input, &str)) {
     dst->DecodeFrom(str);
@@ -331,6 +337,7 @@ static bool GetInternalKey(Slice* input, InternalKey* dst) {
 }
 
 bool VersionEdit::GetLevel(Slice* input, int* level, const char** /*msg*/) {
+  DBUG_TRACE;
   uint32_t v = 0;
   if (GetVarint32(input, &v)) {
     *level = v;
@@ -344,6 +351,7 @@ bool VersionEdit::GetLevel(Slice* input, int* level, const char** /*msg*/) {
 }
 
 const char* VersionEdit::DecodeNewFile4From(Slice* input) {
+  DBUG_TRACE;
   const char* msg = nullptr;
   int level = 0;
   FileMetaData f;
@@ -472,6 +480,7 @@ const char* VersionEdit::DecodeNewFile4From(Slice* input) {
 void VersionEdit::EncodeFileBoundaries(std::string* dst,
                                        const FileMetaData& meta,
                                        size_t ts_sz) const {
+  DBUG_TRACE;
   if (ts_sz == 0 || meta.user_defined_timestamps_persisted) {
     PutLengthPrefixedSlice(dst, meta.smallest.Encode());
     PutLengthPrefixedSlice(dst, meta.largest.Encode());
@@ -486,6 +495,7 @@ void VersionEdit::EncodeFileBoundaries(std::string* dst,
 }
 
 Status VersionEdit::DecodeFrom(const Slice& src) {
+  DBUG_TRACE;
   Clear();
 #ifndef NDEBUG
   bool ignore_ignorable_tags = false;
@@ -828,6 +838,7 @@ Status VersionEdit::DecodeFrom(const Slice& src) {
 }
 
 std::string VersionEdit::DebugString(bool hex_key) const {
+  DBUG_TRACE;
   std::string r;
   r.append("VersionEdit {");
   if (has_db_id_) {
@@ -967,6 +978,7 @@ std::string VersionEdit::DebugString(bool hex_key) const {
 }
 
 std::string VersionEdit::DebugJSON(int edit_num, bool hex_key) const {
+  DBUG_TRACE;
   JSONWriter jw;
   jw << "EditNumber" << edit_num;
 

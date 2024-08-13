@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "cache/cache_key.h"
 
 #include <algorithm>
@@ -25,6 +26,7 @@ namespace ROCKSDB_NAMESPACE {
 //            > 0 |           any | OffsetableCacheKey.WithOffset
 
 CacheKey CacheKey::CreateUniqueForCacheLifetime(Cache *cache) {
+  DBUG_TRACE;
   // +1 so that we can reserve all zeros for "unset" cache key
   uint64_t id = cache->NewId() + 1;
   // Ensure we don't collide with CreateUniqueForProcessLifetime
@@ -33,6 +35,7 @@ CacheKey CacheKey::CreateUniqueForCacheLifetime(Cache *cache) {
 }
 
 CacheKey CacheKey::CreateUniqueForProcessLifetime() {
+  DBUG_TRACE;
   // To avoid colliding with CreateUniqueForCacheLifetime, assuming
   // Cache::NewId counts up from zero, here we count down from UINT64_MAX.
   // If this ever becomes a point of contention, we could sub-divide the
@@ -308,6 +311,7 @@ OffsetableCacheKey::OffsetableCacheKey(const std::string &db_id,
 }
 
 OffsetableCacheKey OffsetableCacheKey::FromInternalUniqueId(UniqueIdPtr id) {
+  DBUG_TRACE;
   uint64_t session_lower = id.ptr[0];
   uint64_t file_num_etc = id.ptr[1];
 
@@ -350,6 +354,7 @@ OffsetableCacheKey OffsetableCacheKey::FromInternalUniqueId(UniqueIdPtr id) {
 // Inverse of FromInternalUniqueId (assuming file_num_etc64 == 0 only if
 // offset_etc64 == 0)
 UniqueId64x2 OffsetableCacheKey::ToInternalUniqueId() {
+  DBUG_TRACE;
   uint64_t a = file_num_etc64_;
   uint64_t b = offset_etc64_;
   if (b == 0) {

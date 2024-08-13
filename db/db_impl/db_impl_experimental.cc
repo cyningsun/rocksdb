@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include <cinttypes>
 #include <vector>
 
@@ -22,6 +23,7 @@ namespace ROCKSDB_NAMESPACE {
 
 Status DBImpl::SuggestCompactRange(ColumnFamilyHandle* column_family,
                                    const Slice* begin, const Slice* end) {
+  DBUG_TRACE;
   auto cfh = static_cast_with_check<ColumnFamilyHandleImpl>(column_family);
   auto cfd = cfh->cfd();
   InternalKey start_key, end_key;
@@ -54,6 +56,7 @@ Status DBImpl::SuggestCompactRange(ColumnFamilyHandle* column_family,
 }
 
 Status DBImpl::PromoteL0(ColumnFamilyHandle* column_family, int target_level) {
+  DBUG_TRACE;
   assert(column_family);
 
   if (target_level < 1) {

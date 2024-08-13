@@ -4,6 +4,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "db/seqno_to_time_mapping.h"
 
 #include <algorithm>
@@ -21,6 +22,7 @@ namespace ROCKSDB_NAMESPACE {
 
 SeqnoToTimeMapping::pair_const_iterator SeqnoToTimeMapping::FindGreaterTime(
     uint64_t time) const {
+  DBUG_TRACE;
   assert(enforced_);
   return std::upper_bound(pairs_.cbegin(), pairs_.cend(),
                           SeqnoTimePair{0, time}, SeqnoTimePair::TimeLess);
@@ -28,6 +30,7 @@ SeqnoToTimeMapping::pair_const_iterator SeqnoToTimeMapping::FindGreaterTime(
 
 SeqnoToTimeMapping::pair_const_iterator SeqnoToTimeMapping::FindGreaterEqSeqno(
     SequenceNumber seqno) const {
+  DBUG_TRACE;
   assert(enforced_);
   return std::lower_bound(pairs_.cbegin(), pairs_.cend(),
                           SeqnoTimePair{seqno, 0}, SeqnoTimePair::SeqnoLess);
@@ -35,6 +38,7 @@ SeqnoToTimeMapping::pair_const_iterator SeqnoToTimeMapping::FindGreaterEqSeqno(
 
 SeqnoToTimeMapping::pair_const_iterator SeqnoToTimeMapping::FindGreaterSeqno(
     SequenceNumber seqno) const {
+  DBUG_TRACE;
   assert(enforced_);
   return std::upper_bound(pairs_.cbegin(), pairs_.cend(),
                           SeqnoTimePair{seqno, 0}, SeqnoTimePair::SeqnoLess);
@@ -42,6 +46,7 @@ SeqnoToTimeMapping::pair_const_iterator SeqnoToTimeMapping::FindGreaterSeqno(
 
 uint64_t SeqnoToTimeMapping::GetProximalTimeBeforeSeqno(
     SequenceNumber seqno) const {
+  DBUG_TRACE;
   assert(enforced_);
   // Find the last entry with a seqno strictly less than the given seqno.
   // First, find the first entry >= the given seqno (or end)
@@ -56,6 +61,7 @@ uint64_t SeqnoToTimeMapping::GetProximalTimeBeforeSeqno(
 
 SequenceNumber SeqnoToTimeMapping::GetProximalSeqnoBeforeTime(
     uint64_t time) const {
+  DBUG_TRACE;
   assert(enforced_);
 
   // Find the last entry with a time <= the given time.
@@ -74,6 +80,7 @@ void SeqnoToTimeMapping::GetCurrentTieringCutoffSeqnos(
     uint64_t preclude_last_level_data_seconds,
     SequenceNumber* preserve_time_min_seqno,
     SequenceNumber* preclude_last_level_min_seqno) const {
+  DBUG_TRACE;
   uint64_t preserve_time_duration = std::max(preserve_internal_time_seconds,
                                              preclude_last_level_data_seconds);
   if (preserve_time_duration <= 0) {
@@ -100,6 +107,7 @@ void SeqnoToTimeMapping::GetCurrentTieringCutoffSeqnos(
 }
 
 void SeqnoToTimeMapping::EnforceMaxTimeSpan(uint64_t now) {
+  DBUG_TRACE;
   assert(enforced_);  // at least sorted
   uint64_t cutoff_time;
   if (pairs_.size() <= 1) {
@@ -127,6 +135,7 @@ void SeqnoToTimeMapping::EnforceMaxTimeSpan(uint64_t now) {
 }
 
 void SeqnoToTimeMapping::EnforceCapacity(bool strict) {
+  DBUG_TRACE;
   assert(enforced_);  // at least sorted
   uint64_t strict_cap = capacity_;
   if (strict_cap == 0) {
@@ -158,6 +167,7 @@ void SeqnoToTimeMapping::EnforceCapacity(bool strict) {
                      std::deque<SeqnoTimePair>::iterator _it)
         : new_time_gap(_new_time_gap), it(_it) {}
     bool operator>(const RemovalCandidate& other) const {
+      DBUG_TRACE;
       if (new_time_gap == other.new_time_gap) {
         // If same gap, treat the newer entry as less attractive
         // for removal (like larger gap)
@@ -250,6 +260,7 @@ void SeqnoToTimeMapping::EnforceCapacity(bool strict) {
 }
 
 bool SeqnoToTimeMapping::SeqnoTimePair::Merge(const SeqnoTimePair& other) {
+  DBUG_TRACE;
   assert(seqno <= other.seqno);
   if (seqno == other.seqno) {
     // Favoring GetProximalSeqnoBeforeTime over GetProximalTimeBeforeSeqno
@@ -278,6 +289,7 @@ bool SeqnoToTimeMapping::SeqnoTimePair::Merge(const SeqnoTimePair& other) {
 }
 
 void SeqnoToTimeMapping::SortAndMerge() {
+  DBUG_TRACE;
   assert(!enforced_);
   if (!pairs_.empty()) {
     std::sort(pairs_.begin(), pairs_.end());
@@ -300,6 +312,7 @@ void SeqnoToTimeMapping::SortAndMerge() {
 }
 
 SeqnoToTimeMapping& SeqnoToTimeMapping::SetMaxTimeSpan(uint64_t max_time_span) {
+  DBUG_TRACE;
   max_time_span_ = max_time_span;
   if (enforced_) {
     EnforceMaxTimeSpan();
@@ -308,6 +321,7 @@ SeqnoToTimeMapping& SeqnoToTimeMapping::SetMaxTimeSpan(uint64_t max_time_span) {
 }
 
 SeqnoToTimeMapping& SeqnoToTimeMapping::SetCapacity(uint64_t capacity) {
+  DBUG_TRACE;
   capacity_ = capacity;
   if (enforced_) {
     EnforceCapacity(/*strict=*/true);
@@ -316,6 +330,7 @@ SeqnoToTimeMapping& SeqnoToTimeMapping::SetCapacity(uint64_t capacity) {
 }
 
 SeqnoToTimeMapping& SeqnoToTimeMapping::Enforce(uint64_t now) {
+  DBUG_TRACE;
   if (!enforced_) {
     SortAndMerge();
     assert(enforced_);
@@ -328,6 +343,7 @@ SeqnoToTimeMapping& SeqnoToTimeMapping::Enforce(uint64_t now) {
 }
 
 void SeqnoToTimeMapping::AddUnenforced(SequenceNumber seqno, uint64_t time) {
+  DBUG_TRACE;
   if (seqno == 0) {
     return;
   }
@@ -343,6 +359,7 @@ void SeqnoToTimeMapping::AddUnenforced(SequenceNumber seqno, uint64_t time) {
 // doesn't fully form a prefix code, but that is OK for applications like
 // TableProperties.
 void SeqnoToTimeMapping::EncodeTo(std::string& dest) const {
+  DBUG_TRACE;
   assert(enforced_);
   // Can use empty string for empty mapping
   if (pairs_.empty()) {
@@ -363,6 +380,7 @@ void SeqnoToTimeMapping::EncodeTo(std::string& dest) const {
 namespace {
 Status DecodeImpl(Slice& input,
                   std::deque<SeqnoToTimeMapping::SeqnoTimePair>& pairs) {
+  DBUG_TRACE;
   if (input.empty()) {
     return Status::OK();
   }
@@ -392,6 +410,7 @@ Status DecodeImpl(Slice& input,
 }  // namespace
 
 Status SeqnoToTimeMapping::DecodeFrom(const std::string& pairs_str) {
+  DBUG_TRACE;
   size_t orig_size = pairs_.size();
 
   Slice input(pairs_str);
@@ -407,10 +426,12 @@ Status SeqnoToTimeMapping::DecodeFrom(const std::string& pairs_str) {
 }
 
 void SeqnoToTimeMapping::SeqnoTimePair::Encode(std::string& dest) const {
+  DBUG_TRACE;
   PutVarint64Varint64(&dest, seqno, time);
 }
 
 Status SeqnoToTimeMapping::SeqnoTimePair::Decode(Slice& input) {
+  DBUG_TRACE;
   if (!GetVarint64(&input, &seqno)) {
     return Status::Corruption("Invalid sequence number");
   }
@@ -423,6 +444,7 @@ Status SeqnoToTimeMapping::SeqnoTimePair::Decode(Slice& input) {
 void SeqnoToTimeMapping::CopyFromSeqnoRange(const SeqnoToTimeMapping& src,
                                             SequenceNumber from_seqno,
                                             SequenceNumber to_seqno) {
+  DBUG_TRACE;
   bool orig_empty = Empty();
   auto src_it = src.FindGreaterEqSeqno(from_seqno);
   // Allow nonsensical ranges like [1000, 0] which might show up e.g. for
@@ -443,6 +465,7 @@ void SeqnoToTimeMapping::CopyFromSeqnoRange(const SeqnoToTimeMapping& src,
 }
 
 bool SeqnoToTimeMapping::Append(SequenceNumber seqno, uint64_t time) {
+  DBUG_TRACE;
   if (capacity_ == 0) {
     return false;
   }
@@ -493,6 +516,7 @@ bool SeqnoToTimeMapping::Append(SequenceNumber seqno, uint64_t time) {
 bool SeqnoToTimeMapping::PrePopulate(SequenceNumber from_seqno,
                                      SequenceNumber to_seqno,
                                      uint64_t from_time, uint64_t to_time) {
+  DBUG_TRACE;
   assert(Empty());
   assert(from_seqno > 0);
   assert(to_seqno > from_seqno);
@@ -510,6 +534,7 @@ bool SeqnoToTimeMapping::PrePopulate(SequenceNumber from_seqno,
 }
 
 std::string SeqnoToTimeMapping::ToHumanString() const {
+  DBUG_TRACE;
   std::string ret;
   for (const auto& seq_time : pairs_) {
     AppendNumberTo(&ret, seq_time.seqno);
@@ -522,6 +547,7 @@ std::string SeqnoToTimeMapping::ToHumanString() const {
 
 Slice PackValueAndWriteTime(const Slice& value, uint64_t unix_write_time,
                             std::string* buf) {
+  DBUG_TRACE;
   buf->assign(value.data(), value.size());
   PutFixed64(buf, unix_write_time);
   return Slice(*buf);
@@ -529,12 +555,14 @@ Slice PackValueAndWriteTime(const Slice& value, uint64_t unix_write_time,
 
 Slice PackValueAndSeqno(const Slice& value, SequenceNumber seqno,
                         std::string* buf) {
+  DBUG_TRACE;
   buf->assign(value.data(), value.size());
   PutFixed64(buf, seqno);
   return Slice(*buf);
 }
 
 uint64_t ParsePackedValueForWriteTime(const Slice& value) {
+  DBUG_TRACE;
   assert(value.size() >= sizeof(uint64_t));
   Slice write_time_slice(value.data() + value.size() - sizeof(uint64_t),
                          sizeof(uint64_t));
@@ -545,11 +573,13 @@ uint64_t ParsePackedValueForWriteTime(const Slice& value) {
 }
 
 std::tuple<Slice, uint64_t> ParsePackedValueWithWriteTime(const Slice& value) {
+  DBUG_TRACE;
   return std::make_tuple(Slice(value.data(), value.size() - sizeof(uint64_t)),
                          ParsePackedValueForWriteTime(value));
 }
 
 SequenceNumber ParsePackedValueForSeqno(const Slice& value) {
+  DBUG_TRACE;
   assert(value.size() >= sizeof(SequenceNumber));
   Slice seqno_slice(value.data() + value.size() - sizeof(uint64_t),
                     sizeof(uint64_t));
@@ -561,12 +591,14 @@ SequenceNumber ParsePackedValueForSeqno(const Slice& value) {
 
 std::tuple<Slice, SequenceNumber> ParsePackedValueWithSeqno(
     const Slice& value) {
+  DBUG_TRACE;
   return std::make_tuple(
       Slice(value.data(), value.size() - sizeof(SequenceNumber)),
       ParsePackedValueForSeqno(value));
 }
 
 Slice ParsePackedValueForValue(const Slice& value) {
+  DBUG_TRACE;
   assert(value.size() >= sizeof(uint64_t));
   return Slice(value.data(), value.size() - sizeof(uint64_t));
 }

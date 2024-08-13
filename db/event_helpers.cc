@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "db/event_helpers.h"
 
 #include "rocksdb/convenience.h"
@@ -13,6 +14,7 @@ namespace ROCKSDB_NAMESPACE {
 Status EventListener::CreateFromString(const ConfigOptions& config_options,
                                        const std::string& id,
                                        std::shared_ptr<EventListener>* result) {
+  DBUG_TRACE;
   return LoadSharedObject<EventListener>(config_options, id, result);
 }
 
@@ -24,6 +26,7 @@ inline T SafeDivide(T a, T b) {
 }  // anonymous namespace
 
 void EventHelpers::AppendCurrentTime(JSONWriter* jwriter) {
+  DBUG_TRACE;
   *jwriter << "time_micros"
            << std::chrono::duration_cast<std::chrono::microseconds>(
                   std::chrono::system_clock::now().time_since_epoch())
@@ -34,6 +37,7 @@ void EventHelpers::NotifyTableFileCreationStarted(
     const std::vector<std::shared_ptr<EventListener>>& listeners,
     const std::string& db_name, const std::string& cf_name,
     const std::string& file_path, int job_id, TableFileCreationReason reason) {
+  DBUG_TRACE;
   if (listeners.empty()) {
     return;
   }
@@ -52,6 +56,7 @@ void EventHelpers::NotifyOnBackgroundError(
     const std::vector<std::shared_ptr<EventListener>>& listeners,
     BackgroundErrorReason reason, Status* bg_error, InstrumentedMutex* db_mutex,
     bool* auto_recovery) {
+  DBUG_TRACE;
   if (listeners.empty()) {
     return;
   }
@@ -77,6 +82,7 @@ void EventHelpers::LogAndNotifyTableFileCreationFinished(
     TableFileCreationReason reason, const Status& s,
     const std::string& file_checksum,
     const std::string& file_checksum_func_name) {
+  DBUG_TRACE;
   if (s.ok() && event_logger) {
     JSONWriter jwriter;
     AppendCurrentTime(&jwriter);
@@ -194,6 +200,7 @@ void EventHelpers::LogAndNotifyTableFileDeletion(
     const std::string& file_path, const Status& status,
     const std::string& dbname,
     const std::vector<std::shared_ptr<EventListener>>& listeners) {
+  DBUG_TRACE;
   JSONWriter jwriter;
   AppendCurrentTime(&jwriter);
 
@@ -226,6 +233,7 @@ void EventHelpers::NotifyOnErrorRecoveryEnd(
     const std::vector<std::shared_ptr<EventListener>>& listeners,
     const Status& old_bg_error, const Status& new_bg_error,
     InstrumentedMutex* db_mutex) {
+  DBUG_TRACE;
   if (!listeners.empty()) {
     db_mutex->AssertHeld();
     // Make copies before releasing mutex to avoid race.
@@ -255,6 +263,7 @@ void EventHelpers::NotifyBlobFileCreationStarted(
     const std::string& db_name, const std::string& cf_name,
     const std::string& file_path, int job_id,
     BlobFileCreationReason creation_reason) {
+  DBUG_TRACE;
   if (listeners.empty()) {
     return;
   }
@@ -274,6 +283,7 @@ void EventHelpers::LogAndNotifyBlobFileCreationFinished(
     const std::string& file_checksum,
     const std::string& file_checksum_func_name, uint64_t total_blob_count,
     uint64_t total_blob_bytes) {
+  DBUG_TRACE;
   if (s.ok() && event_logger) {
     JSONWriter jwriter;
     AppendCurrentTime(&jwriter);
@@ -305,6 +315,7 @@ void EventHelpers::LogAndNotifyBlobFileDeletion(
     const std::vector<std::shared_ptr<EventListener>>& listeners, int job_id,
     uint64_t file_number, const std::string& file_path, const Status& status,
     const std::string& dbname) {
+  DBUG_TRACE;
   if (event_logger) {
     JSONWriter jwriter;
     AppendCurrentTime(&jwriter);

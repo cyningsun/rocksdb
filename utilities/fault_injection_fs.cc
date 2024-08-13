@@ -14,6 +14,7 @@
 // FileSystem related operations, by specify the "IOStatus Error", a specific
 // error can be returned when file system is not activated.
 
+#include "rocksdb/util/dbug.h"
 #include "utilities/fault_injection_fs.h"
 
 #include <algorithm>
@@ -41,6 +42,7 @@ const std::string kNewFileNoOverwrite;
 
 // Assume a filename, and not a directory name like "/foo/bar/"
 std::string TestFSGetDirName(const std::string filename) {
+  DBUG_TRACE;
   size_t found = filename.find_last_of("/\\");
   if (found == std::string::npos) {
     return "";
@@ -51,6 +53,7 @@ std::string TestFSGetDirName(const std::string filename) {
 
 // Trim the tailing "/" in the end of `str`
 std::string TestFSTrimDirname(const std::string& str) {
+  DBUG_TRACE;
   size_t found = str.find_last_not_of('/');
   if (found == std::string::npos) {
     return str;
@@ -61,6 +64,7 @@ std::string TestFSTrimDirname(const std::string& str) {
 // Return pair <parent directory name, file name> of a full path.
 std::pair<std::string, std::string> TestFSGetDirAndName(
     const std::string& name) {
+  DBUG_TRACE;
   std::string dirname = TestFSGetDirName(name);
   std::string fname = name.substr(dirname.size() + 1);
   return std::make_pair(dirname, fname);
@@ -70,6 +74,7 @@ std::pair<std::string, std::string> TestFSGetDirAndName(
 // type. If name does not match, no checksum is returned.
 void CalculateTypedChecksum(const ChecksumType& checksum_type, const char* data,
                             size_t size, std::string* checksum) {
+  DBUG_TRACE;
   if (checksum_type == ChecksumType::kCRC32c) {
     uint32_t v_crc32c = crc32c::Extend(0, data, size);
     PutFixed32(checksum, v_crc32c);
@@ -81,11 +86,13 @@ void CalculateTypedChecksum(const ChecksumType& checksum_type, const char* data,
 }
 
 IOStatus FSFileState::DropUnsyncedData() {
+  DBUG_TRACE;
   buffer_.resize(0);
   return IOStatus::OK();
 }
 
 IOStatus FSFileState::DropRandomUnsyncedData(Random* rand) {
+  DBUG_TRACE;
   int range = static_cast<int>(buffer_.size());
   size_t truncated_size = static_cast<size_t>(rand->Uniform(range));
   buffer_.resize(truncated_size);
@@ -93,6 +100,7 @@ IOStatus FSFileState::DropRandomUnsyncedData(Random* rand) {
 }
 
 IOStatus TestFSDirectory::Fsync(const IOOptions& options, IODebugContext* dbg) {
+  DBUG_TRACE;
   if (!fs_->IsFilesystemActive()) {
     return fs_->GetError();
   }
@@ -109,6 +117,7 @@ IOStatus TestFSDirectory::Fsync(const IOOptions& options, IODebugContext* dbg) {
 }
 
 IOStatus TestFSDirectory::Close(const IOOptions& options, IODebugContext* dbg) {
+  DBUG_TRACE;
   if (!fs_->IsFilesystemActive()) {
     return fs_->GetError();
   }
@@ -126,6 +135,7 @@ IOStatus TestFSDirectory::Close(const IOOptions& options, IODebugContext* dbg) {
 IOStatus TestFSDirectory::FsyncWithDirOptions(
     const IOOptions& options, IODebugContext* dbg,
     const DirFsyncOptions& dir_fsync_options) {
+  DBUG_TRACE;
   if (!fs_->IsFilesystemActive()) {
     return fs_->GetError();
   }
@@ -163,6 +173,7 @@ TestFSWritableFile::~TestFSWritableFile() {
 
 IOStatus TestFSWritableFile::Append(const Slice& data, const IOOptions& options,
                                     IODebugContext* dbg) {
+  DBUG_TRACE;
   MutexLock l(&mutex_);
   if (!fs_->IsFilesystemActive()) {
     return fs_->GetError();
@@ -196,6 +207,7 @@ IOStatus TestFSWritableFile::Append(const Slice& data, const IOOptions& options,
 IOStatus TestFSWritableFile::Append(
     const Slice& data, const IOOptions& options,
     const DataVerificationInfo& verification_info, IODebugContext* dbg) {
+  DBUG_TRACE;
   MutexLock l(&mutex_);
   if (!fs_->IsFilesystemActive()) {
     return fs_->GetError();
@@ -240,6 +252,7 @@ IOStatus TestFSWritableFile::Append(
 
 IOStatus TestFSWritableFile::Truncate(uint64_t size, const IOOptions& options,
                                       IODebugContext* dbg) {
+  DBUG_TRACE;
   MutexLock l(&mutex_);
   if (!fs_->IsFilesystemActive()) {
     return fs_->GetError();
@@ -261,6 +274,7 @@ IOStatus TestFSWritableFile::PositionedAppend(const Slice& data,
                                               uint64_t offset,
                                               const IOOptions& options,
                                               IODebugContext* dbg) {
+  DBUG_TRACE;
   MutexLock l(&mutex_);
   if (!fs_->IsFilesystemActive()) {
     return fs_->GetError();
@@ -288,6 +302,7 @@ IOStatus TestFSWritableFile::PositionedAppend(const Slice& data,
 IOStatus TestFSWritableFile::PositionedAppend(
     const Slice& data, uint64_t offset, const IOOptions& options,
     const DataVerificationInfo& verification_info, IODebugContext* dbg) {
+  DBUG_TRACE;
   MutexLock l(&mutex_);
   if (!fs_->IsFilesystemActive()) {
     return fs_->GetError();
@@ -326,6 +341,7 @@ IOStatus TestFSWritableFile::PositionedAppend(
 
 IOStatus TestFSWritableFile::Close(const IOOptions& options,
                                    IODebugContext* dbg) {
+  DBUG_TRACE;
   MutexLock l(&mutex_);
   fs_->WritableFileClosed(state_);
   if (!fs_->IsFilesystemActive()) {
@@ -346,6 +362,7 @@ IOStatus TestFSWritableFile::Close(const IOOptions& options,
 }
 
 IOStatus TestFSWritableFile::Flush(const IOOptions&, IODebugContext*) {
+  DBUG_TRACE;
   MutexLock l(&mutex_);
   if (!fs_->IsFilesystemActive()) {
     return fs_->GetError();
@@ -355,6 +372,7 @@ IOStatus TestFSWritableFile::Flush(const IOOptions&, IODebugContext*) {
 
 IOStatus TestFSWritableFile::Sync(const IOOptions& options,
                                   IODebugContext* dbg) {
+  DBUG_TRACE;
   MutexLock l(&mutex_);
   if (!fs_->IsFilesystemActive()) {
     return fs_->GetError();
@@ -376,6 +394,7 @@ IOStatus TestFSWritableFile::Sync(const IOOptions& options,
 IOStatus TestFSWritableFile::RangeSync(uint64_t offset, uint64_t nbytes,
                                        const IOOptions& options,
                                        IODebugContext* dbg) {
+  DBUG_TRACE;
   MutexLock l(&mutex_);
   if (!fs_->IsFilesystemActive()) {
     return fs_->GetError();
@@ -415,6 +434,7 @@ TestFSRandomRWFile::~TestFSRandomRWFile() {
 IOStatus TestFSRandomRWFile::Write(uint64_t offset, const Slice& data,
                                    const IOOptions& options,
                                    IODebugContext* dbg) {
+  DBUG_TRACE;
   if (!fs_->IsFilesystemActive()) {
     return fs_->GetError();
   }
@@ -424,6 +444,7 @@ IOStatus TestFSRandomRWFile::Write(uint64_t offset, const Slice& data,
 IOStatus TestFSRandomRWFile::Read(uint64_t offset, size_t n,
                                   const IOOptions& options, Slice* result,
                                   char* scratch, IODebugContext* dbg) const {
+  DBUG_TRACE;
   if (!fs_->IsFilesystemActive()) {
     return fs_->GetError();
   }
@@ -433,6 +454,7 @@ IOStatus TestFSRandomRWFile::Read(uint64_t offset, size_t n,
 
 IOStatus TestFSRandomRWFile::Close(const IOOptions& options,
                                    IODebugContext* dbg) {
+  DBUG_TRACE;
   if (!fs_->IsFilesystemActive()) {
     return fs_->GetError();
   }
@@ -442,6 +464,7 @@ IOStatus TestFSRandomRWFile::Close(const IOOptions& options,
 
 IOStatus TestFSRandomRWFile::Flush(const IOOptions& options,
                                    IODebugContext* dbg) {
+  DBUG_TRACE;
   if (!fs_->IsFilesystemActive()) {
     return fs_->GetError();
   }
@@ -450,6 +473,7 @@ IOStatus TestFSRandomRWFile::Flush(const IOOptions& options,
 
 IOStatus TestFSRandomRWFile::Sync(const IOOptions& options,
                                   IODebugContext* dbg) {
+  DBUG_TRACE;
   if (!fs_->IsFilesystemActive()) {
     return fs_->GetError();
   }
@@ -467,6 +491,7 @@ IOStatus TestFSRandomAccessFile::Read(uint64_t offset, size_t n,
                                       const IOOptions& options, Slice* result,
                                       char* scratch,
                                       IODebugContext* dbg) const {
+  DBUG_TRACE;
   TEST_SYNC_POINT("FaultInjectionTestFS::RandomRead");
   if (!fs_->IsFilesystemActive()) {
     return fs_->GetError();
@@ -489,6 +514,7 @@ IOStatus TestFSRandomAccessFile::ReadAsync(
     FSReadRequest& req, const IOOptions& opts,
     std::function<void(FSReadRequest&, void*)> cb, void* cb_arg,
     void** io_handle, IOHandleDeleter* del_fn, IODebugContext* /*dbg*/) {
+  DBUG_TRACE;
   IOStatus res_status;
   FSReadRequest res;
   IOStatus s;
@@ -524,6 +550,7 @@ IOStatus TestFSRandomAccessFile::ReadAsync(
 IOStatus TestFSRandomAccessFile::MultiRead(FSReadRequest* reqs, size_t num_reqs,
                                            const IOOptions& options,
                                            IODebugContext* dbg) {
+  DBUG_TRACE;
   if (!fs_->IsFilesystemActive()) {
     return fs_->GetError();
   }
@@ -555,6 +582,7 @@ IOStatus TestFSRandomAccessFile::MultiRead(FSReadRequest* reqs, size_t num_reqs,
 }
 
 size_t TestFSRandomAccessFile::GetUniqueId(char* id, size_t max_size) const {
+  DBUG_TRACE;
   if (fs_->ShouldFailGetUniqueId()) {
     return 0;
   } else {
@@ -566,6 +594,7 @@ namespace {
 // Modifies `result` to start at the beginning of `scratch` if not already,
 // copying data there if needed.
 void MoveToScratchIfNeeded(Slice* result, char* scratch) {
+  DBUG_TRACE;
   if (result->data() != scratch) {
     // NOTE: might overlap, where result is later in scratch
     std::copy(result->data(), result->data() + result->size(), scratch);
@@ -578,6 +607,7 @@ void FaultInjectionTestFS::ReadUnsynced(const std::string& fname,
                                         uint64_t offset, size_t n,
                                         Slice* result, char* scratch,
                                         int64_t* pos_at_last_sync) {
+  DBUG_TRACE;
   *result = Slice(scratch, 0);  // default empty result
   assert(*pos_at_last_sync == -1);  // default "unknown"
 
@@ -607,6 +637,7 @@ void FaultInjectionTestFS::ReadUnsynced(const std::string& fname,
 IOStatus TestFSSequentialFile::Read(size_t n, const IOOptions& options,
                                     Slice* result, char* scratch,
                                     IODebugContext* dbg) {
+  DBUG_TRACE;
   IOStatus s = fs_->MaybeInjectThreadLocalError(
       FaultInjectionIOType::kRead, options, "",
       FaultInjectionTestFS::ErrorOperation::kRead, result, use_direct_io(),
@@ -758,6 +789,7 @@ IOStatus TestFSSequentialFile::PositionedRead(uint64_t offset, size_t n,
                                               const IOOptions& options,
                                               Slice* result, char* scratch,
                                               IODebugContext* dbg) {
+  DBUG_TRACE;
   IOStatus s = fs_->MaybeInjectThreadLocalError(
       FaultInjectionIOType::kRead, options, "",
       FaultInjectionTestFS::ErrorOperation::kRead, result, use_direct_io(),
@@ -774,6 +806,7 @@ IOStatus TestFSSequentialFile::PositionedRead(uint64_t offset, size_t n,
 IOStatus FaultInjectionTestFS::NewDirectory(
     const std::string& name, const IOOptions& options,
     std::unique_ptr<FSDirectory>* result, IODebugContext* dbg) {
+  DBUG_TRACE;
   std::unique_ptr<FSDirectory> r;
   IOStatus io_s = target()->NewDirectory(name, options, &r, dbg);
   if (!io_s.ok()) {
@@ -787,6 +820,7 @@ IOStatus FaultInjectionTestFS::NewDirectory(
 IOStatus FaultInjectionTestFS::FileExists(const std::string& fname,
                                           const IOOptions& options,
                                           IODebugContext* dbg) {
+  DBUG_TRACE;
   if (!IsFilesystemActive()) {
     return GetError();
   }
@@ -805,6 +839,7 @@ IOStatus FaultInjectionTestFS::GetChildren(const std::string& dir,
                                            const IOOptions& options,
                                            std::vector<std::string>* result,
                                            IODebugContext* dbg) {
+  DBUG_TRACE;
   if (!IsFilesystemActive()) {
     return GetError();
   }
@@ -822,6 +857,7 @@ IOStatus FaultInjectionTestFS::GetChildren(const std::string& dir,
 IOStatus FaultInjectionTestFS::GetChildrenFileAttributes(
     const std::string& dir, const IOOptions& options,
     std::vector<FileAttributes>* result, IODebugContext* dbg) {
+  DBUG_TRACE;
   if (!IsFilesystemActive()) {
     return GetError();
   }
@@ -839,6 +875,7 @@ IOStatus FaultInjectionTestFS::GetChildrenFileAttributes(
 IOStatus FaultInjectionTestFS::NewWritableFile(
     const std::string& fname, const FileOptions& file_opts,
     std::unique_ptr<FSWritableFile>* result, IODebugContext* dbg) {
+  DBUG_TRACE;
   if (!IsFilesystemActive()) {
     return GetError();
   }
@@ -878,6 +915,7 @@ IOStatus FaultInjectionTestFS::NewWritableFile(
 IOStatus FaultInjectionTestFS::ReopenWritableFile(
     const std::string& fname, const FileOptions& file_opts,
     std::unique_ptr<FSWritableFile>* result, IODebugContext* dbg) {
+  DBUG_TRACE;
   if (!IsFilesystemActive()) {
     return GetError();
   }
@@ -944,6 +982,7 @@ IOStatus FaultInjectionTestFS::ReuseWritableFile(
     const std::string& fname, const std::string& old_fname,
     const FileOptions& file_opts, std::unique_ptr<FSWritableFile>* result,
     IODebugContext* dbg) {
+  DBUG_TRACE;
   IOStatus s = RenameFile(old_fname, fname, file_opts.io_options, dbg);
   if (!s.ok()) {
     return s;
@@ -954,6 +993,7 @@ IOStatus FaultInjectionTestFS::ReuseWritableFile(
 IOStatus FaultInjectionTestFS::NewRandomRWFile(
     const std::string& fname, const FileOptions& file_opts,
     std::unique_ptr<FSRandomRWFile>* result, IODebugContext* dbg) {
+  DBUG_TRACE;
   if (!IsFilesystemActive()) {
     return GetError();
   }
@@ -989,6 +1029,7 @@ IOStatus FaultInjectionTestFS::NewRandomRWFile(
 IOStatus FaultInjectionTestFS::NewRandomAccessFile(
     const std::string& fname, const FileOptions& file_opts,
     std::unique_ptr<FSRandomAccessFile>* result, IODebugContext* dbg) {
+  DBUG_TRACE;
   if (!IsFilesystemActive()) {
     return GetError();
   }
@@ -1012,6 +1053,7 @@ IOStatus FaultInjectionTestFS::NewRandomAccessFile(
 IOStatus FaultInjectionTestFS::NewSequentialFile(
     const std::string& fname, const FileOptions& file_opts,
     std::unique_ptr<FSSequentialFile>* result, IODebugContext* dbg) {
+  DBUG_TRACE;
   if (!IsFilesystemActive()) {
     return GetError();
   }
@@ -1035,6 +1077,7 @@ IOStatus FaultInjectionTestFS::NewSequentialFile(
 IOStatus FaultInjectionTestFS::DeleteFile(const std::string& f,
                                           const IOOptions& options,
                                           IODebugContext* dbg) {
+  DBUG_TRACE;
   if (!IsFilesystemActive()) {
     return GetError();
   }
@@ -1056,6 +1099,7 @@ IOStatus FaultInjectionTestFS::GetFileSize(const std::string& f,
                                            const IOOptions& options,
                                            uint64_t* file_size,
                                            IODebugContext* dbg) {
+  DBUG_TRACE;
   if (!IsFilesystemActive()) {
     return GetError();
   }
@@ -1085,6 +1129,7 @@ IOStatus FaultInjectionTestFS::GetFileModificationTime(const std::string& fname,
                                                        const IOOptions& options,
                                                        uint64_t* file_mtime,
                                                        IODebugContext* dbg) {
+  DBUG_TRACE;
   if (!IsFilesystemActive()) {
     return GetError();
   }
@@ -1102,6 +1147,7 @@ IOStatus FaultInjectionTestFS::RenameFile(const std::string& s,
                                           const std::string& t,
                                           const IOOptions& options,
                                           IODebugContext* dbg) {
+  DBUG_TRACE;
   if (!IsFilesystemActive()) {
     return GetError();
   }
@@ -1148,6 +1194,7 @@ IOStatus FaultInjectionTestFS::LinkFile(const std::string& s,
                                         const std::string& t,
                                         const IOOptions& options,
                                         IODebugContext* dbg) {
+  DBUG_TRACE;
   if (!IsFilesystemActive()) {
     return GetError();
   }
@@ -1193,6 +1240,7 @@ IOStatus FaultInjectionTestFS::NumFileLinks(const std::string& fname,
                                             const IOOptions& options,
                                             uint64_t* count,
                                             IODebugContext* dbg) {
+  DBUG_TRACE;
   if (!IsFilesystemActive()) {
     return GetError();
   }
@@ -1210,6 +1258,7 @@ IOStatus FaultInjectionTestFS::AreFilesSame(const std::string& first,
                                             const std::string& second,
                                             const IOOptions& options, bool* res,
                                             IODebugContext* dbg) {
+  DBUG_TRACE;
   if (!IsFilesystemActive()) {
     return GetError();
   }
@@ -1227,6 +1276,7 @@ IOStatus FaultInjectionTestFS::GetAbsolutePath(const std::string& db_path,
                                                const IOOptions& options,
                                                std::string* output_path,
                                                IODebugContext* dbg) {
+  DBUG_TRACE;
   if (!IsFilesystemActive()) {
     return GetError();
   }
@@ -1243,6 +1293,7 @@ IOStatus FaultInjectionTestFS::GetAbsolutePath(const std::string& db_path,
 IOStatus FaultInjectionTestFS::IsDirectory(const std::string& path,
                                            const IOOptions& options,
                                            bool* is_dir, IODebugContext* dgb) {
+  DBUG_TRACE;
   if (!IsFilesystemActive()) {
     return GetError();
   }
@@ -1258,14 +1309,17 @@ IOStatus FaultInjectionTestFS::IsDirectory(const std::string& path,
 
 IOStatus FaultInjectionTestFS::Poll(std::vector<void*>& io_handles,
                                     size_t min_completions) {
+  DBUG_TRACE;
   return target()->Poll(io_handles, min_completions);
 }
 
 IOStatus FaultInjectionTestFS::AbortIO(std::vector<void*>& io_handles) {
+  DBUG_TRACE;
   return target()->AbortIO(io_handles);
 }
 
 void FaultInjectionTestFS::WritableFileClosed(const FSFileState& state) {
+  DBUG_TRACE;
   MutexLock l(&mutex_);
   if (open_managed_files_.find(state.filename_) != open_managed_files_.end()) {
     db_file_state_[state.filename_] = state;
@@ -1274,6 +1328,7 @@ void FaultInjectionTestFS::WritableFileClosed(const FSFileState& state) {
 }
 
 void FaultInjectionTestFS::WritableFileSynced(const FSFileState& state) {
+  DBUG_TRACE;
   MutexLock l(&mutex_);
   if (open_managed_files_.find(state.filename_) != open_managed_files_.end()) {
     if (db_file_state_.find(state.filename_) == db_file_state_.end()) {
@@ -1285,6 +1340,7 @@ void FaultInjectionTestFS::WritableFileSynced(const FSFileState& state) {
 }
 
 void FaultInjectionTestFS::WritableFileAppended(const FSFileState& state) {
+  DBUG_TRACE;
   MutexLock l(&mutex_);
   if (open_managed_files_.find(state.filename_) != open_managed_files_.end()) {
     if (db_file_state_.find(state.filename_) == db_file_state_.end()) {
@@ -1296,6 +1352,7 @@ void FaultInjectionTestFS::WritableFileAppended(const FSFileState& state) {
 }
 
 IOStatus FaultInjectionTestFS::DropUnsyncedFileData() {
+  DBUG_TRACE;
   IOStatus io_s;
   MutexLock l(&mutex_);
   for (std::map<std::string, FSFileState>::iterator it = db_file_state_.begin();
@@ -1309,6 +1366,7 @@ IOStatus FaultInjectionTestFS::DropUnsyncedFileData() {
 }
 
 IOStatus FaultInjectionTestFS::DropRandomUnsyncedFileData(Random* rnd) {
+  DBUG_TRACE;
   IOStatus io_s;
   MutexLock l(&mutex_);
   for (std::map<std::string, FSFileState>::iterator it = db_file_state_.begin();
@@ -1323,6 +1381,7 @@ IOStatus FaultInjectionTestFS::DropRandomUnsyncedFileData(Random* rnd) {
 
 IOStatus FaultInjectionTestFS::DeleteFilesCreatedAfterLastDirSync(
     const IOOptions& options, IODebugContext* dbg) {
+  DBUG_TRACE;
   // Because DeleteFile access this container make a copy to avoid deadlock
   std::map<std::string, std::map<std::string, std::string>> map_copy;
   {
@@ -1354,6 +1413,7 @@ IOStatus FaultInjectionTestFS::DeleteFilesCreatedAfterLastDirSync(
 }
 
 void FaultInjectionTestFS::ResetState() {
+  DBUG_TRACE;
   MutexLock l(&mutex_);
   db_file_state_.clear();
   dir_to_new_files_since_last_sync_.clear();
@@ -1361,6 +1421,7 @@ void FaultInjectionTestFS::ResetState() {
 }
 
 void FaultInjectionTestFS::UntrackFile(const std::string& f) {
+  DBUG_TRACE;
   MutexLock l(&mutex_);
   auto dir_and_name = TestFSGetDirAndName(f);
   dir_to_new_files_since_last_sync_[dir_and_name.first].erase(
@@ -1373,6 +1434,7 @@ IOStatus FaultInjectionTestFS::MaybeInjectThreadLocalReadError(
     const IOOptions& io_options, ErrorOperation op, Slice* result,
     bool direct_io, char* scratch, bool need_count_increase,
     bool* fault_injected) {
+  DBUG_TRACE;
   bool dummy_bool;
   bool& ret_fault_injected = fault_injected ? *fault_injected : dummy_bool;
   ret_fault_injected = false;
@@ -1445,6 +1507,7 @@ IOStatus FaultInjectionTestFS::MaybeInjectThreadLocalReadError(
 
 bool FaultInjectionTestFS::TryParseFileName(const std::string& file_name,
                                             uint64_t* number, FileType* type) {
+  DBUG_TRACE;
   std::size_t found = file_name.find_last_of('/');
   std::string file = file_name.substr(found);
   return ParseFileName(file, number, type);
@@ -1455,6 +1518,7 @@ IOStatus FaultInjectionTestFS::MaybeInjectThreadLocalError(
     const std::string& file_name, ErrorOperation op, Slice* result,
     bool direct_io, char* scratch, bool need_count_increase,
     bool* fault_injected) {
+  DBUG_TRACE;
   if (type == FaultInjectionIOType::kRead) {
     return MaybeInjectThreadLocalReadError(io_options, op, result, direct_io,
                                            scratch, need_count_increase,
@@ -1490,6 +1554,7 @@ IOStatus FaultInjectionTestFS::MaybeInjectThreadLocalError(
 
 void FaultInjectionTestFS::PrintInjectedThreadLocalErrorBacktrace(
     FaultInjectionIOType type) {
+DBUG_TRACE;
 #if defined(OS_LINUX)
   ErrorContext* ctx = GetErrorContextFromFaultInjectionIOType(type);
   if (ctx) {

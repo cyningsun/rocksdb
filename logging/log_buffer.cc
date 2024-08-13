@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "logging/log_buffer.h"
 
 #include "port/port.h"
@@ -15,6 +16,7 @@ LogBuffer::LogBuffer(const InfoLogLevel log_level, Logger* info_log)
 
 void LogBuffer::AddLogToBuffer(size_t max_log_size, const char* format,
                                va_list ap) {
+  DBUG_TRACE;
   if (!info_log_ || log_level_ < info_log_->GetInfoLogLevel()) {
     // Skip the level because of its level.
     return;
@@ -56,6 +58,7 @@ void LogBuffer::AddLogToBuffer(size_t max_log_size, const char* format,
 }
 
 void LogBuffer::FlushBufferToLog() {
+  DBUG_TRACE;
   for (BufferedLog* log : logs_) {
     const time_t seconds = log->now_tv.tv_sec;
     struct tm t;
@@ -71,6 +74,7 @@ void LogBuffer::FlushBufferToLog() {
 
 void LogToBuffer(LogBuffer* log_buffer, size_t max_log_size, const char* format,
                  ...) {
+  DBUG_TRACE;
   if (log_buffer != nullptr) {
     va_list ap;
     va_start(ap, format);
@@ -80,6 +84,7 @@ void LogToBuffer(LogBuffer* log_buffer, size_t max_log_size, const char* format,
 }
 
 void LogToBuffer(LogBuffer* log_buffer, const char* format, ...) {
+  DBUG_TRACE;
   if (log_buffer != nullptr) {
     va_list ap;
     va_start(ap, format);

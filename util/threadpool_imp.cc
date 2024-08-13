@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "util/threadpool_imp.h"
 
 #ifndef OS_WIN
@@ -36,6 +37,7 @@
 namespace ROCKSDB_NAMESPACE {
 
 void ThreadPoolImpl::PthreadCall(const char* label, int result) {
+  DBUG_TRACE;
   if (result != 0) {
     fprintf(stderr, "pthread %s: %s\n", label, errnoStr(result).c_str());
     abort();
@@ -52,6 +54,7 @@ struct ThreadPoolImpl::Impl {
   int GetBackgroundThreads();
 
   unsigned int GetQueueLen() const {
+    DBUG_TRACE;
     return queue_len_.load(std::memory_order_relaxed);
   }
 
@@ -59,7 +62,7 @@ struct ThreadPoolImpl::Impl {
 
   void LowerCPUPriority(CpuPriority pri);
 
-  void WakeUpAllThreads() { bgsignal_.notify_all(); }
+  void WakeUpAllThreads() { DBUG_TRACE; bgsignal_.notify_all(); }
 
   void BGThread(size_t thread_id);
 
@@ -70,11 +73,12 @@ struct ThreadPoolImpl::Impl {
 
   int UnSchedule(void* arg);
 
-  void SetHostEnv(Env* env) { env_ = env; }
+  void SetHostEnv(Env* env) { DBUG_TRACE; env_ = env; }
 
-  Env* GetHostEnv() const { return env_; }
+  Env* GetHostEnv() const { DBUG_TRACE; return env_; }
 
   bool HasExcessiveThread() const {
+    DBUG_TRACE;
     return static_cast<int>(bgthreads_.size()) > total_threads_limit_;
   }
 
@@ -82,21 +86,24 @@ struct ThreadPoolImpl::Impl {
   // Always terminate the running thread that is added last, even if there are
   // more than one thread to terminate.
   bool IsLastExcessiveThread(size_t thread_id) const {
+    DBUG_TRACE;
     return HasExcessiveThread() && thread_id == bgthreads_.size() - 1;
   }
 
   bool IsExcessiveThread(size_t thread_id) const {
+    DBUG_TRACE;
     return static_cast<int>(thread_id) >= total_threads_limit_;
   }
 
   // Return the thread priority.
   // This would allow its member-thread to know its priority.
-  Env::Priority GetThreadPriority() const { return priority_; }
+  Env::Priority GetThreadPriority() const { DBUG_TRACE; return priority_; }
 
   // Set the thread priority.
-  void SetThreadPriority(Env::Priority priority) { priority_ = priority; }
+  void SetThreadPriority(Env::Priority priority) { DBUG_TRACE; priority_ = priority; }
 
   int ReserveThreads(int threads_to_be_reserved) {
+    DBUG_TRACE;
     std::unique_lock<std::mutex> lock(mu_);
     // We can reserve at most num_waiting_threads_ in total so the number of
     // threads that can be reserved might be fewer than the desired one. In
@@ -111,6 +118,7 @@ struct ThreadPoolImpl::Impl {
   }
 
   int ReleaseThreads(int threads_to_be_released) {
+    DBUG_TRACE;
     std::unique_lock<std::mutex> lock(mu_);
     // We cannot release more than reserved_threads_
     int released_threads_in_success =
@@ -177,6 +185,7 @@ inline ThreadPoolImpl::Impl::Impl()
 inline ThreadPoolImpl::Impl::~Impl() { assert(bgthreads_.size() == 0U); }
 
 void ThreadPoolImpl::Impl::JoinThreads(bool wait_for_jobs_to_complete) {
+  DBUG_TRACE;
   std::unique_lock<std::mutex> lock(mu_);
   assert(!exit_all_threads_);
 
@@ -203,16 +212,19 @@ void ThreadPoolImpl::Impl::JoinThreads(bool wait_for_jobs_to_complete) {
 }
 
 inline void ThreadPoolImpl::Impl::LowerIOPriority() {
+  DBUG_TRACE;
   std::lock_guard<std::mutex> lock(mu_);
   low_io_priority_ = true;
 }
 
 inline void ThreadPoolImpl::Impl::LowerCPUPriority(CpuPriority pri) {
+  DBUG_TRACE;
   std::lock_guard<std::mutex> lock(mu_);
   cpu_priority_ = pri;
 }
 
 void ThreadPoolImpl::Impl::BGThread(size_t thread_id) {
+  DBUG_TRACE;
   bool low_io_priority = false;
   CpuPriority current_cpu_priority = CpuPriority::kNormal;
 
@@ -321,6 +333,7 @@ struct BGThreadMetadata {
 };
 
 void ThreadPoolImpl::Impl::BGThreadWrapper(void* arg) {
+  DBUG_TRACE;
   BGThreadMetadata* meta = static_cast<BGThreadMetadata*>(arg);
   size_t thread_id = meta->thread_id_;
   ThreadPoolImpl::Impl* tp = meta->thread_pool_;
@@ -358,6 +371,7 @@ void ThreadPoolImpl::Impl::BGThreadWrapper(void* arg) {
 
 void ThreadPoolImpl::Impl::SetBackgroundThreadsInternal(int num,
                                                         bool allow_reduce) {
+  DBUG_TRACE;
   std::lock_guard<std::mutex> lock(mu_);
   if (exit_all_threads_) {
     return;
@@ -371,11 +385,13 @@ void ThreadPoolImpl::Impl::SetBackgroundThreadsInternal(int num,
 }
 
 int ThreadPoolImpl::Impl::GetBackgroundThreads() {
+  DBUG_TRACE;
   std::unique_lock<std::mutex> lock(mu_);
   return total_threads_limit_;
 }
 
 void ThreadPoolImpl::Impl::StartBGThreads() {
+  DBUG_TRACE;
   // Start background thread if necessary
   while ((int)bgthreads_.size() < total_threads_limit_) {
     port::Thread p_t(&BGThreadWrapper,
@@ -401,6 +417,7 @@ void ThreadPoolImpl::Impl::StartBGThreads() {
 void ThreadPoolImpl::Impl::Submit(std::function<void()>&& schedule,
                                   std::function<void()>&& unschedule,
                                   void* tag) {
+  DBUG_TRACE;
   std::lock_guard<std::mutex> lock(mu_);
 
   if (exit_all_threads_) {
@@ -431,6 +448,7 @@ void ThreadPoolImpl::Impl::Submit(std::function<void()>&& schedule,
 }
 
 int ThreadPoolImpl::Impl::UnSchedule(void* arg) {
+  DBUG_TRACE;
   int count = 0;
 
   std::vector<std::function<void()>> candidates;
@@ -466,45 +484,54 @@ ThreadPoolImpl::ThreadPoolImpl() : impl_(new Impl()) {}
 
 ThreadPoolImpl::~ThreadPoolImpl() = default;
 
-void ThreadPoolImpl::JoinAllThreads() { impl_->JoinThreads(false); }
+void ThreadPoolImpl::JoinAllThreads() { DBUG_TRACE; impl_->JoinThreads(false); }
 
 void ThreadPoolImpl::SetBackgroundThreads(int num) {
+  DBUG_TRACE;
   impl_->SetBackgroundThreadsInternal(num, true);
 }
 
 int ThreadPoolImpl::GetBackgroundThreads() {
+  DBUG_TRACE;
   return impl_->GetBackgroundThreads();
 }
 
 unsigned int ThreadPoolImpl::GetQueueLen() const {
+  DBUG_TRACE;
   return impl_->GetQueueLen();
 }
 
 void ThreadPoolImpl::WaitForJobsAndJoinAllThreads() {
+  DBUG_TRACE;
   impl_->JoinThreads(true);
 }
 
-void ThreadPoolImpl::LowerIOPriority() { impl_->LowerIOPriority(); }
+void ThreadPoolImpl::LowerIOPriority() { DBUG_TRACE; impl_->LowerIOPriority(); }
 
 void ThreadPoolImpl::LowerCPUPriority(CpuPriority pri) {
+  DBUG_TRACE;
   impl_->LowerCPUPriority(pri);
 }
 
 void ThreadPoolImpl::IncBackgroundThreadsIfNeeded(int num) {
+  DBUG_TRACE;
   impl_->SetBackgroundThreadsInternal(num, false);
 }
 
 void ThreadPoolImpl::SubmitJob(const std::function<void()>& job) {
+  DBUG_TRACE;
   auto copy(job);
   impl_->Submit(std::move(copy), std::function<void()>(), nullptr);
 }
 
 void ThreadPoolImpl::SubmitJob(std::function<void()>&& job) {
+  DBUG_TRACE;
   impl_->Submit(std::move(job), std::function<void()>(), nullptr);
 }
 
 void ThreadPoolImpl::Schedule(void (*function)(void* arg1), void* arg,
                               void* tag, void (*unschedFunction)(void* arg)) {
+  DBUG_TRACE;
   if (unschedFunction == nullptr) {
     impl_->Submit(std::bind(function, arg), std::function<void()>(), tag);
   } else {
@@ -513,35 +540,40 @@ void ThreadPoolImpl::Schedule(void (*function)(void* arg1), void* arg,
   }
 }
 
-int ThreadPoolImpl::UnSchedule(void* arg) { return impl_->UnSchedule(arg); }
+int ThreadPoolImpl::UnSchedule(void* arg) { DBUG_TRACE; return impl_->UnSchedule(arg); }
 
-void ThreadPoolImpl::SetHostEnv(Env* env) { impl_->SetHostEnv(env); }
+void ThreadPoolImpl::SetHostEnv(Env* env) { DBUG_TRACE; impl_->SetHostEnv(env); }
 
-Env* ThreadPoolImpl::GetHostEnv() const { return impl_->GetHostEnv(); }
+Env* ThreadPoolImpl::GetHostEnv() const { DBUG_TRACE; return impl_->GetHostEnv(); }
 
 // Return the thread priority.
 // This would allow its member-thread to know its priority.
 Env::Priority ThreadPoolImpl::GetThreadPriority() const {
+  DBUG_TRACE;
   return impl_->GetThreadPriority();
 }
 
 // Set the thread priority.
 void ThreadPoolImpl::SetThreadPriority(Env::Priority priority) {
+  DBUG_TRACE;
   impl_->SetThreadPriority(priority);
 }
 
 // Reserve a specific number of threads, prevent them from running other
 // functions The number of reserved threads could be fewer than the desired one
 int ThreadPoolImpl::ReserveThreads(int threads_to_be_reserved) {
+  DBUG_TRACE;
   return impl_->ReserveThreads(threads_to_be_reserved);
 }
 
 // Release a specific number of threads
 int ThreadPoolImpl::ReleaseThreads(int threads_to_be_released) {
+  DBUG_TRACE;
   return impl_->ReleaseThreads(threads_to_be_released);
 }
 
 ThreadPool* NewThreadPool(int num_threads) {
+  DBUG_TRACE;
   ThreadPoolImpl* thread_pool = new ThreadPoolImpl();
   thread_pool->SetBackgroundThreads(num_threads);
   return thread_pool;

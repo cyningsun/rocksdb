@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #ifdef GFLAGS
 #include <cinttypes>
 #include <cstddef>
@@ -196,25 +197,26 @@ class SharedState {
 
   ~SharedState() = default;
 
-  port::Mutex* GetMutex() { return &mu_; }
+  port::Mutex* GetMutex() { DBUG_TRACE; return &mu_; }
 
-  port::CondVar* GetCondVar() { return &cv_; }
+  port::CondVar* GetCondVar() { DBUG_TRACE; return &cv_; }
 
-  CacheBench* GetCacheBench() const { return cache_bench_; }
+  CacheBench* GetCacheBench() const { DBUG_TRACE; return cache_bench_; }
 
-  void IncInitialized() { num_initialized_++; }
+  void IncInitialized() { DBUG_TRACE; num_initialized_++; }
 
-  void IncDone() { num_done_++; }
+  void IncDone() { DBUG_TRACE; num_done_++; }
 
-  bool AllInitialized() const { return num_initialized_ >= FLAGS_threads; }
+  bool AllInitialized() const { DBUG_TRACE; return num_initialized_ >= FLAGS_threads; }
 
-  bool AllDone() const { return num_done_ >= FLAGS_threads; }
+  bool AllDone() const { DBUG_TRACE; return num_done_ >= FLAGS_threads; }
 
-  void SetStart() { start_ = true; }
+  void SetStart() { DBUG_TRACE; start_ = true; }
 
-  bool Started() const { return start_; }
+  bool Started() const { DBUG_TRACE; return start_; }
 
   void AddLookupStats(uint64_t hits, uint64_t misses, size_t pinned_count) {
+    DBUG_TRACE;
     MutexLock l(&mu_);
     lookup_count_ += hits + misses;
     lookup_hits_ += hits;
@@ -222,10 +224,11 @@ class SharedState {
   }
 
   double GetLookupHitRatio() const {
+    DBUG_TRACE;
     return 1.0 * lookup_hits_ / lookup_count_;
   }
 
-  size_t GetPinnedCount() const { return pinned_count_; }
+  size_t GetPinnedCount() const { DBUG_TRACE; return pinned_count_; }
 
  private:
   port::Mutex mu_;
@@ -257,6 +260,7 @@ struct KeyGen {
   char key_data[27];
 
   Slice GetRand(Random64& rnd, uint64_t max_key, uint32_t skew) {
+    DBUG_TRACE;
     uint64_t raw = rnd.Next();
     // Skew according to setting
     for (uint32_t i = 0; i < skew; ++i) {
@@ -291,6 +295,7 @@ struct KeyGen {
 };
 
 Cache::ObjectPtr createValue(Random64& rnd, MemoryAllocator* alloc) {
+  DBUG_TRACE;
   char* rv = AllocateBlock(FLAGS_value_bytes, alloc).release();
   // Fill with some filler data, and take some CPU time
   for (uint32_t i = 0; i < FLAGS_value_bytes; i += 8) {
@@ -300,10 +305,11 @@ Cache::ObjectPtr createValue(Random64& rnd, MemoryAllocator* alloc) {
 }
 
 // Callbacks for secondary cache
-size_t SizeFn(Cache::ObjectPtr /*obj*/) { return FLAGS_value_bytes; }
+size_t SizeFn(Cache::ObjectPtr /*obj*/) { DBUG_TRACE; return FLAGS_value_bytes; }
 
 Status SaveToFn(Cache::ObjectPtr from_obj, size_t /*from_offset*/,
                 size_t length, char* out) {
+  DBUG_TRACE;
   memcpy(out, from_obj, length);
   return Status::OK();
 }
@@ -312,6 +318,7 @@ Status CreateFn(const Slice& data, CompressionType /*type*/,
                 CacheTier /*source*/, Cache::CreateContext* /*context*/,
                 MemoryAllocator* /*allocator*/, Cache::ObjectPtr* out_obj,
                 size_t* out_charge) {
+  DBUG_TRACE;
   *out_obj = new char[data.size()];
   memcpy(*out_obj, data.data(), data.size());
   *out_charge = data.size();
@@ -319,6 +326,7 @@ Status CreateFn(const Slice& data, CompressionType /*type*/,
 };
 
 void DeleteFn(Cache::ObjectPtr value, MemoryAllocator* alloc) {
+  DBUG_TRACE;
   CustomDeleter{alloc}(static_cast<char*>(value));
 }
 
@@ -333,6 +341,7 @@ Cache::CacheItemHelper helper3(CacheEntryRole::kFilterBlock, DeleteFn, SizeFn,
                                SaveToFn, CreateFn, &helper3_wos);
 
 void ConfigureSecondaryCache(ShardedCacheOptions& opts) {
+  DBUG_TRACE;
   if (!FLAGS_secondary_cache_uri.empty()) {
     std::shared_ptr<SecondaryCache> secondary_cache;
     Status s = SecondaryCache::CreateFromString(
@@ -348,6 +357,7 @@ void ConfigureSecondaryCache(ShardedCacheOptions& opts) {
 }
 
 ShardedCacheBase* AsShardedCache(Cache* c) {
+  DBUG_TRACE;
   if (!FLAGS_secondary_cache_uri.empty()) {
     c = static_cast_with_check<CacheWrapper>(c)->GetTarget().get();
   }
@@ -428,6 +438,7 @@ class CacheBench {
   ~CacheBench() = default;
 
   void PopulateCache() {
+    DBUG_TRACE;
     Random64 rnd(FLAGS_seed);
     KeyGen keygen;
     size_t max_occ = 0;
@@ -476,6 +487,7 @@ class CacheBench {
   }
 
   bool Run() {
+    DBUG_TRACE;
     const auto clock = SystemClock::Default().get();
 
     PrintEnv();
@@ -583,6 +595,7 @@ class CacheBench {
   // behavior of cache_bench or the underlying Cache.
   static void StatsBody(SharedState* shared, HistogramImpl* stats_hist,
                         std::string* stats_report) {
+    DBUG_TRACE;
     if (!FLAGS_gather_stats) {
       return;
     }
@@ -657,6 +670,7 @@ class CacheBench {
   }
 
   static void ThreadBody(ThreadState* thread) {
+    DBUG_TRACE;
     SharedState* shared = thread->shared;
 
     {
@@ -681,6 +695,7 @@ class CacheBench {
   }
 
   void OperateCache(ThreadState* thread) {
+    DBUG_TRACE;
     // To use looked-up values
     uint64_t result = 0;
     uint64_t lookup_misses = 0;
@@ -807,6 +822,7 @@ class CacheBench {
   }
 
   void PrintEnv() const {
+DBUG_TRACE;
 #if defined(__GNUC__) && !defined(__OPTIMIZE__)
     printf(
         "WARNING: Optimization is disabled: benchmarks unnecessarily slow\n");
@@ -918,6 +934,7 @@ class CacheBench {
 class StressCacheKey {
  public:
   void Run() {
+    DBUG_TRACE;
     if (FLAGS_sck_footer_unique_id) {
       // Proposed footer unique IDs are DB-independent and session-independent
       // (but process-dependent) which is most easily simulated here by
@@ -983,6 +1000,7 @@ class StressCacheKey {
   }
 
   void RunOnce() {
+    DBUG_TRACE;
     // Re-initialized simulated state
     const size_t db_count = std::max(size_t{FLAGS_sck_db_count}, size_t{1});
     dbs_.reset(new TableProperties[db_count]{});
@@ -1102,6 +1120,7 @@ class StressCacheKey {
   }
 
   void ResetSession(size_t i, bool newdb) {
+    DBUG_TRACE;
     dbs_[i].db_session_id = DBImpl::GenerateDbSessionId(nullptr);
     if (newdb) {
       ++newdb_count_;
@@ -1118,6 +1137,7 @@ class StressCacheKey {
   }
 
   void ResetProcess(bool newdbs) {
+    DBUG_TRACE;
     process_count_++;
     DBImpl::TEST_ResetDbSessionIdGen();
     for (size_t i = 0; i < FLAGS_sck_db_count; ++i) {
@@ -1143,6 +1163,7 @@ class StressCacheKey {
 };
 
 int cache_bench_tool(int argc, char** argv) {
+  DBUG_TRACE;
   ROCKSDB_NAMESPACE::port::InstallStackTraceHandler();
   ParseCommandLineFlags(&argc, &argv, true);
 

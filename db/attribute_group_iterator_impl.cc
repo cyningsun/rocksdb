@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "db/attribute_group_iterator_impl.h"
 
 namespace ROCKSDB_NAMESPACE {
@@ -12,6 +13,7 @@ const IteratorAttributeGroups kNoIteratorAttributeGroups;
 
 void AttributeGroupIteratorImpl::AddToAttributeGroups(
     const autovector<MultiCfIteratorInfo>& items) {
+  DBUG_TRACE;
   for (const auto& item : items) {
     attribute_groups_.emplace_back(item.cfh, &item.iterator->columns());
   }

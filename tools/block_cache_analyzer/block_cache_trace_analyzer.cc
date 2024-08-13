@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #ifdef GFLAGS
 #include "tools/block_cache_analyzer/block_cache_trace_analyzer.h"
 
@@ -194,6 +195,7 @@ const std::string kFileNameSuffixPercentAccessesOnRefKeys =
 const std::string kFileNameSuffixAccessCountSummary = "access_count_summary";
 
 std::string block_type_to_string(TraceType type) {
+  DBUG_TRACE;
   switch (type) {
     case kBlockTraceFilterBlock:
       return "Filter";
@@ -213,6 +215,7 @@ std::string block_type_to_string(TraceType type) {
 }
 
 std::string caller_to_string(TableReaderCaller caller) {
+  DBUG_TRACE;
   switch (caller) {
     case kUserGet:
       return "Get";
@@ -250,6 +253,7 @@ std::string caller_to_string(TableReaderCaller caller) {
 }
 
 TableReaderCaller string_to_caller(std::string caller_str) {
+  DBUG_TRACE;
   if (caller_str == "Get") {
     return kUserGet;
   } else if (caller_str == "MultiGet") {
@@ -283,6 +287,7 @@ TableReaderCaller string_to_caller(std::string caller_str) {
 }
 
 bool is_user_access(TableReaderCaller caller) {
+  DBUG_TRACE;
   switch (caller) {
     case kUserGet:
     case kUserMultiGet:
@@ -300,12 +305,14 @@ const char kBreakLine[] =
     "***************************************************************\n";
 
 void print_break_lines(uint32_t num_break_lines) {
+  DBUG_TRACE;
   for (uint32_t i = 0; i < num_break_lines; i++) {
     fprintf(stdout, kBreakLine);
   }
 }
 
 double percent(uint64_t numerator, uint64_t denomenator) {
+  DBUG_TRACE;
   if (denomenator == 0) {
     return -1;
   }
@@ -314,6 +321,7 @@ double percent(uint64_t numerator, uint64_t denomenator) {
 
 std::map<uint64_t, uint64_t> adjust_time_unit(
     const std::map<uint64_t, uint64_t>& time_stats, uint64_t time_unit) {
+  DBUG_TRACE;
   if (time_unit == 1) {
     return time_stats;
   }
@@ -327,6 +335,7 @@ std::map<uint64_t, uint64_t> adjust_time_unit(
 }  // namespace
 
 void BlockCacheTraceAnalyzer::WriteMissRatioCurves() const {
+  DBUG_TRACE;
   if (!cache_simulator_) {
     return;
   }
@@ -376,6 +385,7 @@ void BlockCacheTraceAnalyzer::UpdateFeatureVectors(
     const std::vector<uint64_t>& access_timeline, const std::string& label,
     std::map<std::string, Features>* label_features,
     std::map<std::string, Predictions>* label_predictions) const {
+  DBUG_TRACE;
   if (access_sequence_number_timeline.empty() || access_timeline.empty()) {
     return;
   }
@@ -406,6 +416,7 @@ void BlockCacheTraceAnalyzer::UpdateFeatureVectors(
 }
 
 void BlockCacheTraceAnalyzer::WriteMissRatioTimeline(uint64_t time_unit) const {
+  DBUG_TRACE;
   if (!cache_simulator_ || output_dir_.empty()) {
     return;
   }
@@ -487,6 +498,7 @@ void BlockCacheTraceAnalyzer::WriteMissRatioTimeline(uint64_t time_unit) const {
 }
 
 void BlockCacheTraceAnalyzer::WriteMissTimeline(uint64_t time_unit) const {
+  DBUG_TRACE;
   if (!cache_simulator_ || output_dir_.empty()) {
     return;
   }
@@ -556,6 +568,7 @@ void BlockCacheTraceAnalyzer::WriteMissTimeline(uint64_t time_unit) const {
 void BlockCacheTraceAnalyzer::WriteSkewness(
     const std::string& label_str, const std::vector<uint64_t>& percent_buckets,
     TraceType target_block_type) const {
+  DBUG_TRACE;
   std::set<std::string> labels = ParseLabelStr(label_str);
   std::map<std::string, uint64_t> label_naccesses;
   uint64_t total_naccesses = 0;
@@ -612,6 +625,7 @@ void BlockCacheTraceAnalyzer::WriteSkewness(
 
 void BlockCacheTraceAnalyzer::WriteCorrelationFeatures(
     const std::string& label_str, uint32_t max_number_of_values) const {
+  DBUG_TRACE;
   std::set<std::string> labels = ParseLabelStr(label_str);
   std::map<std::string, Features> label_features;
   std::map<std::string, Predictions> label_predictions;
@@ -655,6 +669,7 @@ void BlockCacheTraceAnalyzer::WriteCorrelationFeaturesToFile(
     const std::map<std::string, Features>& label_features,
     const std::map<std::string, Predictions>& label_predictions,
     uint32_t max_number_of_values) const {
+  DBUG_TRACE;
   for (auto const& label_feature_vectors : label_features) {
     const Features& past = label_feature_vectors.second;
     auto it = label_predictions.find(label_feature_vectors.first);
@@ -695,6 +710,7 @@ void BlockCacheTraceAnalyzer::WriteCorrelationFeaturesToFile(
 
 void BlockCacheTraceAnalyzer::WriteCorrelationFeaturesForGet(
     uint32_t max_number_of_values) const {
+  DBUG_TRACE;
   std::string label = "GetKeyInfo";
   std::map<std::string, Features> label_features;
   std::map<std::string, Predictions> label_predictions;
@@ -710,6 +726,7 @@ void BlockCacheTraceAnalyzer::WriteCorrelationFeaturesForGet(
 
 std::set<std::string> BlockCacheTraceAnalyzer::ParseLabelStr(
     const std::string& label_str) const {
+  DBUG_TRACE;
   std::stringstream ss(label_str);
   std::set<std::string> labels;
   // label_str is in the form of "label1_label2_label3", e.g., cf_bt.
@@ -731,6 +748,7 @@ std::string BlockCacheTraceAnalyzer::BuildLabel(
     const std::set<std::string>& labels, const std::string& cf_name,
     uint64_t fd, uint32_t level, TraceType type, TableReaderCaller caller,
     uint64_t block_key, const BlockAccessInfo& block) const {
+  DBUG_TRACE;
   std::map<std::string, std::string> label_value_map;
   label_value_map[kGroupbyAll] = kGroupbyAll;
   label_value_map[kGroupbyLevel] = std::to_string(level);
@@ -760,6 +778,7 @@ void BlockCacheTraceAnalyzer::TraverseBlocks(
                        const BlockAccessInfo& /*block_access_info*/)>
         block_callback,
     std::set<std::string>* labels) const {
+  DBUG_TRACE;
   for (auto const& cf_aggregates : cf_aggregates_map_) {
     // Stats per column family.
     const std::string& cf_name = cf_aggregates.first;
@@ -791,6 +810,7 @@ void BlockCacheTraceAnalyzer::TraverseBlocks(
 void BlockCacheTraceAnalyzer::WriteGetSpatialLocality(
     const std::string& label_str,
     const std::vector<uint64_t>& percent_buckets) const {
+  DBUG_TRACE;
   std::set<std::string> labels = ParseLabelStr(label_str);
   std::map<std::string, std::map<uint64_t, uint64_t>> label_pnrefkeys_nblocks;
   std::map<std::string, std::map<uint64_t, uint64_t>> label_pnrefs_nblocks;
@@ -856,6 +876,7 @@ void BlockCacheTraceAnalyzer::WriteGetSpatialLocality(
 void BlockCacheTraceAnalyzer::WriteAccessTimeline(const std::string& label_str,
                                                   uint64_t time_unit,
                                                   bool user_access_only) const {
+  DBUG_TRACE;
   std::set<std::string> labels = ParseLabelStr(label_str);
   uint64_t start_time = std::numeric_limits<uint64_t>::max();
   uint64_t end_time = 0;
@@ -951,6 +972,7 @@ void BlockCacheTraceAnalyzer::WriteAccessTimeline(const std::string& label_str,
 void BlockCacheTraceAnalyzer::WriteReuseDistance(
     const std::string& label_str,
     const std::vector<uint64_t>& distance_buckets) const {
+  DBUG_TRACE;
   std::set<std::string> labels = ParseLabelStr(label_str);
   std::map<std::string, std::map<uint64_t, uint64_t>> label_distance_num_reuses;
   uint64_t total_num_reuses = 0;
@@ -1008,6 +1030,7 @@ void BlockCacheTraceAnalyzer::UpdateReuseIntervalStats(
     const std::map<uint64_t, uint64_t> timeline,
     std::map<std::string, std::map<uint64_t, uint64_t>>* label_time_num_reuses,
     uint64_t* total_num_reuses) const {
+  DBUG_TRACE;
   assert(label_time_num_reuses);
   assert(total_num_reuses);
   if (label_time_num_reuses->find(label) == label_time_num_reuses->end()) {
@@ -1044,6 +1067,7 @@ void BlockCacheTraceAnalyzer::WriteStatsToFile(
     const std::string& filename_suffix,
     const std::map<std::string, std::map<uint64_t, uint64_t>>& label_data,
     uint64_t ntotal) const {
+  DBUG_TRACE;
   const std::string output_path =
       output_dir_ + "/" + label_str + "_" + filename_suffix;
   std::ofstream out(output_path);
@@ -1072,6 +1096,7 @@ void BlockCacheTraceAnalyzer::WriteStatsToFile(
 void BlockCacheTraceAnalyzer::WriteReuseInterval(
     const std::string& label_str,
     const std::vector<uint64_t>& time_buckets) const {
+  DBUG_TRACE;
   std::set<std::string> labels = ParseLabelStr(label_str);
   std::map<std::string, std::map<uint64_t, uint64_t>> label_time_num_reuses;
   std::map<std::string, std::map<uint64_t, uint64_t>> label_avg_reuse_nblocks;
@@ -1141,6 +1166,7 @@ void BlockCacheTraceAnalyzer::WriteReuseInterval(
 void BlockCacheTraceAnalyzer::WriteReuseLifetime(
     const std::string& label_str,
     const std::vector<uint64_t>& time_buckets) const {
+  DBUG_TRACE;
   std::set<std::string> labels = ParseLabelStr(label_str);
   std::map<std::string, std::map<uint64_t, uint64_t>> label_lifetime_nblocks;
   uint64_t total_nblocks = 0;
@@ -1176,6 +1202,7 @@ void BlockCacheTraceAnalyzer::WriteReuseLifetime(
 void BlockCacheTraceAnalyzer::WriteBlockReuseTimeline(
     const uint64_t reuse_window, bool user_access_only,
     TraceType block_type) const {
+  DBUG_TRACE;
   // A map from block key to an array of bools that states whether a block is
   // accessed in a time window.
   std::map<uint64_t, std::vector<bool>> block_accessed;
@@ -1269,6 +1296,7 @@ void BlockCacheTraceAnalyzer::WriteBlockReuseTimeline(
 std::string BlockCacheTraceAnalyzer::OutputPercentAccessStats(
     uint64_t total_accesses,
     const std::map<std::string, uint64_t>& cf_access_count) const {
+  DBUG_TRACE;
   std::string row;
   for (auto const& cf_aggregates : cf_aggregates_map_) {
     const std::string& cf_name = cf_aggregates.first;
@@ -1284,6 +1312,7 @@ std::string BlockCacheTraceAnalyzer::OutputPercentAccessStats(
 }
 
 void BlockCacheTraceAnalyzer::WritePercentAccessSummaryStats() const {
+  DBUG_TRACE;
   std::map<TableReaderCaller, std::map<std::string, uint64_t>>
       caller_cf_accesses;
   uint64_t total_accesses = 0;
@@ -1324,6 +1353,7 @@ void BlockCacheTraceAnalyzer::WritePercentAccessSummaryStats() const {
 
 void BlockCacheTraceAnalyzer::WriteDetailedPercentAccessSummaryStats(
     TableReaderCaller analyzing_caller) const {
+  DBUG_TRACE;
   std::map<uint32_t, std::map<std::string, uint64_t>> level_cf_accesses;
   std::map<TraceType, std::map<std::string, uint64_t>> bt_cf_accesses;
   uint64_t total_accesses = 0;
@@ -1393,6 +1423,7 @@ void BlockCacheTraceAnalyzer::WriteDetailedPercentAccessSummaryStats(
 void BlockCacheTraceAnalyzer::WriteAccessCountSummaryStats(
     const std::vector<uint64_t>& access_count_buckets,
     bool user_access_only) const {
+  DBUG_TRACE;
   // x: buckets.
   // y: # of accesses.
   std::map<std::string, std::map<uint64_t, uint64_t>> bt_access_nblocks;
@@ -1456,6 +1487,7 @@ BlockCacheTraceAnalyzer::BlockCacheTraceAnalyzer(
 
 void BlockCacheTraceAnalyzer::ComputeReuseDistance(
     BlockAccessInfo* info) const {
+  DBUG_TRACE;
   assert(info);
   if (info->num_accesses == 0) {
     return;
@@ -1474,6 +1506,7 @@ void BlockCacheTraceAnalyzer::ComputeReuseDistance(
 
 Status BlockCacheTraceAnalyzer::RecordAccess(
     const BlockCacheTraceRecord& access) {
+  DBUG_TRACE;
   ColumnFamilyAccessInfoAggregate& cf_aggr = cf_aggregates_map_[access.cf_name];
   SSTFileAccessInfoAggregate& file_aggr =
       cf_aggr.fd_aggregates_map[access.sst_fd_number];
@@ -1525,6 +1558,7 @@ Status BlockCacheTraceAnalyzer::RecordAccess(
 }
 
 Status BlockCacheTraceAnalyzer::Analyze() {
+  DBUG_TRACE;
   SystemClock* clock = env_->GetSystemClock().get();
   std::unique_ptr<BlockCacheTraceReader> reader;
   Status s = Status::OK();
@@ -1620,6 +1654,7 @@ Status BlockCacheTraceAnalyzer::Analyze() {
 }
 
 void BlockCacheTraceAnalyzer::PrintBlockSizeStats() const {
+  DBUG_TRACE;
   HistogramStat bs_stats;
   std::map<TraceType, HistogramStat> bt_stats_map;
   std::map<std::string, std::map<TraceType, HistogramStat>> cf_bt_stats_map;
@@ -1660,6 +1695,7 @@ void BlockCacheTraceAnalyzer::PrintBlockSizeStats() const {
 void BlockCacheTraceAnalyzer::PrintAccessCountStats(bool user_access_only,
                                                     uint32_t bottom_k,
                                                     uint32_t top_k) const {
+  DBUG_TRACE;
   HistogramStat access_stats;
   std::map<TraceType, HistogramStat> bt_stats_map;
   std::map<std::string, std::map<TraceType, HistogramStat>> cf_bt_stats_map;
@@ -1807,6 +1843,7 @@ void BlockCacheTraceAnalyzer::PrintAccessCountStats(bool user_access_only,
 }
 
 void BlockCacheTraceAnalyzer::PrintDataBlockAccessStats() const {
+  DBUG_TRACE;
   HistogramStat existing_keys_stats;
   std::map<std::string, HistogramStat> cf_existing_keys_stats_map;
   HistogramStat non_existing_keys_stats;
@@ -1919,6 +1956,7 @@ void BlockCacheTraceAnalyzer::PrintDataBlockAccessStats() const {
 }
 
 void BlockCacheTraceAnalyzer::PrintStatsSummary() const {
+  DBUG_TRACE;
   uint64_t total_num_files = 0;
   uint64_t total_num_blocks = 0;
   uint64_t total_num_accesses = 0;
@@ -2072,6 +2110,7 @@ void BlockCacheTraceAnalyzer::PrintStatsSummary() const {
 
 std::vector<CacheConfiguration> parse_cache_config_file(
     const std::string& config_path) {
+  DBUG_TRACE;
   std::ifstream file(config_path);
   if (!file.is_open()) {
     return {};
@@ -2118,6 +2157,7 @@ std::vector<CacheConfiguration> parse_cache_config_file(
 }
 
 std::vector<uint64_t> parse_buckets(const std::string& bucket_str) {
+  DBUG_TRACE;
   std::vector<uint64_t> buckets;
   std::stringstream ss(bucket_str);
   while (ss.good()) {
@@ -2130,6 +2170,7 @@ std::vector<uint64_t> parse_buckets(const std::string& bucket_str) {
 }
 
 int block_cache_trace_analyzer_tool(int argc, char** argv) {
+  DBUG_TRACE;
   ParseCommandLineFlags(&argc, &argv, true);
   if (FLAGS_block_cache_trace_path.empty()) {
     fprintf(stderr, "block cache trace path is empty\n");

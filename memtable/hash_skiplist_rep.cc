@@ -4,6 +4,7 @@
 //  (found in the LICENSE.Apache file in the root directory).
 //
 
+#include "rocksdb/util/dbug.h"
 #include <atomic>
 
 #include "db/memtable.h"
@@ -63,13 +64,16 @@ class HashSkipListRep : public MemTableRep {
   Allocator* const allocator_;
 
   inline size_t GetHash(const Slice& slice) const {
+    DBUG_TRACE;
     return MurmurHash(slice.data(), static_cast<int>(slice.size()), 0) %
            bucket_size_;
   }
   inline Bucket* GetBucket(size_t i) const {
+    DBUG_TRACE;
     return buckets_[i].load(std::memory_order_acquire);
   }
   inline Bucket* GetBucket(const Slice& slice) const {
+    DBUG_TRACE;
     return GetBucket(GetHash(slice));
   }
   // Get a bucket from buckets_. If the bucket hasn't been initialized yet,
@@ -91,11 +95,12 @@ class HashSkipListRep : public MemTableRep {
     }
 
     // Returns true iff the iterator is positioned at a valid node.
-    bool Valid() const override { return list_ != nullptr && iter_.Valid(); }
+    bool Valid() const override { DBUG_TRACE; return list_ != nullptr && iter_.Valid(); }
 
     // Returns the key at the current position.
     // REQUIRES: Valid()
     const char* key() const override {
+      DBUG_TRACE;
       assert(Valid());
       return iter_.key();
     }
@@ -103,6 +108,7 @@ class HashSkipListRep : public MemTableRep {
     // Advances to the next position.
     // REQUIRES: Valid()
     void Next() override {
+      DBUG_TRACE;
       assert(Valid());
       iter_.Next();
     }
@@ -110,12 +116,14 @@ class HashSkipListRep : public MemTableRep {
     // Advances to the previous position.
     // REQUIRES: Valid()
     void Prev() override {
+      DBUG_TRACE;
       assert(Valid());
       iter_.Prev();
     }
 
     // Advance to the first entry with a key >= target
     void Seek(const Slice& internal_key, const char* memtable_key) override {
+      DBUG_TRACE;
       if (list_ != nullptr) {
         const char* encoded_key = (memtable_key != nullptr)
                                       ? memtable_key
@@ -127,6 +135,7 @@ class HashSkipListRep : public MemTableRep {
     // Retreat to the last entry with a key <= target
     void SeekForPrev(const Slice& /*internal_key*/,
                      const char* /*memtable_key*/) override {
+      DBUG_TRACE;
       // not supported
       assert(false);
     }
@@ -134,6 +143,7 @@ class HashSkipListRep : public MemTableRep {
     // Position at the first entry in collection.
     // Final state of iterator is Valid() iff collection is not empty.
     void SeekToFirst() override {
+      DBUG_TRACE;
       if (list_ != nullptr) {
         iter_.SeekToFirst();
       }
@@ -142,6 +152,7 @@ class HashSkipListRep : public MemTableRep {
     // Position at the last entry in collection.
     // Final state of iterator is Valid() iff collection is not empty.
     void SeekToLast() override {
+      DBUG_TRACE;
       if (list_ != nullptr) {
         iter_.SeekToLast();
       }
@@ -149,6 +160,7 @@ class HashSkipListRep : public MemTableRep {
 
    protected:
     void Reset(Bucket* list) {
+      DBUG_TRACE;
       if (own_list_) {
         assert(list_ != nullptr);
         delete list_;
@@ -178,6 +190,7 @@ class HashSkipListRep : public MemTableRep {
 
     // Advance to the first entry with a key >= target
     void Seek(const Slice& k, const char* memtable_key) override {
+      DBUG_TRACE;
       auto transformed = memtable_rep_.transform_->Transform(ExtractUserKey(k));
       Reset(memtable_rep_.GetBucket(transformed));
       HashSkipListRep::Iterator::Seek(k, memtable_key);
@@ -186,6 +199,7 @@ class HashSkipListRep : public MemTableRep {
     // Position at the first entry in collection.
     // Final state of iterator is Valid() iff collection is not empty.
     void SeekToFirst() override {
+      DBUG_TRACE;
       // Prefix iterator does not support total order.
       // We simply set the iterator to invalid state
       Reset(nullptr);
@@ -194,6 +208,7 @@ class HashSkipListRep : public MemTableRep {
     // Position at the last entry in collection.
     // Final state of iterator is Valid() iff collection is not empty.
     void SeekToLast() override {
+      DBUG_TRACE;
       // Prefix iterator does not support total order.
       // We simply set the iterator to invalid state
       Reset(nullptr);
@@ -209,19 +224,20 @@ class HashSkipListRep : public MemTableRep {
     // instantiating an empty bucket over which to iterate.
    public:
     EmptyIterator() = default;
-    bool Valid() const override { return false; }
+    bool Valid() const override { DBUG_TRACE; return false; }
     const char* key() const override {
+      DBUG_TRACE;
       assert(false);
       return nullptr;
     }
-    void Next() override {}
-    void Prev() override {}
+    void Next() override {DBUG_TRACE;}
+    void Prev() override {DBUG_TRACE;}
     void Seek(const Slice& /*internal_key*/,
-              const char* /*memtable_key*/) override {}
+              const char* /*memtable_key*/) override {DBUG_TRACE;}
     void SeekForPrev(const Slice& /*internal_key*/,
-                     const char* /*memtable_key*/) override {}
-    void SeekToFirst() override {}
-    void SeekToLast() override {}
+                     const char* /*memtable_key*/) override {DBUG_TRACE;}
+    void SeekToFirst() override {DBUG_TRACE;}
+    void SeekToLast() override {DBUG_TRACE;}
 
    private:
   };
@@ -252,6 +268,7 @@ HashSkipListRep::~HashSkipListRep() = default;
 
 HashSkipListRep::Bucket* HashSkipListRep::GetInitializedBucket(
     const Slice& transformed) {
+  DBUG_TRACE;
   size_t hash = GetHash(transformed);
   auto bucket = GetBucket(hash);
   if (bucket == nullptr) {
@@ -264,6 +281,7 @@ HashSkipListRep::Bucket* HashSkipListRep::GetInitializedBucket(
 }
 
 void HashSkipListRep::Insert(KeyHandle handle) {
+  DBUG_TRACE;
   auto* key = static_cast<char*>(handle);
   assert(!Contains(key));
   auto transformed = transform_->Transform(UserKey(key));
@@ -272,6 +290,7 @@ void HashSkipListRep::Insert(KeyHandle handle) {
 }
 
 bool HashSkipListRep::Contains(const char* key) const {
+  DBUG_TRACE;
   auto transformed = transform_->Transform(UserKey(key));
   auto bucket = GetBucket(transformed);
   if (bucket == nullptr) {
@@ -280,10 +299,11 @@ bool HashSkipListRep::Contains(const char* key) const {
   return bucket->Contains(key);
 }
 
-size_t HashSkipListRep::ApproximateMemoryUsage() { return 0; }
+size_t HashSkipListRep::ApproximateMemoryUsage() { DBUG_TRACE; return 0; }
 
 void HashSkipListRep::Get(const LookupKey& k, void* callback_args,
                           bool (*callback_func)(void* arg, const char* entry)) {
+  DBUG_TRACE;
   auto transformed = transform_->Transform(k.user_key());
   auto bucket = GetBucket(transformed);
   if (bucket != nullptr) {
@@ -296,6 +316,7 @@ void HashSkipListRep::Get(const LookupKey& k, void* callback_args,
 }
 
 MemTableRep::Iterator* HashSkipListRep::GetIterator(Arena* arena) {
+  DBUG_TRACE;
   // allocate a new arena of similar size to the one currently in use
   Arena* new_arena = new Arena(allocator_->BlockSize());
   auto list = new Bucket(compare_, new_arena);
@@ -317,6 +338,7 @@ MemTableRep::Iterator* HashSkipListRep::GetIterator(Arena* arena) {
 }
 
 MemTableRep::Iterator* HashSkipListRep::GetDynamicPrefixIterator(Arena* arena) {
+  DBUG_TRACE;
   if (arena == nullptr) {
     return new DynamicIterator(*this);
   } else {
@@ -326,7 +348,7 @@ MemTableRep::Iterator* HashSkipListRep::GetDynamicPrefixIterator(Arena* arena) {
 }
 
 struct HashSkipListRepOptions {
-  static const char* kName() { return "HashSkipListRepFactoryOptions"; }
+  static const char* kName() { DBUG_TRACE; return "HashSkipListRepFactoryOptions"; }
   size_t bucket_count;
   int32_t skiplist_height;
   int32_t skiplist_branching_factor;
@@ -362,11 +384,11 @@ class HashSkipListRepFactory : public MemTableRepFactory {
                                  const SliceTransform* transform,
                                  Logger* logger) override;
 
-  static const char* kClassName() { return "HashSkipListRepFactory"; }
-  static const char* kNickName() { return "prefix_hash"; }
+  static const char* kClassName() { DBUG_TRACE; return "HashSkipListRepFactory"; }
+  static const char* kNickName() { DBUG_TRACE; return "prefix_hash"; }
 
-  const char* Name() const override { return kClassName(); }
-  const char* NickName() const override { return kNickName(); }
+  const char* Name() const override { DBUG_TRACE; return kClassName(); }
+  const char* NickName() const override { DBUG_TRACE; return kNickName(); }
 
  private:
   HashSkipListRepOptions options_;
@@ -377,6 +399,7 @@ class HashSkipListRepFactory : public MemTableRepFactory {
 MemTableRep* HashSkipListRepFactory::CreateMemTableRep(
     const MemTableRep::KeyComparator& compare, Allocator* allocator,
     const SliceTransform* transform, Logger* /*logger*/) {
+  DBUG_TRACE;
   return new HashSkipListRep(compare, allocator, transform,
                              options_.bucket_count, options_.skiplist_height,
                              options_.skiplist_branching_factor);
@@ -385,6 +408,7 @@ MemTableRep* HashSkipListRepFactory::CreateMemTableRep(
 MemTableRepFactory* NewHashSkipListRepFactory(
     size_t bucket_count, int32_t skiplist_height,
     int32_t skiplist_branching_factor) {
+  DBUG_TRACE;
   return new HashSkipListRepFactory(bucket_count, skiplist_height,
                                     skiplist_branching_factor);
 }

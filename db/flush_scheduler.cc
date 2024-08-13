@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "db/flush_scheduler.h"
 
 #include <cassert>
@@ -12,6 +13,7 @@
 namespace ROCKSDB_NAMESPACE {
 
 void FlushScheduler::ScheduleWork(ColumnFamilyData* cfd) {
+DBUG_TRACE;
 #ifndef NDEBUG
   {
     std::lock_guard<std::mutex> lock(checking_mutex_);
@@ -34,6 +36,7 @@ void FlushScheduler::ScheduleWork(ColumnFamilyData* cfd) {
 }
 
 ColumnFamilyData* FlushScheduler::TakeNextColumnFamily() {
+  DBUG_TRACE;
   while (true) {
     if (head_.load(std::memory_order_relaxed) == nullptr) {
       return nullptr;
@@ -65,6 +68,7 @@ ColumnFamilyData* FlushScheduler::TakeNextColumnFamily() {
 }
 
 bool FlushScheduler::Empty() {
+  DBUG_TRACE;
   auto rv = head_.load(std::memory_order_relaxed) == nullptr;
 #ifndef NDEBUG
   std::lock_guard<std::mutex> lock(checking_mutex_);
@@ -76,6 +80,7 @@ bool FlushScheduler::Empty() {
 }
 
 void FlushScheduler::Clear() {
+  DBUG_TRACE;
   ColumnFamilyData* cfd;
   while ((cfd = TakeNextColumnFamily()) != nullptr) {
     cfd->UnrefAndTryDelete();

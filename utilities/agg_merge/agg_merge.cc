@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "rocksdb/utilities/agg_merge.h"
 
 #include <cassert>
@@ -28,6 +29,7 @@ const std::string kErrorFuncName = "kErrorFuncName";
 
 Status AddAggregator(const std::string& function_name,
                      std::unique_ptr<Aggregator>&& agg) {
+  DBUG_TRACE;
   if (function_name == kErrorFuncName) {
     return Status::InvalidArgument(
         "Cannot register function name kErrorFuncName");
@@ -40,6 +42,7 @@ AggMergeOperator::AggMergeOperator() = default;
 
 std::string EncodeAggFuncAndPayloadNoCheck(const Slice& function_name,
                                            const Slice& value) {
+  DBUG_TRACE;
   std::string result;
   PutLengthPrefixedSlice(&result, function_name);
   result += value.ToString();
@@ -48,6 +51,7 @@ std::string EncodeAggFuncAndPayloadNoCheck(const Slice& function_name,
 
 Status EncodeAggFuncAndPayload(const Slice& function_name, const Slice& payload,
                                std::string& output) {
+  DBUG_TRACE;
   if (function_name == kErrorFuncName) {
     return Status::InvalidArgument("Cannot use error function name");
   }
@@ -60,11 +64,13 @@ Status EncodeAggFuncAndPayload(const Slice& function_name, const Slice& payload,
 }
 
 bool ExtractAggFuncAndValue(const Slice& op, Slice& func, Slice& value) {
+  DBUG_TRACE;
   value = op;
   return GetLengthPrefixedSlice(&value, &func);
 }
 
 bool ExtractList(const Slice& encoded_list, std::vector<Slice>& decoded_list) {
+  DBUG_TRACE;
   decoded_list.clear();
   Slice list_slice = encoded_list;
   Slice item;
@@ -77,6 +83,7 @@ bool ExtractList(const Slice& encoded_list, std::vector<Slice>& decoded_list) {
 class AggMergeOperator::Accumulator {
  public:
   bool Add(const Slice& op, bool is_partial_aggregation) {
+    DBUG_TRACE;
     if (ignore_operands_) {
       return true;
     }
@@ -132,6 +139,7 @@ class AggMergeOperator::Accumulator {
   // Return false if aggregation fails.
   // One possible reason
   bool GetResult(std::string& result) {
+    DBUG_TRACE;
     if (!func_valid_) {
       return false;
     }
@@ -147,6 +155,7 @@ class AggMergeOperator::Accumulator {
   }
 
   void Clear() {
+    DBUG_TRACE;
     func_.clear();
     values_.clear();
     aggregated_.clear();
@@ -170,6 +179,7 @@ class AggMergeOperator::Accumulator {
 // threads so we cannot simply create one Aggregator and reuse.
 // We use thread local instances instead.
 AggMergeOperator::Accumulator& AggMergeOperator::GetTLSAccumulator() {
+  DBUG_TRACE;
   static thread_local Accumulator tls_acc;
   tls_acc.Clear();
   return tls_acc;
@@ -177,6 +187,7 @@ AggMergeOperator::Accumulator& AggMergeOperator::GetTLSAccumulator() {
 
 void AggMergeOperator::PackAllMergeOperands(const MergeOperationInput& merge_in,
                                             MergeOperationOutput& merge_out) {
+  DBUG_TRACE;
   merge_out.new_value = "";
   PutLengthPrefixedSlice(&merge_out.new_value, kErrorFuncName);
   if (merge_in.existing_value != nullptr) {
@@ -189,6 +200,7 @@ void AggMergeOperator::PackAllMergeOperands(const MergeOperationInput& merge_in,
 
 bool AggMergeOperator::FullMergeV2(const MergeOperationInput& merge_in,
                                    MergeOperationOutput* merge_out) const {
+  DBUG_TRACE;
   Accumulator& agg = GetTLSAccumulator();
   if (merge_in.existing_value != nullptr) {
     agg.Add(*merge_in.existing_value, /*is_partial_aggregation=*/false);
@@ -213,6 +225,7 @@ bool AggMergeOperator::PartialMergeMulti(const Slice& /*key*/,
                                          const std::deque<Slice>& operand_list,
                                          std::string* new_value,
                                          Logger* /*logger*/) const {
+  DBUG_TRACE;
   Accumulator& agg = GetTLSAccumulator();
   bool do_aggregation = true;
   for (const Slice& item : operand_list) {
@@ -229,6 +242,7 @@ bool AggMergeOperator::PartialMergeMulti(const Slice& /*key*/,
 }
 
 std::shared_ptr<MergeOperator> GetAggMergeOperator() {
+  DBUG_TRACE;
   STATIC_AVOID_DESTRUCTION(std::shared_ptr<MergeOperator>, instance)
   (std::make_shared<AggMergeOperator>());
   assert(instance);

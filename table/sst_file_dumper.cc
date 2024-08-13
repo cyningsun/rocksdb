@@ -4,6 +4,7 @@
 //  (found in the LICENSE.Apache file in the root directory).
 //
 
+#include "rocksdb/util/dbug.h"
 #include "table/sst_file_dumper.h"
 
 #include <chrono>
@@ -71,6 +72,7 @@ SstFileDumper::SstFileDumper(const Options& options,
 const char* testFileName = "test_file_name";
 
 Status SstFileDumper::GetTableReader(const std::string& file_path) {
+  DBUG_TRACE;
   // Warning about 'magic_number' being uninitialized shows up only in UBsan
   // builds. Though access is guarded by 's.ok()' checks, fix the issue to
   // avoid any warnings.
@@ -171,6 +173,7 @@ Status SstFileDumper::NewTableReader(
     const ImmutableOptions& /*ioptions*/, const EnvOptions& /*soptions*/,
     const InternalKeyComparator& /*internal_comparator*/, uint64_t file_size,
     std::unique_ptr<TableReader>* /*table_reader*/) {
+  DBUG_TRACE;
   auto t_opt = TableReaderOptions(
       ioptions_, moptions_.prefix_extractor, soptions_, internal_comparator_,
       0 /* block_protection_bytes_per_key */, false /* skip_filters */,
@@ -200,6 +203,7 @@ Status SstFileDumper::NewTableReader(
 }
 
 Status SstFileDumper::VerifyChecksum() {
+  DBUG_TRACE;
   assert(read_options_.verify_checksums);
   // We could pass specific readahead setting into read options if needed.
   return table_reader_->VerifyChecksum(read_options_,
@@ -207,6 +211,7 @@ Status SstFileDumper::VerifyChecksum() {
 }
 
 Status SstFileDumper::DumpTable(const std::string& out_filename) {
+  DBUG_TRACE;
   std::unique_ptr<WritableFile> out_file;
   Env* env = options_.env;
   Status s = env->NewWritableFile(out_filename, &out_file, soptions_);
@@ -224,6 +229,7 @@ Status SstFileDumper::DumpTable(const std::string& out_filename) {
 Status SstFileDumper::CalculateCompressedTableSize(
     const TableBuilderOptions& tb_options, size_t block_size,
     uint64_t* num_data_blocks, uint64_t* compressed_table_size) {
+  DBUG_TRACE;
   std::unique_ptr<Env> env(NewMemEnv(options_.env));
   std::unique_ptr<WritableFileWriter> dest_writer;
   Status s =
@@ -265,6 +271,7 @@ Status SstFileDumper::ShowAllCompressionSizes(
     int32_t compress_level_from, int32_t compress_level_to,
     uint32_t max_dict_bytes, uint32_t zstd_max_train_bytes,
     uint64_t max_dict_buffer_bytes, bool use_zstd_dict_trainer) {
+  DBUG_TRACE;
   fprintf(stdout, "Block Size: %" ROCKSDB_PRIszt "\n", block_size);
   for (auto& i : compression_types) {
     if (CompressionTypeSupported(i.first)) {
@@ -292,6 +299,7 @@ Status SstFileDumper::ShowAllCompressionSizes(
 Status SstFileDumper::ShowCompressionSize(
     size_t block_size, CompressionType compress_type,
     const CompressionOptions& compress_opt) {
+  DBUG_TRACE;
   Options opts;
   opts.statistics = ROCKSDB_NAMESPACE::CreateDBStatistics();
   opts.statistics->set_stats_level(StatsLevel::kAll);
@@ -374,6 +382,7 @@ Status SstFileDumper::ReadTableProperties(uint64_t table_magic_number,
                                           RandomAccessFileReader* file,
                                           uint64_t file_size,
                                           FilePrefetchBuffer* prefetch_buffer) {
+  DBUG_TRACE;
   Status s = ROCKSDB_NAMESPACE::ReadTableProperties(
       file, file_size, table_magic_number, ioptions_, read_options_,
       &table_properties_,
@@ -388,6 +397,7 @@ Status SstFileDumper::ReadTableProperties(uint64_t table_magic_number,
 
 Status SstFileDumper::SetTableOptionsByMagicNumber(
     uint64_t table_magic_number) {
+  DBUG_TRACE;
   assert(table_properties_);
   if (table_magic_number == kBlockBasedTableMagicNumber ||
       table_magic_number == kLegacyBlockBasedTableMagicNumber) {
@@ -449,6 +459,7 @@ Status SstFileDumper::SetTableOptionsByMagicNumber(
 }
 
 Status SstFileDumper::SetOldTableOptions() {
+  DBUG_TRACE;
   assert(table_properties_ == nullptr);
   options_.table_factory = std::make_shared<BlockBasedTableFactory>();
   if (!silent_) {
@@ -462,6 +473,7 @@ Status SstFileDumper::ReadSequential(bool print_kv, uint64_t read_num_limit,
                                      bool has_from, const std::string& from_key,
                                      bool has_to, const std::string& to_key,
                                      bool use_from_as_prefix) {
+  DBUG_TRACE;
   if (!table_reader_) {
     return init_result_;
   }
@@ -591,6 +603,7 @@ Status SstFileDumper::ReadSequential(bool print_kv, uint64_t read_num_limit,
 // Provides TableProperties to API user
 Status SstFileDumper::ReadTableProperties(
     std::shared_ptr<const TableProperties>* table_properties) {
+  DBUG_TRACE;
   if (!table_reader_) {
     return init_result_;
   }

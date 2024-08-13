@@ -4,6 +4,7 @@
 //  (found in the LICENSE.Apache file in the root directory).
 
 
+#include "rocksdb/util/dbug.h"
 #include "utilities/transactions/optimistic_transaction_db_impl.h"
 
 #include <string>
@@ -19,6 +20,7 @@ namespace ROCKSDB_NAMESPACE {
 
 std::shared_ptr<OccLockBuckets> MakeSharedOccLockBuckets(size_t bucket_count,
                                                          bool cache_aligned) {
+  DBUG_TRACE;
   if (cache_aligned) {
     return std::make_shared<OccLockBucketsImpl<true>>(bucket_count);
   } else {
@@ -29,6 +31,7 @@ std::shared_ptr<OccLockBuckets> MakeSharedOccLockBuckets(size_t bucket_count,
 Transaction* OptimisticTransactionDBImpl::BeginTransaction(
     const WriteOptions& write_options,
     const OptimisticTransactionOptions& txn_options, Transaction* old_txn) {
+  DBUG_TRACE;
   if (old_txn != nullptr) {
     ReinitializeTransaction(old_txn, write_options, txn_options);
     return old_txn;
@@ -40,6 +43,7 @@ Transaction* OptimisticTransactionDBImpl::BeginTransaction(
 Status OptimisticTransactionDB::Open(const Options& options,
                                      const std::string& dbname,
                                      OptimisticTransactionDB** dbptr) {
+  DBUG_TRACE;
   DBOptions db_options(options);
   ColumnFamilyOptions cf_options(options);
   std::vector<ColumnFamilyDescriptor> column_families;
@@ -61,6 +65,7 @@ Status OptimisticTransactionDB::Open(
     const std::vector<ColumnFamilyDescriptor>& column_families,
     std::vector<ColumnFamilyHandle*>* handles,
     OptimisticTransactionDB** dbptr) {
+  DBUG_TRACE;
   return OptimisticTransactionDB::Open(db_options,
                                        OptimisticTransactionDBOptions(), dbname,
                                        column_families, handles, dbptr);
@@ -73,6 +78,7 @@ Status OptimisticTransactionDB::Open(
     const std::vector<ColumnFamilyDescriptor>& column_families,
     std::vector<ColumnFamilyHandle*>* handles,
     OptimisticTransactionDB** dbptr) {
+  DBUG_TRACE;
   Status s;
   DB* db;
 
@@ -102,6 +108,7 @@ Status OptimisticTransactionDB::Open(
 void OptimisticTransactionDBImpl::ReinitializeTransaction(
     Transaction* txn, const WriteOptions& write_options,
     const OptimisticTransactionOptions& txn_options) {
+  DBUG_TRACE;
   assert(dynamic_cast<OptimisticTransaction*>(txn) != nullptr);
   auto txn_impl = static_cast<OptimisticTransaction*>(txn);
 

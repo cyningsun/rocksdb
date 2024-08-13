@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "merge_operator.h"
 
 #include <cassert>
@@ -36,6 +37,7 @@ CassandraValueMergeOperator::CassandraValueMergeOperator(
 bool CassandraValueMergeOperator::FullMergeV2(
     const MergeOperationInput& merge_in,
     MergeOperationOutput* merge_out) const {
+  DBUG_TRACE;
   // Clear the *new_value for writing.
   merge_out->new_value.clear();
   std::vector<RowValue> row_values;
@@ -59,6 +61,7 @@ bool CassandraValueMergeOperator::FullMergeV2(
 bool CassandraValueMergeOperator::PartialMergeMulti(
     const Slice& /*key*/, const std::deque<Slice>& operand_list,
     std::string* new_value, Logger* /*logger*/) const {
+  DBUG_TRACE;
   // Clear the *new_value for writing.
   assert(new_value);
   new_value->clear();

@@ -1,5 +1,6 @@
 /* -*- mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*- */
 // vim: ft=cpp:expandtab:ts=8:sw=4:softtabstop=4:
+#include "rocksdb/util/dbug.h"
 #ifndef OS_WIN
 #ident "$Id$"
 /*======
@@ -62,16 +63,19 @@ Copyright (c) 2006, 2015, Percona and/or its affiliates. All rights reserved.
 namespace toku {
 
 bool range_buffer::record_header::left_is_infinite(void) const {
+  DBUG_TRACE;
   return left_neg_inf || left_pos_inf;
 }
 
 bool range_buffer::record_header::right_is_infinite(void) const {
+  DBUG_TRACE;
   return right_neg_inf || right_pos_inf;
 }
 
 void range_buffer::record_header::init(const DBT *left_key,
                                        const DBT *right_key,
                                        bool is_exclusive) {
+  DBUG_TRACE;
   is_exclusive_lock = is_exclusive;
   left_neg_inf = left_key == toku_dbt_negative_infinity();
   left_pos_inf = left_key == toku_dbt_positive_infinity();
@@ -88,6 +92,7 @@ void range_buffer::record_header::init(const DBT *left_key,
 }
 
 const DBT *range_buffer::iterator::record::get_left_key(void) const {
+  DBUG_TRACE;
   if (_header.left_neg_inf) {
     return toku_dbt_negative_infinity();
   } else if (_header.left_pos_inf) {
@@ -98,6 +103,7 @@ const DBT *range_buffer::iterator::record::get_left_key(void) const {
 }
 
 const DBT *range_buffer::iterator::record::get_right_key(void) const {
+  DBUG_TRACE;
   if (_header.right_neg_inf) {
     return toku_dbt_negative_infinity();
   } else if (_header.right_pos_inf) {
@@ -108,10 +114,12 @@ const DBT *range_buffer::iterator::record::get_right_key(void) const {
 }
 
 size_t range_buffer::iterator::record::size(void) const {
+  DBUG_TRACE;
   return sizeof(record_header) + _header.left_key_size + _header.right_key_size;
 }
 
 void range_buffer::iterator::record::deserialize(const char *buf) {
+  DBUG_TRACE;
   size_t current = 0;
 
   // deserialize the header
@@ -152,11 +160,13 @@ toku::range_buffer::iterator::iterator(const range_buffer *buffer)
 }
 
 void range_buffer::iterator::reset_current_chunk() {
+  DBUG_TRACE;
   _current_chunk_base = _ma_chunk_iterator.current(&_current_chunk_max);
   _current_chunk_offset = 0;
 }
 
 bool range_buffer::iterator::current(record *rec) {
+  DBUG_TRACE;
   if (_current_chunk_offset < _current_chunk_max) {
     const char *buf = static_cast<const char *>(_current_chunk_base);
     rec->deserialize(buf + _current_chunk_offset);
@@ -169,6 +179,7 @@ bool range_buffer::iterator::current(record *rec) {
 
 // move the iterator to the next record in the buffer
 void range_buffer::iterator::next(void) {
+  DBUG_TRACE;
   invariant(_current_chunk_offset < _current_chunk_max);
   invariant(_current_rec_size > 0);
 
@@ -187,6 +198,7 @@ void range_buffer::iterator::next(void) {
 }
 
 void range_buffer::create(void) {
+  DBUG_TRACE;
   // allocate buffer space lazily instead of on creation. this way,
   // no malloc/free is done if the transaction ends up taking no locks.
   _arena.create(0);
@@ -195,6 +207,7 @@ void range_buffer::create(void) {
 
 void range_buffer::append(const DBT *left_key, const DBT *right_key,
                           bool is_write_request) {
+  DBUG_TRACE;
   // if the keys are equal, then only one copy is stored.
   if (toku_dbt_equals(left_key, right_key)) {
     invariant(left_key->size <= MAX_KEY_SIZE);
@@ -207,18 +220,20 @@ void range_buffer::append(const DBT *left_key, const DBT *right_key,
   _num_ranges++;
 }
 
-bool range_buffer::is_empty(void) const { return total_memory_size() == 0; }
+bool range_buffer::is_empty(void) const { DBUG_TRACE; return total_memory_size() == 0; }
 
 uint64_t range_buffer::total_memory_size(void) const {
+  DBUG_TRACE;
   return _arena.total_size_in_use();
 }
 
-int range_buffer::get_num_ranges(void) const { return _num_ranges; }
+int range_buffer::get_num_ranges(void) const { DBUG_TRACE; return _num_ranges; }
 
-void range_buffer::destroy(void) { _arena.destroy(); }
+void range_buffer::destroy(void) { DBUG_TRACE; _arena.destroy(); }
 
 void range_buffer::append_range(const DBT *left_key, const DBT *right_key,
                                 bool is_exclusive) {
+  DBUG_TRACE;
   size_t record_length =
       sizeof(record_header) + left_key->size + right_key->size;
   char *buf = static_cast<char *>(_arena.malloc_from_arena(record_length));
@@ -243,6 +258,7 @@ void range_buffer::append_range(const DBT *left_key, const DBT *right_key,
 }
 
 void range_buffer::append_point(const DBT *key, bool is_exclusive) {
+  DBUG_TRACE;
   size_t record_length = sizeof(record_header) + key->size;
   char *buf = static_cast<char *>(_arena.malloc_from_arena(record_length));
 

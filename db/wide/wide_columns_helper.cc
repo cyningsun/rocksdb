@@ -3,6 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 
+#include "rocksdb/util/dbug.h"
 #include "db/wide/wide_columns_helper.h"
 
 #include <algorithm>
@@ -13,6 +14,7 @@
 namespace ROCKSDB_NAMESPACE {
 void WideColumnsHelper::DumpWideColumns(const WideColumns& columns,
                                         std::ostream& os, bool hex) {
+  DBUG_TRACE;
   if (columns.empty()) {
     return;
   }
@@ -33,6 +35,7 @@ void WideColumnsHelper::DumpWideColumns(const WideColumns& columns,
 
 Status WideColumnsHelper::DumpSliceAsWideColumns(const Slice& value,
                                                  std::ostream& os, bool hex) {
+  DBUG_TRACE;
   WideColumns columns;
   Slice value_copy = value;
   const Status s = WideColumnSerialization::Deserialize(value_copy, columns);
@@ -43,6 +46,7 @@ Status WideColumnsHelper::DumpSliceAsWideColumns(const Slice& value,
 }
 
 void WideColumnsHelper::SortColumns(WideColumns& columns) {
+  DBUG_TRACE;
   std::sort(columns.begin(), columns.end(),
             [](const WideColumn& lhs, const WideColumn& rhs) {
               return lhs.name().compare(rhs.name()) < 0;

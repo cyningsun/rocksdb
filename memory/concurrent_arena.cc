@@ -7,6 +7,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include "rocksdb/util/dbug.h"
 #include "memory/concurrent_arena.h"
 
 #include <thread>
@@ -35,6 +36,7 @@ ConcurrentArena::ConcurrentArena(size_t block_size, AllocTracker* tracker,
 }
 
 ConcurrentArena::Shard* ConcurrentArena::Repick() {
+  DBUG_TRACE;
   auto shard_and_index = shards_.AccessElementAndIndex();
   // even if we are cpu 0, use a non-zero tls_cpuid so we can tell we
   // have repicked
