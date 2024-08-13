@@ -98,7 +98,7 @@ def process_node(source_file, node, file_content, debug_code):
 
 def insert_include_after_includes(file_content, include_line):
     lines = file_content.splitlines()
-    pattern = re.compile(r'^\s*(#include|#ifndef|#ifdef)')
+    pattern = re.compile(r'^\s*(#include|#ifndef|#ifdef|#if)')
     indices = [i for i, line in enumerate(lines) if pattern.match(line) ]
     if indices:
         first_index = indices[0]
