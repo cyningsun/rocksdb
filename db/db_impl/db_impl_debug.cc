@@ -9,6 +9,7 @@
 
 #ifndef NDEBUG
 
+#include "db/blob/blob_file_cache.h"
 #include "db/column_family.h"
 #include "db/db_impl/db_impl.h"
 #include "db/error_handler.h"
@@ -199,6 +200,11 @@ Status DBImpl::TEST_GetBGError() {
   return error_handler_.GetBGError();
 }
 
+bool DBImpl::TEST_IsRecoveryInProgress() {
+  InstrumentedMutexLock l(&mutex_);
+  return error_handler_.IsRecoveryInProgress();
+}
+
 void DBImpl::TEST_LockMutex() { mutex_.Lock(); }
 
 void DBImpl::TEST_UnlockMutex() { mutex_.Unlock(); }
@@ -227,23 +233,16 @@ uint64_t DBImpl::TEST_LogfileNumber() {
   return logfile_number_;
 }
 
-Status DBImpl::TEST_GetAllImmutableCFOptions(
-    std::unordered_map<std::string, const ImmutableCFOptions*>* iopts_map) {
-  std::vector<std::string> cf_names;
-  std::vector<const ImmutableCFOptions*> iopts;
-  {
-    InstrumentedMutexLock l(&mutex_);
-    for (auto cfd : *versions_->GetColumnFamilySet()) {
-      cf_names.push_back(cfd->GetName());
-      iopts.push_back(cfd->ioptions());
+void DBImpl::TEST_GetAllBlockCaches(
+    std::unordered_set<const Cache*>* cache_set) {
+  InstrumentedMutexLock l(&mutex_);
+  for (auto cfd : *versions_->GetColumnFamilySet()) {
+    if (const auto bbto =
+            cfd->GetCurrentMutableCFOptions()
+                ->table_factory->GetOptions<BlockBasedTableOptions>()) {
+      cache_set->insert(bbto->block_cache.get());
     }
   }
-  iopts_map->clear();
-  for (size_t i = 0; i < cf_names.size(); ++i) {
-    iopts_map->insert({cf_names[i], iopts[i]});
-  }
-
-  return Status::OK();
 }
 
 uint64_t DBImpl::TEST_FindMinLogContainingOutstandingPrep() {
@@ -259,7 +258,7 @@ size_t DBImpl::TEST_LogsWithPrepSize() {
 }
 
 uint64_t DBImpl::TEST_FindMinPrepLogReferencedByMemTable() {
-  autovector<MemTable*> empty_list;
+  autovector<ReadOnlyMemTable*> empty_list;
   return FindMinPrepLogReferencedByMemTable(versions_.get(), empty_list);
 }
 
@@ -322,6 +321,50 @@ void DBImpl::TEST_DeleteObsoleteFiles() {
 size_t DBImpl::TEST_EstimateInMemoryStatsHistorySize() const {
   InstrumentedMutexLock l(&const_cast<DBImpl*>(this)->stats_history_mutex_);
   return EstimateInMemoryStatsHistorySize();
+}
+
+void DBImpl::TEST_VerifyNoObsoleteFilesCached(
+    bool db_mutex_already_held) const {
+  // This check is somewhat expensive and obscure to make a part of every
+  // unit test in every build variety. Thus, we only enable it for ASAN builds.
+  if (!kMustFreeHeapAllocations) {
+    return;
+  }
+
+  std::optional<InstrumentedMutexLock> l;
+  if (db_mutex_already_held) {
+    mutex_.AssertHeld();
+  } else {
+    l.emplace(&mutex_);
+  }
+
+  std::vector<uint64_t> live_files;
+  for (auto cfd : *versions_->GetColumnFamilySet()) {
+    if (cfd->IsDropped()) {
+      continue;
+    }
+    // Sneakily add both SST and blob files to the same list
+    cfd->current()->AddLiveFiles(&live_files, &live_files);
+  }
+  std::sort(live_files.begin(), live_files.end());
+
+  auto fn = [&live_files](const Slice& key, Cache::ObjectPtr, size_t,
+                          const Cache::CacheItemHelper* helper) {
+    if (helper != BlobFileCache::GetHelper()) {
+      // Skip non-blob files for now
+      // FIXME: diagnose and fix the leaks of obsolete SST files revealed in
+      // unit tests.
+      return;
+    }
+    // See TableCache and BlobFileCache
+    assert(key.size() == sizeof(uint64_t));
+    uint64_t file_number;
+    GetUnaligned(reinterpret_cast<const uint64_t*>(key.data()), &file_number);
+    // Assert file is in sorted live_files
+    assert(
+        std::binary_search(live_files.begin(), live_files.end(), file_number));
+  };
+  table_cache_->ApplyToAllEntries(fn, {});
 }
 }  // namespace ROCKSDB_NAMESPACE
 #endif  // NDEBUG
