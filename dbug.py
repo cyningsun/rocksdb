@@ -10,7 +10,7 @@ import json
 import shlex
 
 #cindex.Config.set_library_file("/usr/local/opt/llvm/lib/libclang.dylib")
-cindex.Config.set_library_file("/usr/lib/llvm-14/lib/libclang.so.1")
+cindex.Config.set_library_file("/usr/lib/llvm-12/lib/libclang.so.1")
 
 def get_function_body_lines(node):
     start_line = None
@@ -38,7 +38,7 @@ def insert_line_after_function(file_content, node, insert_line):
         return file_content, changed
     #print(f'Function body start: {body_start}, end: {body_end}')
     if break_start_line == break_end_line:
-        print(f'【inline】break_start_line: {break_start_line}, break_end_line: {break_end_line}')
+        print(f'[inline] break_start_line: {break_start_line}, break_end_line: {break_end_line}')
         # insert inline after { 
         for i in range(break_start_line-1, break_end_line):
             print(f'len(lines): {len(lines)}, i: {i}')
@@ -53,7 +53,7 @@ def insert_line_after_function(file_content, node, insert_line):
                     changed = True
                 break
     else:
-        print(f'【newline】break_start_line: {break_start_line}, break_end_line: {break_end_line}')
+        print(f'[newline] break_start_line: {break_start_line}, break_end_line: {break_end_line}')
         # insert newline after {
         for i in range(break_start_line-1, break_end_line):
             if '{' in lines[i]:

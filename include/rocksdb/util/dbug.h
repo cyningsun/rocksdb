@@ -32,6 +32,7 @@
 #endif
 #include <stdlib.h>
 #include <string.h>
+#include <cstdio>
 
 #if !defined(NDEBUG)
 #include <assert.h>  // IWYU pragma: keep
@@ -231,7 +232,8 @@ class AutoDebugTrace {
 #ifdef _WIN32
 #define DBUG_SUICIDE() DBUG_EXIT()
 #else
-[[noreturn]] extern void _db_suicide_();
+//[[noreturn]] extern void _db_suicide_();
+extern void _db_suicide_();
 extern void _db_flush_gcov_();
 #define DBUG_SUICIDE() (_db_flush_(), _db_suicide_())
 #endif

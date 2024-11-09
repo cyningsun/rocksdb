@@ -12,7 +12,6 @@ StreamingCompress* StreamingCompress::Create(CompressionType compression_type,
                                              const CompressionOptions& opts,
                                              uint32_t compress_format_version,
                                              size_t max_output_len) {
-  DBUG_TRACE;
   switch (compression_type) {
     case kZSTD: {
       if (!ZSTD_Streaming_Supported()) {
@@ -29,7 +28,6 @@ StreamingCompress* StreamingCompress::Create(CompressionType compression_type,
 StreamingUncompress* StreamingUncompress::Create(
     CompressionType compression_type, uint32_t compress_format_version,
     size_t max_output_len) {
-  DBUG_TRACE;
   switch (compression_type) {
     case kZSTD: {
       if (!ZSTD_Streaming_Supported()) {
@@ -45,7 +43,6 @@ StreamingUncompress* StreamingUncompress::Create(
 
 int ZSTDStreamingCompress::Compress(const char* input, size_t input_size,
                                     char* output, size_t* output_pos) {
-  DBUG_TRACE;
   assert(input != nullptr && output != nullptr && output_pos != nullptr);
   *output_pos = 0;
   // Don't need to compress an empty input
@@ -81,7 +78,6 @@ int ZSTDStreamingCompress::Compress(const char* input, size_t input_size,
 }
 
 void ZSTDStreamingCompress::Reset() {
-DBUG_TRACE;
 #ifdef ZSTD_ADVANCED
   ZSTD_CCtx_reset(cctx_, ZSTD_ResetDirective::ZSTD_reset_session_only);
   input_buffer_ = {/*src=*/nullptr, /*size=*/0, /*pos=*/0};
@@ -90,7 +86,6 @@ DBUG_TRACE;
 
 int ZSTDStreamingUncompress::Uncompress(const char* input, size_t input_size,
                                         char* output, size_t* output_pos) {
-  DBUG_TRACE;
   assert(output != nullptr && output_pos != nullptr);
   *output_pos = 0;
   // Don't need to uncompress an empty input
@@ -119,7 +114,6 @@ int ZSTDStreamingUncompress::Uncompress(const char* input, size_t input_size,
 }
 
 void ZSTDStreamingUncompress::Reset() {
-DBUG_TRACE;
 #ifdef ZSTD_ADVANCED
   ZSTD_DCtx_reset(dctx_, ZSTD_ResetDirective::ZSTD_reset_session_only);
   input_buffer_ = {/*src=*/nullptr, /*size=*/0, /*pos=*/0};
