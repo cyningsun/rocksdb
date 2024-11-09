@@ -2635,6 +2635,9 @@ ifneq ("$(ROCKS_DEP_RULES)", "")
 -include $(DEPFILES)
 endif
 
-
+# pre steps:
+# 1. cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1
+# 2. apt install clang-12 llvm-12
+# 3. pip3 install clang==12.0.1
 DBUG:
 	python3 dbug.py ./build/compile_commands.json ./ "#include \"rocksdb/util/dbug.h\"" "DBUG_TRACE;"
